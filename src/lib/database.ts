@@ -1,13 +1,13 @@
 import { createServerClient } from './supabase';
 import type { Tables, InsertDto, UpdateDto } from './supabase';
 
-// Create server client for database operations
-const supabase = createServerClient();
+// Get server client for database operations (singleton)
+const getSupabase = () => createServerClient();
 
 // Programs API
 export const programsAPI = {
   async getAll(userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('programs')
       .select('*')
       .eq('user_id', userId)
@@ -18,7 +18,7 @@ export const programsAPI = {
   },
 
   async getById(id: string, userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('programs')
       .select('*')
       .eq('id', id)
@@ -30,7 +30,7 @@ export const programsAPI = {
   },
 
   async create(program: InsertDto<'programs'>) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('programs')
       .insert(program)
       .select()
@@ -41,7 +41,7 @@ export const programsAPI = {
   },
 
   async update(id: string, updates: UpdateDto<'programs'>, userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('programs')
       .update(updates)
       .eq('id', id)
@@ -54,7 +54,7 @@ export const programsAPI = {
   },
 
   async delete(id: string, userId: string) {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('programs')
       .delete()
       .eq('id', id)
@@ -68,7 +68,7 @@ export const programsAPI = {
 // Affiliates API
 export const affiliatesAPI = {
   async getAll(userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('affiliates')
       .select(`
         *,
@@ -88,7 +88,7 @@ export const affiliatesAPI = {
   },
 
   async getById(id: string, userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('affiliates')
       .select(`
         *,
@@ -122,7 +122,7 @@ export const affiliatesAPI = {
       affiliate.referral_link = `${baseUrl}/ref/${affiliate.referral_code}`;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('affiliates')
       .insert(affiliate)
       .select(`
@@ -142,7 +142,7 @@ export const affiliatesAPI = {
   },
 
   async update(id: string, updates: UpdateDto<'affiliates'>, userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('affiliates')
       .update(updates)
       .eq('id', id)
@@ -164,7 +164,7 @@ export const affiliatesAPI = {
   },
 
   async delete(id: string, userId: string) {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('affiliates')
       .delete()
       .eq('id', id)
@@ -178,7 +178,7 @@ export const affiliatesAPI = {
 // Referrals API
 export const referralsAPI = {
   async getAll(userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('referrals')
       .select(`
         *,
@@ -200,7 +200,7 @@ export const referralsAPI = {
   },
 
   async getById(id: string, userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('referrals')
       .select(`
         *,
@@ -223,7 +223,7 @@ export const referralsAPI = {
   },
 
   async getByAffiliateId(affiliateId: string, userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('referrals')
       .select(`
         *,
@@ -246,7 +246,7 @@ export const referralsAPI = {
   },
 
   async create(referral: InsertDto<'referrals'>) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('referrals')
       .insert(referral)
       .select(`
@@ -272,7 +272,7 @@ export const referralsAPI = {
   },
 
   async update(id: string, updates: UpdateDto<'referrals'>, userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('referrals')
       .update(updates)
       .eq('id', id)
@@ -297,7 +297,7 @@ export const referralsAPI = {
 
   async updateAffiliateStats(affiliateId: string, userId: string) {
     // Get all referrals for this affiliate
-    const { data: referrals, error: referralsError } = await supabase
+    const { data: referrals, error: referralsError } = await getSupabase()
       .from('referrals')
       .select('commission, status')
       .eq('affiliate_id', affiliateId)
@@ -312,7 +312,7 @@ export const referralsAPI = {
       .reduce((sum, r) => sum + Number(r.commission), 0);
 
     // Update affiliate
-    const { error: updateError } = await supabase
+    const { error: updateError } = await getSupabase()
       .from('affiliates')
       .update({
         total_referrals: totalReferrals,
@@ -328,7 +328,7 @@ export const referralsAPI = {
 // Payouts API
 export const payoutsAPI = {
   async getAll(userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('payouts')
       .select(`
         *,
@@ -346,7 +346,7 @@ export const payoutsAPI = {
   },
 
   async getById(id: string, userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('payouts')
       .select(`
         *,
@@ -365,7 +365,7 @@ export const payoutsAPI = {
   },
 
   async getByAffiliateId(affiliateId: string, userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('payouts')
       .select(`
         *,
@@ -384,7 +384,7 @@ export const payoutsAPI = {
   },
 
   async create(payout: InsertDto<'payouts'>) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('payouts')
       .insert(payout)
       .select(`
@@ -402,7 +402,7 @@ export const payoutsAPI = {
   },
 
   async update(id: string, updates: UpdateDto<'payouts'>, userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('payouts')
       .update(updates)
       .eq('id', id)
@@ -456,7 +456,7 @@ export const dashboardAPI = {
   },
 
   async getRecentActivity(userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('referrals')
       .select(`
         *,
@@ -482,7 +482,7 @@ export const dashboardAPI = {
 // Integrations API
 export const integrationsAPI = {
   async getAll(userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('integrations')
       .select('*')
       .eq('user_id', userId)
@@ -493,7 +493,7 @@ export const integrationsAPI = {
   },
 
   async getById(id: string, userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('integrations')
       .select('*')
       .eq('id', id)
@@ -505,7 +505,7 @@ export const integrationsAPI = {
   },
 
   async create(integration: InsertDto<'integrations'>) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('integrations')
       .insert(integration)
       .select()
@@ -516,7 +516,7 @@ export const integrationsAPI = {
   },
 
   async update(id: string, updates: UpdateDto<'integrations'>, userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('integrations')
       .update(updates)
       .eq('id', id)
@@ -529,7 +529,7 @@ export const integrationsAPI = {
   },
 
   async delete(id: string, userId: string) {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('integrations')
       .delete()
       .eq('id', id)
