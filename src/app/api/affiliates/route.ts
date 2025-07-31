@@ -115,7 +115,25 @@ export async function POST(request: NextRequest) {
     
     // Generate referral code and link
     const referralCode = `${body.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://marketplace.com';
+    
+    // Get ShareTribe marketplace URL from settings
+    let baseUrl = 'https://marketplace.com'; // fallback
+    try {
+      const settingsResponse = await authenticatedSupabase
+        .from('settings')
+        .select('setting_value')
+        .eq('user_id', user.id)
+        .eq('setting_type', 'sharetribe')
+        .eq('setting_key', 'marketplaceUrl')
+        .single();
+      
+      if (settingsResponse.data?.setting_value) {
+        baseUrl = settingsResponse.data.setting_value;
+      }
+    } catch (error) {
+      console.log('Could not fetch ShareTribe marketplace URL, using fallback');
+    }
+    
     const referralLink = `${baseUrl}/ref/${referralCode}`;
     
     // Use authenticated client to create affiliate

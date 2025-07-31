@@ -16,6 +16,7 @@ export default function Affiliates() {
   const [selectedAffiliate, setSelectedAffiliate] = useState<Affiliate | null>(null);
   const [loading, setLoading] = useState(true);
   const [currency, setCurrency] = useState('$'); // Default currency
+  const [isCreating, setIsCreating] = useState(false);
 
   // Load data on component mount
   useEffect(() => {
@@ -69,6 +70,9 @@ export default function Affiliates() {
   };
 
   const handleCreateAffiliate = async (affiliateData: Partial<Affiliate>) => {
+    if (isCreating) return; // Prevent multiple submissions
+    
+    setIsCreating(true);
     try {
       // Get auth token for API request
       const { data: { session } } = await supabase().auth.getSession();
@@ -94,6 +98,8 @@ export default function Affiliates() {
     } catch (error) {
       console.error('Failed to create affiliate:', error);
       alert('Failed to create affiliate. Please try again.');
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -207,9 +213,9 @@ export default function Affiliates() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {affiliate.totalReferrals}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(affiliate.totalEarnings)}
-                  </td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {affiliate.totalEarnings ? `${currency}${affiliate.totalEarnings}` : `${currency}0`}
+                    </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {(() => {
                       const program = programs.find(p => p.id === affiliate.programId);
@@ -259,6 +265,7 @@ export default function Affiliates() {
           }}
           onSubmit={editingAffiliate ? handleEditAffiliate : handleCreateAffiliate}
           currency={currency}
+          isLoading={isCreating}
         />
       )}
 
@@ -280,9 +287,10 @@ interface AffiliateModalProps {
   onClose: () => void;
   onSubmit: (data: Partial<Affiliate>) => void;
   currency?: string;
+  isLoading?: boolean;
 }
 
-function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$' }: AffiliateModalProps) {
+function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$', isLoading = false }: AffiliateModalProps) {
   const [formData, setFormData] = useState({
     name: affiliate?.name || '',
     email: affiliate?.email || '',
@@ -293,6 +301,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return; // Prevent submission while loading
     onSubmit(formData);
   };
 
@@ -323,8 +332,9 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
                 required
+                disabled={isLoading}
               />
             </div>
             <div>
@@ -333,8 +343,9 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
                 required
+                disabled={isLoading}
               />
             </div>
             <div>
@@ -343,7 +354,8 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
+                disabled={isLoading}
               />
             </div>
             <div>
@@ -351,7 +363,8 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'pending' })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
+                disabled={isLoading}
               >
                 <option value="pending">Pending</option>
                 <option value="active">Active</option>
@@ -363,8 +376,9 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
               <select
                 value={formData.programId}
                 onChange={(e) => setFormData({ ...formData, programId: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
                 required
+                disabled={isLoading}
               >
                 <option value="">Select a program</option>
                 {programs.filter(p => p.status === 'active').map(program => (
@@ -417,14 +431,19 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                disabled={isLoading}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
+                disabled={isLoading}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
+                {isLoading && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                )}
                 {affiliate ? 'Update' : 'Add'}
               </button>
             </div>
