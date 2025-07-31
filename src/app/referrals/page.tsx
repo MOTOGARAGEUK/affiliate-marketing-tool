@@ -6,6 +6,7 @@ import { formatDate, getStatusColor } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import CopyButton from '@/components/CopyButton';
 
 interface Referral {
   id: string;

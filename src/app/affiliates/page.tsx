@@ -6,6 +6,7 @@ import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
 import { Affiliate } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import CopyButton from '@/components/CopyButton';
 
 export default function Affiliates() {
   const { user } = useAuth();
@@ -283,15 +284,11 @@ export default function Affiliates() {
                             : affiliate.referral_link
                           }
                         </span>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(affiliate.referral_link);
-                            alert('Referral link copied to clipboard!');
-                          }}
-                          className="text-xs px-2 py-1 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded flex-shrink-0"
-                        >
-                          Copy
-                        </button>
+                        <CopyButton
+                          text={affiliate.referral_link}
+                          size="sm"
+                          className="text-xs text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 flex-shrink-0"
+                        />
                       </div>
                     ) : (
                       <span className="text-gray-400 text-xs">No link</span>
@@ -409,16 +406,6 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
 
   // Get selected program details
   const selectedProgram = programs.find(p => p.id === formData.programId);
-  
-  // Generate preview referral link for new affiliates
-  const previewReferralCode = affiliate ? affiliate.referralCode : `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://marketplace.com';
-  const previewReferralLink = affiliate ? affiliate.referralLink : `https://marketplace.com/ref/${previewReferralCode}`;
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    // You could add a toast notification here
-  };
 
   return (
     <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
@@ -499,45 +486,34 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                   readOnly
                   className="flex-1 text-sm bg-white border border-gray-300 rounded px-2 py-1 font-mono"
                   type="text"
-                                     value={(() => {
-                     if (affiliate?.referral_link) {
-                       return affiliate.referral_link;
-                     }
-                     if (formData.name && formData.programId) {
-                       const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
-                       // Use the marketplace URL from settings
-                       return `${marketplaceUrl}/ref/${referralCode}`;
-                     }
-                     return 'Enter affiliate name and select program to generate link';
-                   })()}
+                  value={(() => {
+                    if (affiliate?.referral_link) {
+                      return affiliate.referral_link;
+                    }
+                    if (formData.name && formData.programId) {
+                      const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
+                      // Use the marketplace URL from settings and ensure proper URL formatting
+                      const cleanUrl = marketplaceUrl.replace(/\/+$/, ''); // Remove trailing slashes
+                      return `${cleanUrl}/ref/${referralCode}`;
+                    }
+                    return 'Enter affiliate name and select program to generate link';
+                  })()}
                 />
-                <button
-                  type="button"
-                                     onClick={() => {
-                     const linkValue = (() => {
-                       if (affiliate?.referral_link) {
-                         return affiliate.referral_link;
-                       }
-                       if (formData.name && formData.programId) {
-                         const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
-                         return `${marketplaceUrl}/ref/${referralCode}`;
-                       }
-                       return '';
-                     })();
-                     if (linkValue && linkValue !== 'Enter affiliate name and select program to generate link') {
-                       navigator.clipboard.writeText(linkValue);
-                       alert('Referral link copied to clipboard!');
-                     }
-                   }}
-                  className={`px-2 py-1 text-xs rounded ${
-                    formData.name && formData.programId 
-                      ? 'bg-blue-500 text-white hover:bg-blue-600' 
-                      : 'bg-gray-400 text-white cursor-not-allowed'
-                  }`}
+                <CopyButton
+                  text={(() => {
+                    if (affiliate?.referral_link) {
+                      return affiliate.referral_link;
+                    }
+                    if (formData.name && formData.programId) {
+                      const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
+                      const cleanUrl = marketplaceUrl.replace(/\/+$/, '');
+                      return `${cleanUrl}/ref/${referralCode}`;
+                    }
+                    return '';
+                  })()}
                   disabled={!formData.name || !formData.programId}
-                >
-                  Copy
-                </button>
+                  size="sm"
+                />
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 {affiliate ? 'This is the affiliate\'s referral link' : 'This link will be generated automatically when the affiliate is created'}
@@ -557,30 +533,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
               </div>
             )}
             
-            {/* Show referral link preview for new affiliates */}
-            {!affiliate && formData.name && (
-              <div className="bg-gray-50 p-3 rounded-md">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Generated Referral Link</label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={previewReferralLink}
-                    readOnly
-                    className="flex-1 text-sm bg-white border border-gray-300 rounded px-2 py-1 font-mono"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(previewReferralLink)}
-                    className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                  >
-                    Copy
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  This link will be generated automatically when the affiliate is created
-                </p>
-              </div>
-            )}
+
             
             <div className="flex justify-end space-x-3">
               <button
@@ -616,10 +569,6 @@ interface ViewAffiliateModalProps {
 }
 
 function ViewAffiliateModal({ affiliate, programs, onClose }: ViewAffiliateModalProps) {
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    // You could add a toast notification here
-  };
 
   return (
     <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
@@ -645,24 +594,20 @@ function ViewAffiliateModal({ affiliate, programs, onClose }: ViewAffiliateModal
               <label className="block text-sm font-medium text-gray-700">Referral Code</label>
               <div className="flex items-center space-x-2">
                 <p className="mt-1 text-sm text-gray-900 font-mono">{affiliate.referralCode}</p>
-                <button
-                  onClick={() => copyToClipboard(affiliate.referralCode)}
-                  className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  Copy
-                </button>
+                <CopyButton
+                  text={affiliate.referralCode}
+                  size="sm"
+                />
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Referral Link</label>
               <div className="flex items-center space-x-2">
                 <p className="mt-1 text-sm text-gray-900 font-mono break-all">{affiliate.referralLink}</p>
-                <button
-                  onClick={() => copyToClipboard(affiliate.referralLink)}
-                  className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  Copy
-                </button>
+                <CopyButton
+                  text={affiliate.referralLink}
+                  size="sm"
+                />
               </div>
             </div>
             <div>
