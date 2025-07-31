@@ -58,3 +58,22 @@ body .bg-white {
 .fixed.inset-0 .bg-white {
   background-color: transparent !important;
 }
+
+/* Improve table contrast across the UI */
+.bg-white {
+  background-color: #f8fafc !important; /* Light gray background */
+}
+
+/* Table containers with better contrast */
+.table-container {
+  background-color: #f1f5f9 !important; /* Slightly darker gray */
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+/* Dashboard cards with better contrast */
+.dashboard-card {
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+}

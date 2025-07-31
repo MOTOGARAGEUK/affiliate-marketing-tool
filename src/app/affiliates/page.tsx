@@ -159,7 +159,7 @@ export default function Affiliates() {
       </div>
 
       {/* Affiliates Table */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="bg-white shadow rounded-lg overflow-hidden table-container">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -219,11 +219,33 @@ export default function Affiliates() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {(() => {
                       const program = programs.find(p => p.id === affiliate.programId);
-                      return program ? `${program.commission}${program.commissionType === 'percentage' ? '%' : '$'}` : 'N/A';
+                      if (!program) return 'N/A';
+                      
+                      return (
+                        <div>
+                          <div>{program.name}</div>
+                          <div className="text-gray-500">
+                            {program.commissionType === 'percentage' ? `${program.commission}%` : `${currency}${program.commission}`}
+                          </div>
+                          {affiliate.referral_link && (
+                            <div className="mt-1">
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(affiliate.referral_link);
+                                  alert('Referral link copied to clipboard!');
+                                }}
+                                className="text-xs px-2 py-1 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded"
+                              >
+                                Copy Link
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
                     })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(affiliate.createdAt)}
+                    {formatDate(affiliate.created_at)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
@@ -388,6 +410,31 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                 ))}
               </select>
             </div>
+            
+            {/* Show referral link if editing existing affiliate */}
+            {affiliate?.referral_link && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Referral Link</label>
+                <div className="mt-1 flex items-center space-x-2">
+                  <input
+                    type="text"
+                    value={affiliate.referral_link}
+                    readOnly
+                    className="flex-1 rounded-md border-gray-300 shadow-sm px-4 py-3 text-gray-900 bg-gray-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(affiliate.referral_link);
+                      alert('Referral link copied to clipboard!');
+                    }}
+                    className="px-3 py-3 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            )}
             
             {/* Show program commission details */}
             {selectedProgram && (

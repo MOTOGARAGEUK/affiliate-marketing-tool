@@ -119,6 +119,7 @@ export async function POST(request: NextRequest) {
     // Get ShareTribe marketplace URL from settings
     let baseUrl = 'https://marketplace.com'; // fallback
     try {
+      console.log('Fetching ShareTribe marketplace URL for user:', user.id);
       const settingsResponse = await authenticatedSupabase
         .from('settings')
         .select('setting_value')
@@ -127,11 +128,17 @@ export async function POST(request: NextRequest) {
         .eq('setting_key', 'marketplaceUrl')
         .single();
       
+      console.log('Settings response:', settingsResponse);
+      
       if (settingsResponse.data?.setting_value) {
         baseUrl = settingsResponse.data.setting_value;
+        console.log('Using ShareTribe URL:', baseUrl);
+      } else {
+        console.log('No ShareTribe URL found in settings, using fallback');
       }
     } catch (error) {
-      console.log('Could not fetch ShareTribe marketplace URL, using fallback');
+      console.log('Error fetching ShareTribe marketplace URL:', error);
+      console.log('Using fallback URL:', baseUrl);
     }
     
     const referralLink = `${baseUrl}/ref/${referralCode}`;

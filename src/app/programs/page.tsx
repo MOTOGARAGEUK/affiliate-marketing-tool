@@ -206,7 +206,7 @@ export default function Programs() {
       {/* Programs Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {programs.map((program) => (
-          <div key={program.id} className="bg-white rounded-lg shadow p-6">
+          <div key={program.id} className="bg-white rounded-lg shadow p-6 dashboard-card">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg font-medium text-gray-900">{program.name}</h3>
@@ -346,7 +346,7 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                 required
                 disabled={isLoading}
               />
@@ -356,7 +356,8 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
               <select
                 value={formData.type}
                 onChange={(e) => handleTypeChange(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
+                disabled={isLoading}
               >
                 <option value="signup">Sign Up Referrals</option>
                 <option value="purchase">Purchase Referrals</option>
@@ -371,11 +372,12 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
                   type="number"
                   value={formData.commission}
                   onChange={(e) => setFormData({ ...formData, commission: parseFloat(e.target.value) })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
                   required
                   min="0"
                   step={formData.commissionType === 'percentage' ? '0.1' : '0.01'}
                   max={formData.commissionType === 'percentage' ? '100' : undefined}
+                  disabled={isLoading}
                 />
               </div>
               <div>
@@ -383,8 +385,8 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
                 <select
                   value={formData.commissionType}
                   onChange={(e) => setFormData({ ...formData, commissionType: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  disabled={formData.type === 'signup'}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
+                  disabled={formData.type === 'signup' || isLoading}
                 >
                   <option value="fixed">Fixed ({currency})</option>
                   <option value="percentage">Percentage (%)</option>
@@ -399,7 +401,8 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
+                disabled={isLoading}
               >
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
@@ -411,7 +414,8 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
+                disabled={isLoading}
               />
             </div>
             <div className="flex justify-end space-x-3">
