@@ -51,68 +51,67 @@ export async function POST(request: NextRequest) {
       }),
     });
 
-          console.log('Auth response status:', authResponse.status);
-      console.log('Auth response ok:', authResponse.ok);
+    console.log('Auth response status:', authResponse.status);
+    console.log('Auth response ok:', authResponse.ok);
 
-      if (authResponse.ok) {
-        const authData = await authResponse.json();
-        console.log('Authentication successful, got access token');
+    if (authResponse.ok) {
+      const authData = await authResponse.json();
+      console.log('Authentication successful, got access token');
+      
+      // Now test the actual API call with the access token
+      const apiResponse = await fetch('https://flex-api.sharetribe.com/v1/users/query', {
+        method: 'POST',
+        headers: {
+          'Authorization': `bearer ${authData.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filters: {},
+          include: ['profile'],
+          fields: {
+            user: ['id', 'profile'],
+            profile: ['displayName', 'email']
+          }
+        })
+      });
+
+      console.log('API response status:', apiResponse.status);
+
+      if (apiResponse.ok) {
+        const apiData = await apiResponse.json();
+        console.log('API call successful');
         
-        // Now test the actual API call with the access token
-        const apiResponse = await fetch('https://flex-api.sharetribe.com/v1/users/query', {
-          method: 'POST',
-          headers: {
-            'Authorization': `bearer ${authData.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            filters: {},
-            include: ['profile'],
-            fields: {
-              user: ['id', 'profile'],
-              profile: ['displayName', 'email']
-            }
-          })
+        return NextResponse.json({
+          success: true,
+          message: '✅ SUCCESS! Your Sharetribe Marketplace API credentials are working!',
+          apiType: 'Marketplace API',
+          hasAccessToken: !!authData.access_token,
+          tokenType: authData.token_type,
+          expiresIn: authData.expires_in,
+          usersCount: apiData.data?.length || 0,
+          suggestion: 'Your credentials are valid and can access the Marketplace API'
         });
-
-        console.log('API response status:', apiResponse.status);
-
-        if (apiResponse.ok) {
-          const apiData = await apiResponse.json();
-          console.log('API call successful');
-          
-          return NextResponse.json({
-            success: true,
-            message: '✅ SUCCESS! Your Sharetribe Marketplace API credentials are working!',
-            apiType: 'Marketplace API',
-            hasAccessToken: !!authData.access_token,
-            tokenType: authData.token_type,
-            expiresIn: authData.expires_in,
-            usersCount: apiData.data?.length || 0,
-            suggestion: 'Your credentials are valid and can access the Marketplace API'
-          });
-        } else {
-          const errorText = await apiResponse.text();
-          console.error('API call failed:', errorText);
-          
-          return NextResponse.json({
-            success: false,
-            message: `❌ API call failed: ${apiResponse.status} ${apiResponse.statusText}`,
-            details: errorText,
-            suggestion: 'Authentication worked but API call failed. Check your application permissions.'
-          }, { status: 400 });
-        }
       } else {
-        const errorText = await authResponse.text();
-        console.error('Authentication failed:', errorText);
+        const errorText = await apiResponse.text();
+        console.error('API call failed:', errorText);
         
         return NextResponse.json({
           success: false,
-          message: `❌ Authentication failed: ${authResponse.status} ${authResponse.statusText}`,
+          message: `❌ API call failed: ${apiResponse.status} ${apiResponse.statusText}`,
           details: errorText,
-          suggestion: 'Please check your Client ID and Client Secret in Sharetribe Admin → Advanced → Applications'
+          suggestion: 'Authentication worked but API call failed. Check your application permissions.'
         }, { status: 400 });
       }
+    } else {
+      const errorText = await authResponse.text();
+      console.error('Authentication failed:', errorText);
+      
+      return NextResponse.json({
+        success: false,
+        message: `❌ Authentication failed: ${authResponse.status} ${authResponse.statusText}`,
+        details: errorText,
+        suggestion: 'Please check your Client ID and Client Secret in Sharetribe Admin → Advanced → Applications'
+      }, { status: 400 });
     }
 
   } catch (error) {
