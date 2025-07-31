@@ -1,23 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Sharetribe Integration API client
+// Sharetribe API client - supports both Integration and Marketplace APIs
 class SharetribeAPI {
   private baseUrl: string;
   private accessToken: string;
+  private clientId: string;
+  private clientSecret: string;
+  private useIntegrationAPI: boolean;
 
   constructor() {
+    // Check if we have Integration API credentials
     this.baseUrl = process.env.SHARETRIBE_API_URL || 'https://flex-api.sharetribe.com/v1';
     this.accessToken = process.env.SHARETRIBE_ACCESS_TOKEN || '';
+    this.clientId = process.env.SHARETRIBE_CLIENT_ID || '';
+    this.clientSecret = process.env.SHARETRIBE_CLIENT_SECRET || '';
+    
+    // Use Integration API if we have access token, otherwise use Marketplace API
+    this.useIntegrationAPI = !!this.accessToken;
+    
+    console.log('Sharetribe API Mode:', this.useIntegrationAPI ? 'Integration API' : 'Marketplace API');
+  }
+
+  private async getAuthHeaders() {
+    if (this.useIntegrationAPI) {
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.accessToken}`
+      };
+    } else {
+      // For Marketplace API, we need to get an access token first
+      const tokenResponse = await fetch('https://flex-api.sharetribe.com/v1/auth/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          client_id: this.clientId,
+          client_secret: this.clientSecret,
+          grant_type: 'client_credentials'
+        })
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error(`Failed to get access token: ${tokenResponse.statusText}`);
+      }
+
+      const tokenData = await tokenResponse.json();
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${tokenData.access_token}`
+      };
+    }
   }
 
   async queryUsers(filters: any = {}) {
+    const headers = await this.getAuthHeaders();
+    
     const response = await fetch(`${this.baseUrl}/users/query`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.accessToken}`
-      },
+      headers,
       body: JSON.stringify({
         filters,
         include: ['profile'],
@@ -36,12 +78,11 @@ class SharetribeAPI {
   }
 
   async queryTransactions(filters: any = {}) {
+    const headers = await this.getAuthHeaders();
+    
     const response = await fetch(`${this.baseUrl}/transactions/query`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.accessToken}`
-      },
+      headers,
       body: JSON.stringify({
         filters,
         include: ['listing', 'customer', 'provider'],
@@ -130,8 +171,8 @@ export async function POST(request: NextRequest) {
                 .select(`
                   id,
                   user_id,
-                  name as affiliate_name,
-                  email as affiliate_email,
+                  name,
+                  email,
                   programs (
                     id,
                     name,
@@ -158,7 +199,7 @@ export async function POST(request: NextRequest) {
                 .maybeSingle();
 
               if (existingReferral) {
-                console.log(`Customer already tracked for affiliate: ${affiliate.affiliate_name}`);
+                console.log(`Customer already tracked for affiliate: ${affiliate.name}`);
                 continue;
               }
 
@@ -242,8 +283,8 @@ export async function POST(request: NextRequest) {
                 .select(`
                   id,
                   user_id,
-                  name as affiliate_name,
-                  email as affiliate_email,
+                  name,
+                  email,
                   programs (
                     id,
                     name,
@@ -281,7 +322,7 @@ export async function POST(request: NextRequest) {
                 continue;
               }
 
-              // Calculate commission
+              // Calculate commission based on program type
               const program = affiliate.programs[0];
               const transactionValue = transaction.attributes?.totalPrice?.amount || 0;
               let commissionEarned = 0;
