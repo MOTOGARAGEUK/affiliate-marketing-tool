@@ -101,6 +101,7 @@ export default function Programs() {
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [deletingProgram, setDeletingProgram] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleEditProgram = async (programData: any) => {
     // Prevent multiple submissions
@@ -148,6 +149,9 @@ export default function Programs() {
   };
 
   const handleDeleteProgram = async (id: string) => {
+    if (isDeleting) return; // Prevent multiple deletions
+    
+    setIsDeleting(true);
     console.log('Attempting to delete program:', id);
     try {
       // Get auth token for API request
@@ -176,6 +180,8 @@ export default function Programs() {
     } catch (error) {
       console.error('Failed to delete program:', error);
       alert('Failed to delete program. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -264,8 +270,8 @@ export default function Programs() {
 
       {/* Delete Confirmation Modal */}
       {deletingProgram && (
-        <div className="fixed inset-0 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white backdrop-blur-sm">
+        <div className="fixed inset-0 bg-white bg-opacity-20 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Delete</h3>
               <p className="text-sm text-gray-500 mb-6">
@@ -274,14 +280,19 @@ export default function Programs() {
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setDeletingProgram(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  disabled={isDeleting}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => handleDeleteProgram(deletingProgram.id)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700"
+                  disabled={isDeleting}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
+                  {isDeleting && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  )}
                   Yes, Delete
                 </button>
               </div>
@@ -320,8 +331,8 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
   };
 
   return (
-    <div className="fixed inset-0 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white backdrop-blur-sm">
+    <div className="fixed inset-0 bg-white bg-opacity-20 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+      <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white">
         <div className="mt-3">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             {program ? 'Edit Program' : 'Create New Program'}
