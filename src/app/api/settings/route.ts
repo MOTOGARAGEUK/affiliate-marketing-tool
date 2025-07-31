@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('Settings GET - Starting...');
     const supabase = createServerClient();
     
     // Get the user from the request headers
@@ -104,7 +105,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     console.log('Settings POST - Starting...');
+    
+    // First, let's test if the route is working at all
+    console.log('Settings POST - Route is accessible');
+    
     const supabase = createServerClient();
+    console.log('Settings POST - Supabase client created');
     
     // Get the user from the request headers
     const authHeader = request.headers.get('authorization');
@@ -113,6 +119,7 @@ export async function POST(request: NextRequest) {
     
     if (authHeader) {
       const token = authHeader.replace('Bearer ', '');
+      console.log('Settings POST - Token extracted, length:', token.length);
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
       if (!authError && authUser) {
         user = authUser;
@@ -240,6 +247,7 @@ export async function POST(request: NextRequest) {
       };
     }
 
+    console.log('Settings POST - Returning success response');
     return NextResponse.json({
       success: true,
       message: 'Settings saved successfully',
