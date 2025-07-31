@@ -1,5 +1,8 @@
-import { supabase } from './supabase';
+import { createServerClient } from './supabase';
 import type { Tables, InsertDto, UpdateDto } from './supabase';
+
+// Create server client for database operations
+const supabase = createServerClient();
 
 // Programs API
 export const programsAPI = {
