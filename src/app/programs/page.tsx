@@ -55,8 +55,21 @@ export default function Programs() {
     }
   };
 
+  const [isCreating, setIsCreating] = useState(false);
+
   const handleCreateProgram = async (programData: any) => {
+    // Prevent multiple submissions
+    if (isCreating) return;
+    
+    setIsCreating(true);
     try {
+      // Check if program with same name already exists
+      const existingProgram = programs.find(p => p.name.toLowerCase() === programData.name.toLowerCase());
+      if (existingProgram) {
+        alert('A program with this name already exists. Please choose a different name.');
+        return;
+      }
+
       // Get auth token for API request
       const { data: { session } } = await supabase().auth.getSession();
       const token = session?.access_token;
@@ -76,14 +89,34 @@ export default function Programs() {
         setShowCreateModal(false);
       } else {
         console.error('Failed to create program:', data.message);
+        alert('Failed to create program: ' + data.message);
       }
     } catch (error) {
       console.error('Failed to create program:', error);
+      alert('Failed to create program. Please try again.');
+    } finally {
+      setIsCreating(false);
     }
   };
 
+  const [isUpdating, setIsUpdating] = useState(false);
+
   const handleEditProgram = async (programData: any) => {
+    // Prevent multiple submissions
+    if (isUpdating) return;
+    
+    setIsUpdating(true);
     try {
+      // Check if program with same name already exists (excluding current program)
+      const existingProgram = programs.find(p => 
+        p.id !== editingProgram.id && 
+        p.name.toLowerCase() === programData.name.toLowerCase()
+      );
+      if (existingProgram) {
+        alert('A program with this name already exists. Please choose a different name.');
+        return;
+      }
+
       // Get auth token for API request
       const { data: { session } } = await supabase().auth.getSession();
       const token = session?.access_token;
@@ -103,9 +136,13 @@ export default function Programs() {
         setEditingProgram(null);
       } else {
         console.error('Failed to update program:', data.message);
+        alert('Failed to update program: ' + data.message);
       }
     } catch (error) {
       console.error('Failed to update program:', error);
+      alert('Failed to update program. Please try again.');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -212,13 +249,14 @@ export default function Programs() {
           }}
           onSubmit={editingProgram ? handleEditProgram : handleCreateProgram}
           currency={currency}
+          isLoading={isCreating || isUpdating}
         />
       )}
     </div>
   );
 }
 
-function ProgramModal({ program, onClose, onSubmit, currency }: any) {
+function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) {
   const [formData, setFormData] = useState({
     name: program?.name || '',
     type: program?.type || 'signup',
@@ -230,6 +268,7 @@ function ProgramModal({ program, onClose, onSubmit, currency }: any) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return; // Prevent submission while loading
     onSubmit(formData);
   };
 
@@ -244,7 +283,7 @@ function ProgramModal({ program, onClose, onSubmit, currency }: any) {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50">
       <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
         <div className="mt-3">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
@@ -257,8 +296,9 @@ function ProgramModal({ program, onClose, onSubmit, currency }: any) {
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 required
+                disabled={isLoading}
               />
             </div>
             <div>
@@ -328,14 +368,19 @@ function ProgramModal({ program, onClose, onSubmit, currency }: any) {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                disabled={isLoading}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
+                disabled={isLoading}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
+                {isLoading && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                )}
                 {program ? 'Update' : 'Create'}
               </button>
             </div>
