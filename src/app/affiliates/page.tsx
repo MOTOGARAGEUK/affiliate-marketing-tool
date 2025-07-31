@@ -4,21 +4,28 @@ import { useState } from 'react';
 import { PlusIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { mockAffiliates, mockPrograms } from '@/lib/mockData';
 import { formatCurrency, formatDate, getStatusColor, generateReferralCode, generateReferralLink } from '@/lib/utils';
+import { Affiliate } from '@/types';
 
 export default function Affiliates() {
   const [affiliates, setAffiliates] = useState(mockAffiliates);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingAffiliate, setEditingAffiliate] = useState<any>(null);
-  const [selectedAffiliate, setSelectedAffiliate] = useState<any>(null);
+  const [editingAffiliate, setEditingAffiliate] = useState<Affiliate | null>(null);
+  const [selectedAffiliate, setSelectedAffiliate] = useState<Affiliate | null>(null);
 
-  const handleCreateAffiliate = (affiliateData: any) => {
+  const handleCreateAffiliate = (affiliateData: Partial<Affiliate>) => {
+    if (!affiliateData.name) return;
+    
     const referralCode = generateReferralCode(affiliateData.name);
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://marketplace.com';
     const referralLink = generateReferralLink(baseUrl, referralCode);
     
-    const newAffiliate = {
+    const newAffiliate: Affiliate = {
       id: Date.now().toString(),
-      ...affiliateData,
+      name: affiliateData.name,
+      email: affiliateData.email || '',
+      phone: affiliateData.phone || '',
+      status: (affiliateData.status as 'active' | 'inactive' | 'pending') || 'pending',
+      programId: affiliateData.programId || '',
       totalEarnings: 0,
       totalReferrals: 0,
       referralCode: referralCode,
@@ -30,7 +37,8 @@ export default function Affiliates() {
     setShowCreateModal(false);
   };
 
-  const handleEditAffiliate = (affiliateData: any) => {
+  const handleEditAffiliate = (affiliateData: Partial<Affiliate>) => {
+    if (!editingAffiliate) return;
     setAffiliates(affiliates.map(a => a.id === editingAffiliate.id ? { ...a, ...affiliateData, updatedAt: new Date() } : a));
     setEditingAffiliate(null);
   };
@@ -176,7 +184,13 @@ export default function Affiliates() {
   );
 }
 
-function AffiliateModal({ affiliate, onClose, onSubmit }: any) {
+interface AffiliateModalProps {
+  affiliate?: Affiliate | null;
+  onClose: () => void;
+  onSubmit: (data: Partial<Affiliate>) => void;
+}
+
+function AffiliateModal({ affiliate, onClose, onSubmit }: AffiliateModalProps) {
   const [formData, setFormData] = useState({
     name: affiliate?.name || '',
     email: affiliate?.email || '',
@@ -329,7 +343,12 @@ function AffiliateModal({ affiliate, onClose, onSubmit }: any) {
   );
 }
 
-function ViewAffiliateModal({ affiliate, onClose }: any) {
+interface ViewAffiliateModalProps {
+  affiliate: Affiliate;
+  onClose: () => void;
+}
+
+function ViewAffiliateModal({ affiliate, onClose }: ViewAffiliateModalProps) {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     // You could add a toast notification here
