@@ -247,7 +247,9 @@ export default function Programs() {
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-500">Created:</span>
-                <span className="text-sm text-gray-900">{formatDate(program.createdAt)}</span>
+                <span className="text-sm text-gray-900">
+                  {program.created_at ? formatDate(program.created_at) : 'No date'}
+                </span>
               </div>
             </div>
           </div>
@@ -270,8 +272,8 @@ export default function Programs() {
 
       {/* Delete Confirmation Modal */}
       {deletingProgram && (
-        <div className="fixed inset-0 bg-white bg-opacity-20 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-          <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white bg-opacity-50">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Delete</h3>
               <p className="text-sm text-gray-500 mb-6">
@@ -331,8 +333,8 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
   };
 
   return (
-    <div className="fixed inset-0 bg-white bg-opacity-20 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-      <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+      <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white bg-opacity-50">
         <div className="mt-3">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             {program ? 'Edit Program' : 'Create New Program'}
