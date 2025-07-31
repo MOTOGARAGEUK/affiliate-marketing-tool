@@ -183,9 +183,12 @@ export async function POST(request: NextRequest) {
         setting_value: value
       }));
 
+      // Use upsert with onConflict to handle existing records
       const { data, error } = await authenticatedSupabase
         .from('settings')
-        .upsert(settingsArray)
+        .upsert(settingsArray, {
+          onConflict: 'user_id,setting_type,setting_key'
+        })
         .select('setting_type, setting_key, setting_value');
 
       if (error) throw error;
@@ -200,9 +203,12 @@ export async function POST(request: NextRequest) {
         setting_value: value
       }));
 
+      // Use upsert with onConflict to handle existing records
       const { data, error } = await authenticatedSupabase
         .from('settings')
-        .upsert(settingsArray)
+        .upsert(settingsArray, {
+          onConflict: 'user_id,setting_type,setting_key'
+        })
         .select('setting_type, setting_key, setting_value');
 
       if (error) throw error;
