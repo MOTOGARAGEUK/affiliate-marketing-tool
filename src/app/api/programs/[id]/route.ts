@@ -1,12 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { programsAPI } from '@/lib/dataStore';
+import { programsAPI } from '@/lib/database';
+import { createServerClient } from '@/lib/supabase';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const program = programsAPI.getById(params.id);
+    const supabase = createServerClient();
+    
+    // Get the user from the request headers
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const program = await programsAPI.getById(params.id, user.id);
     
     if (program) {
       return NextResponse.json({ success: true, program });
@@ -17,6 +39,7 @@ export async function GET(
       );
     }
   } catch (error) {
+    console.error('Failed to fetch program:', error);
     return NextResponse.json(
       { success: false, message: 'Failed to fetch program' },
       { status: 500 }
@@ -29,8 +52,29 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const supabase = createServerClient();
+    
+    // Get the user from the request headers
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
-    const program = programsAPI.update(params.id, body);
+    const program = await programsAPI.update(params.id, body, user.id);
     
     if (program) {
       return NextResponse.json({ success: true, program });
@@ -41,6 +85,7 @@ export async function PUT(
       );
     }
   } catch (error) {
+    console.error('Failed to update program:', error);
     return NextResponse.json(
       { success: false, message: 'Failed to update program' },
       { status: 500 }
@@ -53,7 +98,28 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const success = programsAPI.delete(params.id);
+    const supabase = createServerClient();
+    
+    // Get the user from the request headers
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const success = await programsAPI.delete(params.id, user.id);
     
     if (success) {
       return NextResponse.json({ success: true, message: 'Program deleted successfully' });
@@ -64,6 +130,7 @@ export async function DELETE(
       );
     }
   } catch (error) {
+    console.error('Failed to delete program:', error);
     return NextResponse.json(
       { success: false, message: 'Failed to delete program' },
       { status: 500 }
