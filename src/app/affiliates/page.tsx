@@ -4,19 +4,45 @@ import { useState, useEffect } from 'react';
 import { PlusIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
 import { Affiliate } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export default function Affiliates() {
+  const { user } = useAuth();
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
   const [programs, setPrograms] = useState<any[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingAffiliate, setEditingAffiliate] = useState<Affiliate | null>(null);
   const [selectedAffiliate, setSelectedAffiliate] = useState<Affiliate | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currency, setCurrency] = useState('$'); // Default currency
 
   // Load data on component mount
   useEffect(() => {
     fetchData();
+    fetchCurrencySettings();
   }, []);
+
+  const fetchCurrencySettings = async () => {
+    try {
+      const response = await fetch('/api/settings');
+      const data = await response.json();
+      if (data.success && data.settings?.general?.currency) {
+        const currencyCode = data.settings.general.currency;
+        // Map currency codes to symbols
+        const currencySymbols: { [key: string]: string } = {
+          'USD': '$',
+          'GBP': '£',
+          'EUR': '€',
+          'CAD': 'C$',
+          'AUD': 'A$'
+        };
+        setCurrency(currencySymbols[currencyCode] || '$');
+      }
+    } catch (error) {
+      console.error('Failed to fetch currency settings:', error);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -44,10 +70,15 @@ export default function Affiliates() {
 
   const handleCreateAffiliate = async (affiliateData: Partial<Affiliate>) => {
     try {
+      // Get auth token for API request
+      const { data: { session } } = await supabase().auth.getSession();
+      const token = session?.access_token;
+
       const response = await fetch('/api/affiliates', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify(affiliateData),
       });
@@ -56,9 +87,13 @@ export default function Affiliates() {
       if (data.success) {
         await fetchData(); // Refresh the list
         setShowCreateModal(false);
+      } else {
+        console.error('Failed to create affiliate:', data.message);
+        alert('Failed to create affiliate: ' + data.message);
       }
     } catch (error) {
       console.error('Failed to create affiliate:', error);
+      alert('Failed to create affiliate. Please try again.');
     }
   };
 
@@ -223,6 +258,7 @@ export default function Affiliates() {
             setEditingAffiliate(null);
           }}
           onSubmit={editingAffiliate ? handleEditAffiliate : handleCreateAffiliate}
+          currency={currency}
         />
       )}
 
@@ -243,9 +279,10 @@ interface AffiliateModalProps {
   programs: any[];
   onClose: () => void;
   onSubmit: (data: Partial<Affiliate>) => void;
+  currency?: string;
 }
 
-function AffiliateModal({ affiliate, programs, onClose, onSubmit }: AffiliateModalProps) {
+function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$' }: AffiliateModalProps) {
   const [formData, setFormData] = useState({
     name: affiliate?.name || '',
     email: affiliate?.email || '',
@@ -273,8 +310,8 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit }: AffiliateMod
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+      <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white/90 backdrop-blur-sm">
         <div className="mt-3">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             {affiliate ? 'Edit Affiliate' : 'Add New Affiliate'}
@@ -332,7 +369,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit }: AffiliateMod
                 <option value="">Select a program</option>
                 {programs.filter(p => p.status === 'active').map(program => (
                   <option key={program.id} value={program.id}>
-                    {program.name} - {program.commission}{program.commissionType === 'percentage' ? '%' : '$'}
+                    {program.name} - {program.commission}{program.commissionType === 'percentage' ? '%' : currency}
                   </option>
                 ))}
               </select>
@@ -343,7 +380,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit }: AffiliateMod
               <div className="bg-blue-50 p-3 rounded-md">
                 <h4 className="text-sm font-medium text-blue-900 mb-1">Program Details</h4>
                 <p className="text-sm text-blue-800">
-                  <strong>Commission:</strong> {selectedProgram.commission}{selectedProgram.commissionType === 'percentage' ? '%' : '$'} per {selectedProgram.type === 'signup' ? 'signup' : 'purchase'}
+                  <strong>Commission:</strong> {selectedProgram.commission}{selectedProgram.commissionType === 'percentage' ? '%' : currency} per {selectedProgram.type === 'signup' ? 'signup' : 'purchase'}
                 </p>
                 <p className="text-sm text-blue-800">
                   <strong>Type:</strong> {selectedProgram.type === 'signup' ? 'Sign Up Referrals' : 'Purchase Referrals'}
@@ -411,8 +448,8 @@ function ViewAffiliateModal({ affiliate, programs, onClose }: ViewAffiliateModal
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+      <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white/90 backdrop-blur-sm">
         <div className="mt-3">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Affiliate Details</h3>
           <div className="space-y-4">

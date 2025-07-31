@@ -273,7 +273,7 @@ export default function Programs() {
       {/* Delete Confirmation Modal */}
       {deletingProgram && (
         <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-          <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white bg-opacity-50">
+          <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white/90 backdrop-blur-sm">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Delete</h3>
               <p className="text-sm text-gray-500 mb-6">
@@ -334,7 +334,7 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
 
   return (
     <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-      <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white bg-opacity-50">
+      <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white/90 backdrop-blur-sm">
         <div className="mt-3">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             {program ? 'Edit Program' : 'Create New Program'}
