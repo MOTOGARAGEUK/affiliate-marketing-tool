@@ -616,10 +616,17 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                       return affiliate.referral_link;
                     }
                     if (formData.name && formData.programId) {
+                      const selectedProgram = programs.find(p => p.id === formData.programId);
                       const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
-                      // Use the marketplace URL from settings and ensure proper URL formatting
-                      const cleanUrl = marketplaceUrl.replace(/\/+$/, ''); // Remove trailing slashes
-                      return `${cleanUrl}/ref/${referralCode}`;
+                      
+                      if (selectedProgram?.type === 'signup') {
+                        // For signup programs, use the signup page URL
+                        return `https://test.moto-garage.co.uk/signup?ref=${referralCode}`;
+                      } else {
+                        // For purchase programs, use the marketplace URL
+                        const cleanUrl = marketplaceUrl.replace(/\/+$/, '');
+                        return `${cleanUrl}/ref/${referralCode}`;
+                      }
                     }
                     return 'Enter affiliate name and select program to generate link';
                   })()}
@@ -630,9 +637,17 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                       return affiliate.referral_link;
                     }
                     if (formData.name && formData.programId) {
+                      const selectedProgram = programs.find(p => p.id === formData.programId);
                       const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
-                      const cleanUrl = marketplaceUrl.replace(/\/+$/, '');
-                      return `${cleanUrl}/ref/${referralCode}`;
+                      
+                      if (selectedProgram?.type === 'signup') {
+                        // For signup programs, use the signup page URL
+                        return `https://test.moto-garage.co.uk/signup?ref=${referralCode}`;
+                      } else {
+                        // For purchase programs, use the marketplace URL
+                        const cleanUrl = marketplaceUrl.replace(/\/+$/, '');
+                        return `${cleanUrl}/ref/${referralCode}`;
+                      }
                     }
                     return '';
                   })()}

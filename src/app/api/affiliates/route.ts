@@ -168,48 +168,72 @@ export async function POST(request: NextRequest) {
     // Generate referral code and link
     const referralCode = `${body.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
     
-    // Get ShareTribe marketplace URL from settings
-    let baseUrl = 'https://marketplace.com'; // fallback
-    try {
-      console.log('=== REFERRAL LINK DEBUG ===');
-      console.log('Fetching ShareTribe marketplace URL for user:', user.id);
-      
-      // Get all ShareTribe settings for this user
-      const { data: sharetribeSettings, error: sharetribeError } = await authenticatedSupabase
-        .from('settings')
-        .select('setting_key, setting_value')
-        .eq('user_id', user.id)
-        .eq('setting_type', 'sharetribe');
-      
-      if (sharetribeError) {
-        console.log('Error fetching ShareTribe settings:', sharetribeError);
-      } else {
-        console.log('ShareTribe settings found:', sharetribeSettings);
-        
-        // Look for marketplace URL in any of the ShareTribe settings
-        const marketplaceUrlSetting = sharetribeSettings?.find(s => 
-          s.setting_key === 'marketplaceUrl' || 
-          s.setting_key === 'marketplace_url' || 
-          s.setting_key === 'url'
-        );
-        
-        if (marketplaceUrlSetting?.setting_value) {
-          baseUrl = marketplaceUrlSetting.setting_value;
-          console.log('✅ Using ShareTribe URL:', baseUrl);
-        } else {
-          console.log('❌ No marketplace URL found in ShareTribe settings');
-          console.log('Available ShareTribe keys:', sharetribeSettings?.map(s => s.setting_key));
-        }
-      }
-      
-      console.log('=== END REFERRAL LINK DEBUG ===');
-    } catch (error) {
-      console.log('Error fetching ShareTribe marketplace URL:', error);
-      console.log('Using fallback URL:', baseUrl);
+    // Get program details to determine link type
+    const { data: program, error: programError } = await authenticatedSupabase
+      .from('programs')
+      .select('type')
+      .eq('id', body.programId)
+      .single();
+    
+    if (programError) {
+      console.log('Error fetching program details:', programError);
+      return NextResponse.json(
+        { success: false, message: 'Invalid program selected' },
+        { status: 400 }
+      );
     }
     
-    // Generate referral link with proper URL normalization
-    const referralLink = generateReferralLink(baseUrl, referralCode);
+    let referralLink: string;
+    
+    if (program.type === 'signup') {
+      // For signup programs, use the signup page URL
+      referralLink = `https://test.moto-garage.co.uk/signup?ref=${referralCode}`;
+      console.log('✅ Generated signup referral link:', referralLink);
+    } else {
+      // For purchase programs, get ShareTribe marketplace URL from settings
+      let baseUrl = 'https://marketplace.com'; // fallback
+      try {
+        console.log('=== REFERRAL LINK DEBUG ===');
+        console.log('Fetching ShareTribe marketplace URL for user:', user.id);
+        
+        // Get all ShareTribe settings for this user
+        const { data: sharetribeSettings, error: sharetribeError } = await authenticatedSupabase
+          .from('settings')
+          .select('setting_key, setting_value')
+          .eq('user_id', user.id)
+          .eq('setting_type', 'sharetribe');
+        
+        if (sharetribeError) {
+          console.log('Error fetching ShareTribe settings:', sharetribeError);
+        } else {
+          console.log('ShareTribe settings found:', sharetribeSettings);
+          
+          // Look for marketplace URL in any of the ShareTribe settings
+          const marketplaceUrlSetting = sharetribeSettings?.find(s => 
+            s.setting_key === 'marketplaceUrl' || 
+            s.setting_key === 'marketplace_url' || 
+            s.setting_key === 'url'
+          );
+          
+          if (marketplaceUrlSetting?.setting_value) {
+            baseUrl = marketplaceUrlSetting.setting_value;
+            console.log('✅ Using ShareTribe URL:', baseUrl);
+          } else {
+            console.log('❌ No marketplace URL found in ShareTribe settings');
+            console.log('Available ShareTribe keys:', sharetribeSettings?.map(s => s.setting_key));
+          }
+        }
+        
+        console.log('=== END REFERRAL LINK DEBUG ===');
+      } catch (error) {
+        console.log('Error fetching ShareTribe marketplace URL:', error);
+        console.log('Using fallback URL:', baseUrl);
+      }
+      
+      // Generate referral link with proper URL normalization
+      referralLink = generateReferralLink(baseUrl, referralCode);
+      console.log('✅ Generated purchase referral link:', referralLink);
+    }
     
     // Use authenticated client to create affiliate
     const { data: affiliate, error } = await authenticatedSupabase
