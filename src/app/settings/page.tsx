@@ -106,6 +106,11 @@ function GeneralSettings() {
       
       const result = await response.json();
       setSaveResult(result);
+      
+      // Update local state with the returned settings if save was successful
+      if (result.success && result.settings?.general) {
+        setSettings(result.settings.general);
+      }
     } catch (error) {
       setSaveResult({
         success: false,
@@ -256,6 +261,11 @@ function IntegrationSettings() {
       
       const result = await response.json();
       setSaveResult(result);
+      
+      // Update local state with the returned settings if save was successful
+      if (result.success && result.settings?.sharetribe) {
+        setSharetribeConfig(result.settings.sharetribe);
+      }
       
       if (result.success) {
         // Clear any previous test results when saving new settings
