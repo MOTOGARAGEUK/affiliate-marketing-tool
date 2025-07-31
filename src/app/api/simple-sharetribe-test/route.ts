@@ -46,12 +46,61 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log('Testing Sharetribe Marketplace API...');
+    // Try both APIs to see which one works
+    console.log('Testing Sharetribe APIs...');
     console.log('Marketplace Client ID:', marketplaceClientId.substring(0, 8) + '...');
-    console.log('Marketplace Client Secret:', marketplaceClientSecret.substring(0, 8) + '...');
+    console.log('Integration Client ID:', integrationClientId.substring(0, 8) + '...');
 
-    // Try the Marketplace API authentication endpoint
-    const authResponse = await fetch('https://flex-api.sharetribe.com/v1/auth/token', {
+    // First try the Integration API authentication endpoint
+    const integrationAuthResponse = await fetch('https://flex-integ-api.sharetribe.com/v1/auth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: integrationClientId,
+        client_secret: integrationClientSecret,
+      }),
+    });
+
+    console.log('Integration auth response status:', integrationAuthResponse.status);
+
+    if (integrationAuthResponse.ok) {
+      const integrationAuthData = await integrationAuthResponse.json();
+      console.log('Integration API authentication successful');
+      
+      // Test Integration API with marketplace show endpoint
+      const integrationApiResponse = await fetch('https://flex-integ-api.sharetribe.com/v1/integration_api/marketplace/show', {
+        method: 'GET',
+        headers: {
+          'Authorization': `bearer ${integrationAuthData.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Integration API response status:', integrationApiResponse.status);
+
+      if (integrationApiResponse.ok) {
+        const integrationApiData = await integrationApiResponse.json();
+        console.log('Integration API call successful');
+        
+        return NextResponse.json({
+          success: true,
+          message: '✅ SUCCESS! Your Sharetribe Integration API credentials are working!',
+          apiType: 'Integration API',
+          hasAccessToken: !!integrationAuthData.access_token,
+          tokenType: integrationAuthData.token_type,
+          expiresIn: integrationAuthData.expires_in,
+          marketplaceData: integrationApiData,
+          suggestion: 'Your Integration API credentials are valid and can access the marketplace'
+        });
+      }
+    }
+
+    // If Integration API failed, try Marketplace API
+    console.log('Trying Marketplace API...');
+    const marketplaceAuthResponse = await fetch('https://flex-api.sharetribe.com/v1/auth/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -63,65 +112,66 @@ export async function POST(request: NextRequest) {
       }),
     });
 
-    console.log('Auth response status:', authResponse.status);
-    console.log('Auth response ok:', authResponse.ok);
+    console.log('Marketplace auth response status:', marketplaceAuthResponse.status);
+    console.log('Marketplace auth response ok:', marketplaceAuthResponse.ok);
 
-    if (authResponse.ok) {
-      const authData = await authResponse.json();
-      console.log('Authentication successful, got access token');
+    if (marketplaceAuthResponse.ok) {
+      const marketplaceAuthData = await marketplaceAuthResponse.json();
+      console.log('Marketplace API authentication successful');
       
-      // Now test the actual API call with the access token
-      const apiResponse = await fetch('https://flex-api.sharetribe.com/v1/users/query', {
-        method: 'POST',
+      // Try a simpler endpoint for Marketplace API
+      const marketplaceApiResponse = await fetch('https://flex-api.sharetribe.com/v1/marketplace/show', {
+        method: 'GET',
         headers: {
-          'Authorization': `bearer ${authData.access_token}`,
+          'Authorization': `bearer ${marketplaceAuthData.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          filters: {},
-          include: ['profile'],
-          fields: {
-            user: ['id', 'profile'],
-            profile: ['displayName', 'email']
-          }
-        })
       });
 
-      console.log('API response status:', apiResponse.status);
+      console.log('Marketplace API response status:', marketplaceApiResponse.status);
 
-      if (apiResponse.ok) {
-        const apiData = await apiResponse.json();
-        console.log('API call successful');
+      if (marketplaceApiResponse.ok) {
+        const marketplaceApiData = await marketplaceApiResponse.json();
+        console.log('Marketplace API call successful');
         
         return NextResponse.json({
           success: true,
           message: '✅ SUCCESS! Your Sharetribe Marketplace API credentials are working!',
           apiType: 'Marketplace API',
-          hasAccessToken: !!authData.access_token,
-          tokenType: authData.token_type,
-          expiresIn: authData.expires_in,
-          usersCount: apiData.data?.length || 0,
-          suggestion: 'Your credentials are valid and can access the Marketplace API'
+          hasAccessToken: !!marketplaceAuthData.access_token,
+          tokenType: marketplaceAuthData.token_type,
+          expiresIn: marketplaceAuthData.expires_in,
+          marketplaceData: marketplaceApiData,
+          suggestion: 'Your Marketplace API credentials are valid and can access the marketplace'
         });
       } else {
-        const errorText = await apiResponse.text();
-        console.error('API call failed:', errorText);
+        const errorText = await marketplaceApiResponse.text();
+        console.error('Marketplace API call failed:', errorText);
         
         return NextResponse.json({
           success: false,
-          message: `❌ API call failed: ${apiResponse.status} ${apiResponse.statusText}`,
-          details: errorText,
-          suggestion: 'Authentication worked but API call failed. Check your application permissions.'
+          message: `❌ Both APIs failed. Integration API: ${integrationAuthResponse.status}, Marketplace API: ${marketplaceApiResponse.status}`,
+          details: {
+            integrationAuth: integrationAuthResponse.status,
+            marketplaceAuth: marketplaceAuthResponse.status,
+            marketplaceApi: marketplaceApiResponse.status,
+            marketplaceError: errorText
+          },
+          suggestion: 'Please check your API credentials and permissions in Sharetribe Admin'
         }, { status: 400 });
       }
     } else {
-      const errorText = await authResponse.text();
-      console.error('Authentication failed:', errorText);
+      const errorText = await marketplaceAuthResponse.text();
+      console.error('Marketplace authentication failed:', errorText);
       
       return NextResponse.json({
         success: false,
-        message: `❌ Authentication failed: ${authResponse.status} ${authResponse.statusText}`,
-        details: errorText,
+        message: `❌ Both APIs failed. Integration API: ${integrationAuthResponse.status}, Marketplace API: ${marketplaceAuthResponse.status}`,
+        details: {
+          integrationAuth: integrationAuthResponse.status,
+          marketplaceAuth: marketplaceAuthResponse.status,
+          marketplaceError: errorText
+        },
         suggestion: 'Please check your Client ID and Client Secret in Sharetribe Admin → Advanced → Applications'
       }, { status: 400 });
     }
