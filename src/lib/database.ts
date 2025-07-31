@@ -433,12 +433,12 @@ export const dashboardAPI = {
       { data: affiliates },
       { data: payouts }
     ] = await Promise.all([
-      supabase.from('affiliates').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-      supabase.from('affiliates').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'active'),
-      supabase.from('referrals').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-      supabase.from('referrals').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'pending'),
-      supabase.from('affiliates').select('total_earnings').eq('user_id', userId),
-      supabase.from('payouts').select('amount').eq('user_id', userId)
+      getSupabase().from('affiliates').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+      getSupabase().from('affiliates').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'active'),
+      getSupabase().from('referrals').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+      getSupabase().from('referrals').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'pending'),
+      getSupabase().from('affiliates').select('total_earnings').eq('user_id', userId),
+      getSupabase().from('payouts').select('amount').eq('user_id', userId)
     ]);
 
     const totalEarnings = affiliates?.reduce((sum, a) => sum + Number(a.total_earnings), 0) || 0;
