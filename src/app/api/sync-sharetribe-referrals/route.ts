@@ -102,10 +102,23 @@ export async function POST(request: NextRequest) {
 
         for (const user of usersResponse.data || []) {
           try {
-            // Check if user has referral data in publicData
-            const referralCode = user.attributes?.publicData?.referralCode;
-            const utmSource = user.attributes?.publicData?.utmSource;
-            const utmCampaign = user.attributes?.publicData?.utmCampaign;
+            // First, try to find UTM data for this user
+            const { data: utmData, error: utmError } = await supabase
+              .from('utm_tracking')
+              .select('*')
+              .eq('sharetribe_user_id', user.id)
+              .eq('processed', false)
+              .order('created_at', { ascending: false })
+              .limit(1);
+
+            if (utmError) {
+              console.error('Error querying UTM data:', utmError);
+            }
+
+            // Check if user has referral data in publicData (fallback)
+            const referralCode = user.attributes?.publicData?.referralCode || utmData?.[0]?.utm_campaign;
+            const utmSource = user.attributes?.publicData?.utmSource || utmData?.[0]?.utm_source;
+            const utmCampaign = user.attributes?.publicData?.utmCampaign || utmData?.[0]?.utm_campaign;
             
             console.log(`Processing user ${user.id}:`, { referralCode, utmSource, utmCampaign });
             
@@ -171,6 +184,14 @@ export async function POST(request: NextRequest) {
               } else {
                 console.log(`✅ Referral created for user: ${user.id}`);
                 results.referralsCreated++;
+                
+                // Mark UTM data as processed
+                if (utmData?.[0]) {
+                  await supabase
+                    .from('utm_tracking')
+                    .update({ processed: true, sharetribe_user_id: user.id })
+                    .eq('id', utmData[0].id);
+                }
               }
             }
             
