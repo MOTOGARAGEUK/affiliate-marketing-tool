@@ -20,7 +20,6 @@ const navigation = [
   { name: 'Programs', href: '/programs', icon: PuzzlePieceIcon },
   { name: 'Affiliates', href: '/affiliates', icon: UserGroupIcon },
   { name: 'Payouts', href: '/payouts', icon: CreditCardIcon },
-  { name: 'Integrations', href: '/integrations', icon: CogIcon },
   { name: 'Settings', href: '/settings', icon: CogIcon },
 ];
 
