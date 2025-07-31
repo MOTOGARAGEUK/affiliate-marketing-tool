@@ -148,10 +148,12 @@ export default function Programs() {
   };
 
   const handleDeleteProgram = async (id: string) => {
+    console.log('Attempting to delete program:', id);
     try {
       // Get auth token for API request
       const { data: { session } } = await supabase().auth.getSession();
       const token = session?.access_token;
+      console.log('Auth token obtained:', !!token);
 
       const response = await fetch(`/api/programs/${id}`, {
         method: 'DELETE',
@@ -160,7 +162,10 @@ export default function Programs() {
         }
       });
       
+      console.log('Delete response status:', response.status);
       const data = await response.json();
+      console.log('Delete response data:', data);
+      
       if (data.success) {
         await fetchPrograms(); // Refresh the list
         setDeletingProgram(null); // Close confirmation dialog
@@ -259,8 +264,8 @@ export default function Programs() {
 
       {/* Delete Confirmation Modal */}
       {deletingProgram && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white backdrop-blur-sm">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Delete</h3>
               <p className="text-sm text-gray-500 mb-6">
@@ -315,8 +320,8 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div className="fixed inset-0 overflow-y-auto h-full w-full z-50">
+      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white backdrop-blur-sm">
         <div className="mt-3">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             {program ? 'Edit Program' : 'Create New Program'}

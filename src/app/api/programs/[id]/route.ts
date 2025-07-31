@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { programsAPI } from '@/lib/database';
 import { createServerClient } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET(
   request: NextRequest,
@@ -98,8 +99,6 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createServerClient();
-    
     // Get the user from the request headers
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
@@ -110,7 +109,21 @@ export async function DELETE(
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    // Create an authenticated client with the user's token
+    const authenticatedSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    );
+    
+    const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
     
     if (authError || !user) {
       return NextResponse.json(
@@ -119,16 +132,16 @@ export async function DELETE(
       );
     }
 
-    const success = await programsAPI.delete(params.id, user.id);
+    // Use authenticated client to delete program
+    const { error } = await authenticatedSupabase
+      .from('programs')
+      .delete()
+      .eq('id', params.id)
+      .eq('user_id', user.id);
     
-    if (success) {
-      return NextResponse.json({ success: true, message: 'Program deleted successfully' });
-    } else {
-      return NextResponse.json(
-        { success: false, message: 'Program not found' },
-        { status: 404 }
-      );
-    }
+    if (error) throw error;
+    
+    return NextResponse.json({ success: true, message: 'Program deleted successfully' });
   } catch (error) {
     console.error('Failed to delete program:', error);
     return NextResponse.json(
