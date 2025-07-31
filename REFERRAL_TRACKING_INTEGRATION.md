@@ -21,6 +21,21 @@ https://test.moto-garage.co.uk/signup?ref=REFERRALCODE
 https://your-marketplace.com/ref/REFERRALCODE
 ```
 
+## How It Works
+
+1. **User clicks referral link** → Goes to signup page with `?ref=CODE`
+2. **Referral code captured** → Stored in localStorage and cookies
+3. **User goes through verification** → Referral code persists in cookies
+4. **User completes signup** → API automatically finds referral code in cookies
+5. **Referral tracked** → Appears in referrals table with all data
+
+## Cookie/Session Storage
+
+The system automatically stores referral codes in:
+- **localStorage** - For immediate access
+- **Cookies** - For persistence across page loads and redirects
+- **30-day expiration** - Codes expire after 30 days
+
 ## Integration Methods
 
 ### Method 1: Direct API Call
@@ -82,63 +97,92 @@ const response = await fetch('https://your-domain.com/api/webhook/referral', {
 
 ## Implementation Examples
 
-### ShareTribe Marketplace Integration
+### Method 1: Using the Referral Tracker Utility (Recommended)
+
+Include the referral tracker script in your HTML:
+
+```html
+<script src="https://your-domain.com/referral-tracking.js"></script>
+```
+
+Then use it in your forms:
+
+```javascript
+// In your signup form submission handler
+function handleSignupFormSubmission(formData) {
+  // The referral tracker automatically handles referral codes from URL/cookies
+  window.referralTracker.trackSignup(
+    formData.email,
+    formData.name,
+    1 // listingsCount
+  ).then(result => {
+    if (result.success) {
+      console.log('Signup tracked successfully');
+    }
+  });
+}
+
+// In your purchase completion handler
+function handlePurchaseCompletion(purchaseData) {
+  window.referralTracker.trackPurchase(
+    purchaseData.customerEmail,
+    purchaseData.customerName,
+    purchaseData.totalAmount
+  ).then(result => {
+    if (result.success) {
+      console.log('Purchase tracked successfully');
+    }
+  });
+}
+```
+
+### Method 2: Manual Integration
+
+#### ShareTribe Marketplace Integration
 
 Add this to your ShareTribe marketplace to track purchases:
 
 ```javascript
 // In your purchase completion handler
 function handlePurchaseCompletion(purchaseData) {
-  // Extract referral code from URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const referralCode = urlParams.get('ref');
-  
-  if (referralCode) {
-    // Track the referral
-    fetch('https://your-domain.com/api/track-referral', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        referralCode: referralCode,
-        customerEmail: purchaseData.customerEmail,
-        customerName: purchaseData.customerName,
-        action: 'purchase',
-        amount: purchaseData.totalAmount
-      })
-    });
-  }
+  // The API will automatically check cookies for referral codes
+  fetch('https://your-domain.com/api/track-referral', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      customerEmail: purchaseData.customerEmail,
+      customerName: purchaseData.customerName,
+      action: 'purchase',
+      amount: purchaseData.totalAmount
+      // No need to pass referralCode - it will be found in cookies
+    })
+  });
 }
 ```
 
-### Signup Form Integration
+#### Signup Form Integration
 
 Add this to your signup form to track signups:
 
 ```javascript
 // In your signup form submission handler
 function handleSignupFormSubmission(formData) {
-  // Extract referral code from URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const referralCode = urlParams.get('ref');
-  
-  if (referralCode) {
-    // Track the referral
-    fetch('https://your-domain.com/api/track-referral', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        referralCode: referralCode,
-        customerEmail: formData.email,
-        customerName: formData.name,
-        action: 'signup',
-        listingsCount: 0 // Update based on your signup flow
-      })
-    });
-  }
+  // The API will automatically check cookies for referral codes
+  fetch('https://your-domain.com/api/track-referral', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      customerEmail: formData.email,
+      customerName: formData.name,
+      action: 'signup',
+      listingsCount: 0 // Update based on your signup flow
+      // No need to pass referralCode - it will be found in cookies
+    })
+  });
 }
 ```
 

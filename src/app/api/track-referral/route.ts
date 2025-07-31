@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { 
+    let { 
       referralCode, 
       customerEmail, 
       customerName, 
@@ -13,11 +13,35 @@ export async function POST(request: NextRequest) {
       listingsCount = 0 // for signups
     } = body;
 
-    if (!referralCode || !customerEmail || !customerName || !action) {
+    // If no referral code provided in body, try to get it from cookies
+    if (!referralCode) {
+      const cookieHeader = request.headers.get('cookie');
+      if (cookieHeader) {
+        const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+          const [key, value] = cookie.trim().split('=');
+          acc[key] = value;
+          return acc;
+        }, {} as Record<string, string>);
+
+        referralCode = cookies.referralCode;
+      }
+    }
+
+    if (!customerEmail || !customerName || !action) {
       return NextResponse.json(
         { success: false, message: 'Missing required fields' },
         { status: 400 }
       );
+    }
+
+    // If still no referral code, return success but log it
+    if (!referralCode) {
+      console.log('No referral code found for customer:', customerEmail);
+      return NextResponse.json({
+        success: true,
+        message: 'No referral code found',
+        referral: null
+      });
     }
 
     const supabase = createClient(
