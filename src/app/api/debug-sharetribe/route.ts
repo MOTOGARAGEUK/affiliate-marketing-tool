@@ -1,94 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { clientId, clientSecret } = body;
-
-    if (!clientId || !clientSecret) {
-      return NextResponse.json(
-        { error: 'Client ID and Client Secret are required' },
-        { status: 400 }
-      );
+    // Get the authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'No authorization header' }, { status: 401 });
     }
 
-    console.log('Debug: Testing Sharetribe credentials...');
-    console.log('Debug: Client ID length:', clientId.length);
-    console.log('Debug: Client Secret length:', clientSecret.length);
+    const token = authHeader.substring(7);
+    
+    // Create authenticated Supabase client
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    );
 
-    // Test the OAuth token request directly
-    const tokenResponse = await fetch('https://auth.sharetribe.com/oauth/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: clientId,
-        client_secret: clientSecret,
-      }),
-    });
-
-    console.log('Debug: Token response status:', tokenResponse.status);
-
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error('Debug: Token request failed:', errorText);
-      
-      return NextResponse.json({
-        error: 'Failed to get access token',
-        status: tokenResponse.status,
-        statusText: tokenResponse.statusText,
-        details: errorText,
-        suggestion: 'Please check your Client ID and Client Secret. Make sure they are correct and have the necessary API permissions.'
-      }, { status: 400 });
+    // Get user from token
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const tokenData = await tokenResponse.json();
-    console.log('Debug: Token received successfully');
+    console.log('Debugging ShareTribe settings for user:', user.id);
 
-    // Test API access
-    const apiResponse = await fetch('https://api.sharetribe.com/v1/users?limit=1', {
-      headers: {
-        'Authorization': `Bearer ${tokenData.access_token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    // Get all settings for this user
+    const { data: allSettings, error: allSettingsError } = await supabase
+      .from('settings')
+      .select('*')
+      .eq('user_id', user.id);
 
-    console.log('Debug: API response status:', apiResponse.status);
-
-    if (!apiResponse.ok) {
-      const apiErrorText = await apiResponse.text();
-      console.error('Debug: API request failed:', apiErrorText);
-      
-      return NextResponse.json({
-        error: 'Failed to access Sharetribe API',
-        status: apiResponse.status,
-        statusText: apiResponse.statusText,
-        details: apiErrorText,
-        suggestion: 'Token was received but API access failed. Check your API permissions.'
-      }, { status: 400 });
+    if (allSettingsError) {
+      console.log('Error fetching all settings:', allSettingsError);
+      return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
     }
 
-    const apiData = await apiResponse.json();
-    console.log('Debug: API access successful');
+    console.log('All settings:', allSettings);
+
+    // Get ShareTribe specific settings
+    const { data: sharetribeSettings, error: sharetribeError } = await supabase
+      .from('settings')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('setting_type', 'sharetribe');
+
+    if (sharetribeError) {
+      console.log('Error fetching ShareTribe settings:', sharetribeError);
+    } else {
+      console.log('ShareTribe settings:', sharetribeSettings);
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Sharetribe API connection successful',
-      tokenReceived: !!tokenData.access_token,
-      apiAccess: true,
-      userCount: apiData.data?.length || 0
+      user_id: user.id,
+      all_settings: allSettings,
+      sharetribe_settings: sharetribeSettings || [],
+      available_setting_types: allSettings?.map(s => s.setting_type) || [],
+      sharetribe_keys: sharetribeSettings?.map(s => s.setting_key) || []
     });
 
   } catch (error) {
-    console.error('Debug: Unexpected error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Unexpected error occurred',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    console.error('Debug error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

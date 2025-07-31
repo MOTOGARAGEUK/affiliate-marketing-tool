@@ -129,38 +129,64 @@ export async function POST(request: NextRequest) {
       
       console.log('All settings for user:', allSettings);
       
-      // Look for ShareTribe marketplace URL
-      const settingsResponse = await authenticatedSupabase
-        .from('settings')
-        .select('setting_value')
-        .eq('user_id', user.id)
-        .eq('setting_type', 'sharetribe')
-        .eq('setting_key', 'marketplaceUrl')
-        .single();
+      // Look for ShareTribe marketplace URL - try multiple variations
+      let settingsResponse = null;
       
-      console.log('Settings response:', settingsResponse);
-      
-      if (settingsResponse.data?.setting_value) {
-        baseUrl = settingsResponse.data.setting_value;
-        console.log('Using ShareTribe URL:', baseUrl);
-      } else {
-        // Try alternative key names
-        const altResponse = await authenticatedSupabase
+      // Try marketplaceUrl first
+      try {
+        settingsResponse = await authenticatedSupabase
           .from('settings')
           .select('setting_value')
           .eq('user_id', user.id)
           .eq('setting_type', 'sharetribe')
-          .eq('setting_key', 'marketplace_url')
+          .eq('setting_key', 'marketplaceUrl')
           .single();
         
-        console.log('Alternative settings response:', altResponse);
-        
-        if (altResponse.data?.setting_value) {
-          baseUrl = altResponse.data.setting_value;
-          console.log('Using ShareTribe URL (alt):', baseUrl);
-        } else {
-          console.log('No ShareTribe URL found in settings, using fallback');
+        console.log('Settings response (marketplaceUrl):', settingsResponse);
+      } catch (error) {
+        console.log('No marketplaceUrl found, trying marketplace_url');
+      }
+      
+      // Try marketplace_url if first attempt failed
+      if (!settingsResponse?.data?.setting_value) {
+        try {
+          settingsResponse = await authenticatedSupabase
+            .from('settings')
+            .select('setting_value')
+            .eq('user_id', user.id)
+            .eq('setting_type', 'sharetribe')
+            .eq('setting_key', 'marketplace_url')
+            .single();
+          
+          console.log('Settings response (marketplace_url):', settingsResponse);
+        } catch (error) {
+          console.log('No marketplace_url found either');
         }
+      }
+      
+      // Try url if both attempts failed
+      if (!settingsResponse?.data?.setting_value) {
+        try {
+          settingsResponse = await authenticatedSupabase
+            .from('settings')
+            .select('setting_value')
+            .eq('user_id', user.id)
+            .eq('setting_type', 'sharetribe')
+            .eq('setting_key', 'url')
+            .single();
+          
+          console.log('Settings response (url):', settingsResponse);
+        } catch (error) {
+          console.log('No url found either');
+        }
+      }
+      
+      if (settingsResponse?.data?.setting_value) {
+        baseUrl = settingsResponse.data.setting_value;
+        console.log('Using ShareTribe URL:', baseUrl);
+      } else {
+        console.log('No ShareTribe URL found in settings, using fallback');
+        console.log('Available settings types:', allSettings.data?.map(s => `${s.setting_type}.${s.setting_key}`));
       }
     } catch (error) {
       console.log('Error fetching ShareTribe marketplace URL:', error);
