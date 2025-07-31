@@ -3,17 +3,43 @@
 import { useState, useEffect } from 'react';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { formatDate, getStatusColor } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export default function Programs() {
+  const { user } = useAuth();
   const [programs, setPrograms] = useState<any[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingProgram, setEditingProgram] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [currency, setCurrency] = useState('$'); // Default currency
 
-  // Load programs on component mount
+  // Load programs and currency settings on component mount
   useEffect(() => {
     fetchPrograms();
+    fetchCurrencySettings();
   }, []);
+
+  const fetchCurrencySettings = async () => {
+    try {
+      const response = await fetch('/api/settings');
+      const data = await response.json();
+      if (data.success && data.settings?.general?.currency) {
+        const currencyCode = data.settings.general.currency;
+        // Map currency codes to symbols
+        const currencySymbols: { [key: string]: string } = {
+          'USD': '$',
+          'GBP': '£',
+          'EUR': '€',
+          'CAD': 'C$',
+          'AUD': 'A$'
+        };
+        setCurrency(currencySymbols[currencyCode] || '$');
+      }
+    } catch (error) {
+      console.error('Failed to fetch currency settings:', error);
+    }
+  };
 
   const fetchPrograms = async () => {
     try {
@@ -31,10 +57,15 @@ export default function Programs() {
 
   const handleCreateProgram = async (programData: any) => {
     try {
+      // Get auth token for API request
+      const { data: { session } } = await supabase().auth.getSession();
+      const token = session?.access_token;
+
       const response = await fetch('/api/programs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify(programData),
       });
@@ -43,6 +74,8 @@ export default function Programs() {
       if (data.success) {
         await fetchPrograms(); // Refresh the list
         setShowCreateModal(false);
+      } else {
+        console.error('Failed to create program:', data.message);
       }
     } catch (error) {
       console.error('Failed to create program:', error);
@@ -51,10 +84,15 @@ export default function Programs() {
 
   const handleEditProgram = async (programData: any) => {
     try {
+      // Get auth token for API request
+      const { data: { session } } = await supabase().auth.getSession();
+      const token = session?.access_token;
+
       const response = await fetch(`/api/programs/${editingProgram.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify(programData),
       });
@@ -63,6 +101,8 @@ export default function Programs() {
       if (data.success) {
         await fetchPrograms(); // Refresh the list
         setEditingProgram(null);
+      } else {
+        console.error('Failed to update program:', data.message);
       }
     } catch (error) {
       console.error('Failed to update program:', error);
@@ -71,13 +111,22 @@ export default function Programs() {
 
   const handleDeleteProgram = async (id: string) => {
     try {
+      // Get auth token for API request
+      const { data: { session } } = await supabase().auth.getSession();
+      const token = session?.access_token;
+
       const response = await fetch(`/api/programs/${id}`, {
         method: 'DELETE',
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
       });
       
       const data = await response.json();
       if (data.success) {
         await fetchPrograms(); // Refresh the list
+      } else {
+        console.error('Failed to delete program:', data.message);
       }
     } catch (error) {
       console.error('Failed to delete program:', error);
@@ -135,7 +184,7 @@ export default function Programs() {
               <div className="flex justify-between">
                 <span className="text-sm text-gray-500">Commission:</span>
                 <span className="text-sm font-medium text-gray-900">
-                  {program.commissionType === 'percentage' ? `${program.commission}%` : `$${program.commission}`}
+                  {program.commissionType === 'percentage' ? `${program.commission}%` : `${currency}${program.commission}`}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -162,13 +211,14 @@ export default function Programs() {
             setEditingProgram(null);
           }}
           onSubmit={editingProgram ? handleEditProgram : handleCreateProgram}
+          currency={currency}
         />
       )}
     </div>
   );
 }
 
-function ProgramModal({ program, onClose, onSubmit }: any) {
+function ProgramModal({ program, onClose, onSubmit, currency }: any) {
   const [formData, setFormData] = useState({
     name: program?.name || '',
     type: program?.type || 'signup',
@@ -225,7 +275,7 @@ function ProgramModal({ program, onClose, onSubmit }: any) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Commission {formData.commissionType === 'percentage' ? '(%)' : '($)'}
+                  Commission {formData.commissionType === 'percentage' ? '(%)' : `(${currency})`}
                 </label>
                 <input
                   type="number"
@@ -246,7 +296,7 @@ function ProgramModal({ program, onClose, onSubmit }: any) {
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   disabled={formData.type === 'signup'}
                 >
-                  <option value="fixed">Fixed ($)</option>
+                  <option value="fixed">Fixed ({currency})</option>
                   <option value="percentage">Percentage (%)</option>
                 </select>
                 {formData.type === 'signup' && (
