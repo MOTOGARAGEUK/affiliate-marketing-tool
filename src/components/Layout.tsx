@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   ChartBarIcon,
   UserGroupIcon,
@@ -11,6 +12,7 @@ import {
   PuzzlePieceIcon,
   Bars3Icon,
   XMarkIcon,
+  ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -25,6 +27,7 @@ const navigation = [
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const { user, signOut } = useAuth();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -61,6 +64,33 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
+          
+          {/* User section */}
+          {user && (
+            <div className="border-t border-gray-200 p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                    <span className="text-sm font-medium text-indigo-600">
+                      {user.email?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+                <div className="ml-3 flex-1">
+                  <p className="text-sm font-medium text-gray-700 truncate">
+                    {user.email}
+                  </p>
+                </div>
+                <button
+                  onClick={signOut}
+                  className="ml-2 text-gray-400 hover:text-gray-600"
+                  title="Sign out"
+                >
+                  <ArrowRightOnRectangleIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -89,6 +119,33 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
+          
+          {/* User section */}
+          {user && (
+            <div className="border-t border-gray-200 p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                    <span className="text-sm font-medium text-indigo-600">
+                      {user.email?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+                <div className="ml-3 flex-1">
+                  <p className="text-sm font-medium text-gray-700 truncate">
+                    {user.email}
+                  </p>
+                </div>
+                <button
+                  onClick={signOut}
+                  className="ml-2 text-gray-400 hover:text-gray-600"
+                  title="Sign out"
+                >
+                  <ArrowRightOnRectangleIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

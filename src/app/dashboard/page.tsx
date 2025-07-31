@@ -9,60 +9,66 @@ import {
 } from '@heroicons/react/24/outline';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { dashboardAPI } from '@/lib/database';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function Dashboard() {
   const [stats, setStats] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      if (!user) return;
+      
       try {
-        const response = await fetch('/api/dashboard');
-        const data = await response.json();
+        const [statsData, activityData] = await Promise.all([
+          dashboardAPI.getStats(user.id),
+          dashboardAPI.getRecentActivity(user.id)
+        ]);
         
-        if (data.success) {
-          const dashboardStats = [
-            {
-              name: 'Total Affiliates',
-              value: data.stats.totalAffiliates,
-              icon: UsersIcon,
-              change: '+12%',
-              changeType: 'positive',
-            },
-            {
-              name: 'Active Affiliates',
-              value: data.stats.activeAffiliates,
-              icon: UsersIcon,
-              change: '+8%',
-              changeType: 'positive',
-            },
-            {
-              name: 'Total Referrals',
-              value: data.stats.totalReferrals,
-              icon: ChartBarIcon,
-              change: '+15%',
-              changeType: 'positive',
-            },
-            {
-              name: 'Total Earnings',
-              value: formatCurrency(data.stats.totalEarnings),
-              icon: CurrencyDollarIcon,
-              change: '+23%',
-              changeType: 'positive',
-            },
-            {
-              name: 'Pending Payouts',
-              value: formatCurrency(data.stats.pendingPayouts),
-              icon: CreditCardIcon,
-              change: '+5%',
-              changeType: 'neutral',
-            },
-          ];
-          
-          setStats(dashboardStats);
-          setRecentActivity(data.recentActivity || []);
-        }
+        const dashboardStats = [
+          {
+            name: 'Total Affiliates',
+            value: statsData.totalAffiliates,
+            icon: UsersIcon,
+            change: '+12%',
+            changeType: 'positive',
+          },
+          {
+            name: 'Active Affiliates',
+            value: statsData.activeAffiliates,
+            icon: UsersIcon,
+            change: '+8%',
+            changeType: 'positive',
+          },
+          {
+            name: 'Total Referrals',
+            value: statsData.totalReferrals,
+            icon: ChartBarIcon,
+            change: '+15%',
+            changeType: 'positive',
+          },
+          {
+            name: 'Total Earnings',
+            value: formatCurrency(statsData.totalEarnings),
+            icon: CurrencyDollarIcon,
+            change: '+23%',
+            changeType: 'positive',
+          },
+          {
+            name: 'Pending Payouts',
+            value: formatCurrency(statsData.pendingPayouts),
+            icon: CreditCardIcon,
+            change: '+5%',
+            changeType: 'neutral',
+          },
+        ];
+        
+        setStats(dashboardStats);
+        setRecentActivity(activityData || []);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
@@ -71,7 +77,7 @@ export default function Dashboard() {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [user]);
 
   const chartData = [
     { month: 'Jan', referrals: 45, earnings: 1200 },
@@ -84,6 +90,24 @@ export default function Dashboard() {
 
   if (loading) {
     return (
+      <ProtectedRoute>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Overview of your affiliate marketing performance
+            </p>
+          </div>
+          <div className="text-center py-8">
+            <p className="text-gray-500">Loading dashboard data...</p>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  return (
+    <ProtectedRoute>
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
@@ -91,111 +115,87 @@ export default function Dashboard() {
             Overview of your affiliate marketing performance
           </p>
         </div>
-        <div className="text-center py-8">
-          <p className="text-gray-500">Loading dashboard data...</p>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+          {stats.map((item) => (
+            <div
+              key={item.name}
+              className="relative overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:px-6"
+            >
+              <dt>
+                <div className="absolute rounded-md bg-indigo-500 p-3">
+                  <item.icon className="h-6 w-6 text-white" />
+                </div>
+                <p className="ml-16 truncate text-sm font-medium text-gray-500">{item.name}</p>
+              </dt>
+              <dd className="ml-16 flex items-baseline">
+                <p className="text-2xl font-semibold text-gray-900">{item.value}</p>
+                <p
+                  className={`ml-2 flex items-baseline text-sm font-semibold ${
+                    item.changeType === 'positive'
+                      ? 'text-green-600'
+                      : item.changeType === 'negative'
+                      ? 'text-red-600'
+                      : 'text-gray-500'
+                  }`}
+                >
+                  {item.change}
+                </p>
+              </dd>
+            </div>
+          ))}
         </div>
-      </div>
-    );
-  }
 
-    return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Overview of your affiliate marketing performance
-        </p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
-        {stats.map((item) => (
-          <div
-            key={item.name}
-            className="relative overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:px-6"
-          >
-            <dt>
-              <div className="absolute rounded-md bg-indigo-500 p-3">
-                <item.icon className="h-6 w-6 text-white" />
-              </div>
-              <p className="ml-16 truncate text-sm font-medium text-gray-500">{item.name}</p>
-            </dt>
-            <dd className="ml-16 flex items-baseline">
-              <p className="text-2xl font-semibold text-gray-900">{item.value}</p>
-              <p
-                className={`ml-2 flex items-baseline text-sm font-semibold ${
-                  item.changeType === 'positive'
-                    ? 'text-green-600'
-                    : item.changeType === 'negative'
-                    ? 'text-red-600'
-                    : 'text-gray-500'
-                }`}
-              >
-                {item.change}
-              </p>
-            </dd>
+        {/* Charts */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="rounded-lg bg-white p-6 shadow">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Referrals & Earnings</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="referrals" stroke="#3B82F6" strokeWidth={2} />
+                <Line type="monotone" dataKey="earnings" stroke="#10B981" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-        ))}
-      </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-lg bg-white p-6 shadow">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Referrals & Earnings</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="referrals" stroke="#3B82F6" strokeWidth={2} />
-              <Line type="monotone" dataKey="earnings" stroke="#10B981" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="rounded-lg bg-white p-6 shadow">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Activity</h3>
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="flex-shrink-0">
-                <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                  <UsersIcon className="h-4 w-4 text-green-600" />
+          <div className="rounded-lg bg-white p-6 shadow">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Activity</h3>
+            <div className="space-y-4">
+              {recentActivity.length > 0 ? (
+                recentActivity.slice(0, 5).map((activity, index) => (
+                  <div key={index} className="flex items-center space-x-3">
+                    <div className="flex-shrink-0">
+                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                        <CurrencyDollarIcon className="h-4 w-4 text-blue-600" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">
+                        {activity.affiliates?.name} earned commission
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        ${activity.commission} from {activity.programs?.name}
+                      </p>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {new Date(activity.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-gray-500">No recent activity</p>
                 </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">New affiliate joined</p>
-                <p className="text-sm text-gray-500">Sarah Wilson joined the program</p>
-              </div>
-              <div className="text-sm text-gray-500">2 hours ago</div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="flex-shrink-0">
-                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <CurrencyDollarIcon className="h-4 w-4 text-blue-600" />
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">Commission earned</p>
-                <p className="text-sm text-gray-500">John Doe earned $25.50</p>
-              </div>
-              <div className="text-sm text-gray-500">4 hours ago</div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="flex-shrink-0">
-                <div className="h-8 w-8 rounded-full bg-yellow-100 flex items-center justify-center">
-                  <CreditCardIcon className="h-4 w-4 text-yellow-600" />
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">Payout processed</p>
-                <p className="text-sm text-gray-500">$500 sent to Jane Smith</p>
-              </div>
-              <div className="text-sm text-gray-500">1 day ago</div>
+              )}
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }
