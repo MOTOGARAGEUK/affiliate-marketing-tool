@@ -47,8 +47,18 @@ export default function Affiliates() {
 
   const fetchData = async () => {
     try {
+      setLoading(true);
+      
+      // Get auth token for API request
+      const { data: { session } } = await supabase().auth.getSession();
+      const token = session?.access_token;
+      
       const [affiliatesResponse, programsResponse] = await Promise.all([
-        fetch('/api/affiliates'),
+        fetch('/api/affiliates', {
+          headers: {
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          }
+        }),
         fetch('/api/programs')
       ]);
       

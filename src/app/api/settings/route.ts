@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { settingsAPI } from '@/lib/settings-database';
 import { createServerClient } from '@/lib/supabase';
 import { createClient } from '@supabase/supabase-js';
+import { updateAllReferralLinks } from '@/lib/referral-utils';
+
+// Helper function to get current marketplace URL
+async function getCurrentMarketplaceUrl(userId: string, supabase: any) {
+  try {
+    const { data, error } = await supabase
+      .from('settings')
+      .select('setting_value')
+      .eq('user_id', userId)
+      .eq('setting_type', 'sharetribe')
+      .eq('setting_key', 'marketplaceUrl')
+      .single();
+    
+    if (error || !data) return null;
+    return data.setting_value;
+  } catch (error) {
+    console.log('Error getting current marketplace URL:', error);
+    return null;
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -171,6 +191,13 @@ export async function POST(request: NextRequest) {
 
     if (type === 'sharetribe') {
       console.log('Settings POST - Processing sharetribe settings');
+      
+      // Check if marketplace URL is being updated
+      const oldMarketplaceUrl = await getCurrentMarketplaceUrl(user.id, authenticatedSupabase);
+      const newMarketplaceUrl = settings.marketplaceUrl;
+      
+      console.log('Marketplace URL check:', { old: oldMarketplaceUrl, new: newMarketplaceUrl });
+      
       // Save sharetribe settings using authenticated client
       const settingsArray = Object.entries({
         clientId: settings.clientId,
@@ -193,6 +220,19 @@ export async function POST(request: NextRequest) {
 
       if (error) throw error;
       console.log('Settings POST - ShareTribe settings saved successfully');
+      
+      // Update all referral links if marketplace URL changed
+      if (newMarketplaceUrl && newMarketplaceUrl !== oldMarketplaceUrl) {
+        console.log('Marketplace URL changed, updating all referral links...');
+        try {
+          const token = authHeader!.replace('Bearer ', '');
+          const updateResult = await updateAllReferralLinks(user.id, newMarketplaceUrl, token);
+          console.log('Referral links update result:', updateResult);
+        } catch (updateError) {
+          console.error('Error updating referral links:', updateError);
+          // Don't fail the settings save if referral update fails
+        }
+      }
     } else if (type === 'general') {
       console.log('Settings POST - Processing general settings');
       // Save general settings using authenticated client

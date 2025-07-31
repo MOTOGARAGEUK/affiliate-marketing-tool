@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { affiliatesAPI } from '@/lib/database';
 import { createServerClient } from '@/lib/supabase';
 import { createClient } from '@supabase/supabase-js';
+import { generateReferralLink } from '@/lib/referral-utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -193,7 +194,8 @@ export async function POST(request: NextRequest) {
       console.log('Using fallback URL:', baseUrl);
     }
     
-    const referralLink = `${baseUrl}/ref/${referralCode}`;
+    // Generate referral link with proper URL normalization
+    const referralLink = generateReferralLink(baseUrl, referralCode);
     
     // Use authenticated client to create affiliate
     const { data: affiliate, error } = await authenticatedSupabase
