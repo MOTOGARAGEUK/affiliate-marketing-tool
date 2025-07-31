@@ -311,6 +311,8 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
   // Update settings when props change
   useEffect(() => {
     if (initialSettings) {
+      console.log('Loading initial settings:', initialSettings);
+      console.log('Initial settings keys:', Object.keys(initialSettings));
       setSharetribeConfig(initialSettings);
     }
   }, [initialSettings]);
@@ -372,6 +374,13 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
   const finalTest = async () => {
     console.log('Final test button clicked!');
     console.log('Config:', sharetribeConfig);
+    console.log('Config keys:', Object.keys(sharetribeConfig));
+    console.log('Config values:', {
+      marketplaceClientId: sharetribeConfig.marketplaceClientId ? 'SET' : 'NOT SET',
+      marketplaceClientSecret: sharetribeConfig.marketplaceClientSecret ? 'SET' : 'NOT SET',
+      integrationClientId: sharetribeConfig.integrationClientId ? 'SET' : 'NOT SET',
+      integrationClientSecret: sharetribeConfig.integrationClientSecret ? 'SET' : 'NOT SET',
+    });
     
     setIsTesting(true);
     setTestResult(null);
@@ -388,6 +397,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
       console.log('Response status:', response.status);
       
       const result = await response.json();
+      console.log('API Response:', result);
       setTestResult(result);
     } catch (error) {
       console.error('Final test error:', error);
