@@ -27,25 +27,21 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired - required for Server Components
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  // Get session from cookies
+  const { data: { session } } = await supabase.auth.getSession()
+  
   // If user is authenticated and making API requests, add the token to headers
-  if (user && request.nextUrl.pathname.startsWith('/api/')) {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.access_token) {
-      const requestHeaders = new Headers(request.headers)
-      requestHeaders.set('authorization', `Bearer ${session.access_token}`)
-      
-      return NextResponse.next({
-        request: {
-          ...request,
-          headers: requestHeaders,
-        },
-      })
-    }
+  if (session?.access_token && request.nextUrl.pathname.startsWith('/api/')) {
+    console.log('Middleware - Adding auth header for API request:', request.nextUrl.pathname)
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('authorization', `Bearer ${session.access_token}`)
+    
+    return NextResponse.next({
+      request: {
+        ...request,
+        headers: requestHeaders,
+      },
+    })
   }
 
   return supabaseResponse

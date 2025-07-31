@@ -75,7 +75,17 @@ function GeneralSettings() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const response = await fetch('/api/settings');
+        // Get the current session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        const headers: Record<string, string> = {};
+        
+        // Add authorization header if user is authenticated
+        if (session?.access_token) {
+          headers['authorization'] = `Bearer ${session.access_token}`;
+        }
+        
+        const response = await fetch('/api/settings', { headers });
         const data = await response.json();
         if (data.success && data.settings.general) {
           setSettings(data.settings.general);
@@ -93,11 +103,21 @@ function GeneralSettings() {
     setSaveResult(null);
     
     try {
+      // Get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add authorization header if user is authenticated
+      if (session?.access_token) {
+        headers['authorization'] = `Bearer ${session.access_token}`;
+      }
+      
       const response = await fetch('/api/settings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           type: 'general',
           settings: settings
@@ -230,7 +250,17 @@ function IntegrationSettings() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const response = await fetch('/api/settings');
+        // Get the current session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        const headers: Record<string, string> = {};
+        
+        // Add authorization header if user is authenticated
+        if (session?.access_token) {
+          headers['authorization'] = `Bearer ${session.access_token}`;
+        }
+        
+        const response = await fetch('/api/settings', { headers });
         const data = await response.json();
         if (data.success && data.settings.sharetribe) {
           setSharetribeConfig(data.settings.sharetribe);
@@ -248,11 +278,21 @@ function IntegrationSettings() {
     setSaveResult(null);
     
     try {
+      // Get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add authorization header if user is authenticated
+      if (session?.access_token) {
+        headers['authorization'] = `Bearer ${session.access_token}`;
+      }
+      
       const response = await fetch('/api/settings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           type: 'sharetribe',
           settings: sharetribeConfig
