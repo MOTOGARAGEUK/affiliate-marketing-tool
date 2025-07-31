@@ -4,11 +4,33 @@ import { createClient } from '@supabase/supabase-js';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { marketplaceId, clientId, clientSecret, userId } = body;
+    const { marketplaceId, clientId, clientSecret, apiUrl, accessToken, apiType, userId } = body;
     
-    if (!marketplaceId || !clientId || !clientSecret || !userId) {
+    if (!marketplaceId || !userId) {
       return NextResponse.json(
         { success: false, message: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+    
+    // Validate based on API type
+    if (apiType === 'marketplace') {
+      if (!clientId || !clientSecret) {
+        return NextResponse.json(
+          { success: false, message: 'Client ID and Client Secret are required for Marketplace API' },
+          { status: 400 }
+        );
+      }
+    } else if (apiType === 'integration') {
+      if (!apiUrl || !accessToken) {
+        return NextResponse.json(
+          { success: false, message: 'API URL and Access Token are required for Integration API' },
+          { status: 400 }
+        );
+      }
+    } else {
+      return NextResponse.json(
+        { success: false, message: 'Invalid API type. Must be "marketplace" or "integration"' },
         { status: 400 }
       );
     }
@@ -18,18 +40,27 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
     
+    // Prepare config based on API type
+    const config = {
+      marketplaceId,
+      apiType,
+      ...(apiType === 'marketplace' ? {
+        clientId,
+        clientSecret
+      } : {
+        apiUrl,
+        accessToken
+      })
+    };
+    
     // Save or update Sharetribe integration settings
     const { data, error } = await supabase
       .from('integrations')
       .upsert({
         user_id: userId,
         type: 'sharetribe',
-        name: `${marketplaceId} Marketplace`,
-        config: {
-          marketplaceId,
-          clientId,
-          clientSecret
-        },
+        name: `${marketplaceId} Marketplace (${apiType === 'marketplace' ? 'Marketplace API' : 'Integration API'})`,
+        config,
         status: 'connected',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -57,8 +88,13 @@ export async function POST(request: NextRequest) {
         status: data.status,
         config: {
           marketplaceId: data.config.marketplaceId,
-          clientId: data.config.clientId,
-          // Don't return client secret for security
+          apiType: data.config.apiType,
+          // Don't return sensitive credentials for security
+          ...(data.config.apiType === 'marketplace' ? {
+            clientId: data.config.clientId
+          } : {
+            apiUrl: data.config.apiUrl
+          })
         }
       }
     });

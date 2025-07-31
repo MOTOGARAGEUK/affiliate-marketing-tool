@@ -59,18 +59,27 @@ export default function Integrations() {
         return;
       }
 
+      // Prepare request body based on API type
+      const requestBody = {
+        marketplaceId: integrationData.config.marketplaceId,
+        apiType: integrationData.config.apiType,
+        userId: user.id,
+        ...(integrationData.config.apiType === 'marketplace' ? {
+          clientId: integrationData.config.clientId,
+          clientSecret: integrationData.config.clientSecret,
+        } : {
+          apiUrl: integrationData.config.apiUrl,
+          accessToken: integrationData.config.accessToken,
+        })
+      };
+
       // Save to database
       const response = await fetch('/api/integrations/sharetribe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          marketplaceId: integrationData.config.marketplaceId,
-          clientId: integrationData.config.clientId,
-          clientSecret: integrationData.config.clientSecret,
-          userId: user.id,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
@@ -234,6 +243,7 @@ function ConnectIntegrationModal({ onClose, onSubmit }: any) {
       marketplaceId: '',
       clientId: '',
       clientSecret: '',
+      apiType: 'marketplace', // 'marketplace' or 'integration'
     },
   });
 
@@ -260,6 +270,55 @@ function ConnectIntegrationModal({ onClose, onSubmit }: any) {
                 <option value="woocommerce">WooCommerce</option>
               </select>
             </div>
+            
+            {formData.type === 'sharetribe' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">API Type</label>
+                <div className="mt-1 space-y-2">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="apiType"
+                      value="marketplace"
+                      checked={formData.config.apiType === 'marketplace'}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        config: { ...formData.config, apiType: e.target.value }
+                      })}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">
+                      <strong>Marketplace API</strong> (Client ID + Secret)
+                      <br />
+                      <span className="text-xs text-gray-500">
+                        Use this if you have Client ID and Client Secret from Sharetribe Flex Console
+                      </span>
+                    </span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="apiType"
+                      value="integration"
+                      checked={formData.config.apiType === 'integration'}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        config: { ...formData.config, apiType: e.target.value }
+                      })}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">
+                      <strong>Integration API</strong> (API URL + Access Token)
+                      <br />
+                      <span className="text-xs text-gray-500">
+                        Use this if you have API URL and Access Token from Sharetribe Integration API
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            )}
+            
             <div>
               <label className="block text-sm font-medium text-gray-700">Marketplace ID</label>
               <input
@@ -271,37 +330,93 @@ function ConnectIntegrationModal({ onClose, onSubmit }: any) {
                   name: `${e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1)} Marketplace`
                 })}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="e.g., test.moto-garage.co.uk"
                 required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Client ID</label>
-              <input
-                type="text"
-                value={formData.config.clientId}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  config: { ...formData.config, clientId: e.target.value }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="Your Sharetribe Client ID"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Client Secret</label>
-              <input
-                type="password"
-                value={formData.config.clientSecret}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  config: { ...formData.config, clientSecret: e.target.value }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="Your Sharetribe Client Secret"
-                required
-              />
-            </div>
+            {formData.config.apiType === 'marketplace' ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Client ID <span className="text-xs text-gray-500">(Marketplace API)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.config.clientId}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      config: { ...formData.config, clientId: e.target.value }
+                    })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="Your Sharetribe Marketplace API Client ID"
+                    required
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Found in Sharetribe Flex Console → API → Marketplace API
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Client Secret <span className="text-xs text-gray-500">(Marketplace API)</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={formData.config.clientSecret}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      config: { ...formData.config, clientSecret: e.target.value }
+                    })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="Your Sharetribe Marketplace API Client Secret"
+                    required
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Found in Sharetribe Flex Console → API → Marketplace API
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    API URL <span className="text-xs text-gray-500">(Integration API)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.config.apiUrl || ''}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      config: { ...formData.config, apiUrl: e.target.value }
+                    })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="https://flex-api.sharetribe.com/v1"
+                    required
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Usually: https://flex-api.sharetribe.com/v1
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Access Token <span className="text-xs text-gray-500">(Integration API)</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={formData.config.accessToken || ''}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      config: { ...formData.config, accessToken: e.target.value }
+                    })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="Your Sharetribe Integration API Access Token"
+                    required
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Found in Sharetribe Flex Console → Integration API
+                  </p>
+                </div>
+              </>
+            )}
             <div className="flex justify-end space-x-3">
               <button
                 type="button"
@@ -340,13 +455,34 @@ function ConfigureIntegrationModal({ integration, onClose }: any) {
               <p className="mt-1 text-sm text-gray-900">{integration.config.marketplaceId}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Client ID</label>
-              <p className="mt-1 text-sm text-gray-900 font-mono">{integration.config.clientId}</p>
+              <label className="block text-sm font-medium text-gray-700">API Type</label>
+              <p className="mt-1 text-sm text-gray-900">
+                {integration.config.apiType === 'marketplace' ? 'Marketplace API' : 'Integration API'}
+              </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Client Secret</label>
-              <p className="mt-1 text-sm text-gray-900 font-mono">••••••••••••••••</p>
-            </div>
+            {integration.config.apiType === 'marketplace' ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Client ID</label>
+                  <p className="mt-1 text-sm text-gray-900 font-mono">{integration.config.clientId}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Client Secret</label>
+                  <p className="mt-1 text-sm text-gray-900 font-mono">••••••••••••••••</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">API URL</label>
+                  <p className="mt-1 text-sm text-gray-900 font-mono">{integration.config.apiUrl}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Access Token</label>
+                  <p className="mt-1 text-sm text-gray-900 font-mono">••••••••••••••••</p>
+                </div>
+              </>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700">Status</label>
               <p className="mt-1 text-sm text-gray-900">{integration.status}</p>
