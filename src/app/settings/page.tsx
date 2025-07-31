@@ -588,7 +588,7 @@ function ProfileSettings() {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabase()
           .from('users')
           .select('full_name, email')
           .eq('id', user.id)
@@ -625,7 +625,7 @@ function ProfileSettings() {
     setSaveResult(null);
 
     try {
-      const { error } = await supabase
+      const { error } = await supabase()
         .from('users')
         .update({
           full_name: profile.fullName,
