@@ -182,7 +182,7 @@ function IntegrationSettings() {
     setTestResult(null);
     
     try {
-      const response = await fetch('/api/final-test', {
+      const response = await fetch('/api/simple-sharetribe-test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
