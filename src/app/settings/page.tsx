@@ -225,24 +225,49 @@ function IntegrationSettings() {
   };
 
   const simpleTest = async () => {
+    console.log('Simple test button clicked!');
+    console.log('Config:', sharetribeConfig);
+    
+    // First, let's just test if the button works
+    alert(`Testing credentials:\nClient ID: ${sharetribeConfig.clientId ? 'Set' : 'Not set'}\nClient Secret: ${sharetribeConfig.clientSecret ? 'Set' : 'Not set'}`);
+    
     setIsTesting(true);
     setTestResult(null);
     
     try {
-      const response = await fetch('/api/simple-test', {
+      // Test the credentials directly in the browser
+      const response = await fetch('https://auth.sharetribe.com/oauth/token', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify(sharetribeConfig),
+        body: new URLSearchParams({
+          grant_type: 'client_credentials',
+          client_id: sharetribeConfig.clientId,
+          client_secret: sharetribeConfig.clientSecret,
+        }),
       });
       
-      const result = await response.json();
-      setTestResult(result);
+      console.log('Response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setTestResult({
+          success: true,
+          message: `✅ Credentials are valid! Token received: ${data.access_token ? 'Yes' : 'No'}`
+        });
+      } else {
+        const errorText = await response.text();
+        setTestResult({
+          success: false,
+          message: `❌ Failed: ${response.status} ${response.statusText}\n${errorText}`
+        });
+      }
     } catch (error) {
+      console.error('Test error:', error);
       setTestResult({
         success: false,
-        message: 'Failed to test connection. Please check your settings.',
+        message: `❌ Network error: ${error instanceof Error ? error.message : 'Unknown error'}`
       });
     } finally {
       setIsTesting(false);
@@ -341,7 +366,10 @@ function IntegrationSettings() {
             <div className="flex items-center space-x-4">
               <button
                 type="button"
-                onClick={testConnection}
+                onClick={() => {
+                  console.log('Test connection button clicked!');
+                  testConnection();
+                }}
                 disabled={isTesting || !sharetribeConfig.clientId || !sharetribeConfig.clientSecret}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -359,7 +387,10 @@ function IntegrationSettings() {
               
               <button
                 type="button"
-                onClick={simpleTest}
+                onClick={() => {
+                  console.log('Simple test button clicked!');
+                  simpleTest();
+                }}
                 disabled={isTesting || !sharetribeConfig.clientId || !sharetribeConfig.clientSecret}
                 className="px-4 py-2 text-sm font-medium text-green-700 bg-green-100 border border-green-300 rounded-md hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
