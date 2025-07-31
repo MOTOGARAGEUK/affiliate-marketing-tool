@@ -117,7 +117,12 @@ export async function POST(request: NextRequest) {
     
     const sharetribeAPI = new SharetribeAPI();
     
-    let results = {
+    let results: {
+      usersProcessed: number;
+      transactionsProcessed: number;
+      referralsCreated: number;
+      errors: string[];
+    } = {
       usersProcessed: 0,
       transactionsProcessed: 0,
       referralsCreated: 0,
