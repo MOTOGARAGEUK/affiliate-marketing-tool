@@ -97,7 +97,12 @@ export async function POST(request: NextRequest) {
     const { data: program, error } = await authenticatedSupabase
       .from('programs')
       .insert({
-        ...body,
+        name: body.name,
+        type: body.type,
+        commission: body.commission,
+        commission_type: body.commissionType, // Fix: use correct column name
+        status: body.status,
+        description: body.description,
         user_id: user.id
       })
       .select()

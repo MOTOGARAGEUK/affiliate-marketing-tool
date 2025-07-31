@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         name: body.name || 'Test Program',
         type: body.type || 'signup',
         commission: body.commission || 10,
-        commission_type: body.commissionType || 'fixed',
+        commission_type: body.commissionType || 'fixed', // Fix: use correct column name
         status: body.status || 'active',
         description: body.description || 'Test description',
         user_id: user.id
