@@ -113,6 +113,37 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     console.log('Affiliates POST - Request body:', body);
+
+    // Validate required fields
+    if (!body.name || !body.email || !body.programId) {
+      return NextResponse.json(
+        { success: false, message: 'Name, email, and program are required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if email already exists for this user
+    const { data: existingAffiliate, error: checkError } = await authenticatedSupabase
+      .from('affiliates')
+      .select('id, name')
+      .eq('user_id', user.id)
+      .eq('email', body.email)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+      console.error('Error checking for existing affiliate:', checkError);
+      return NextResponse.json(
+        { success: false, message: 'Error checking for existing affiliate' },
+        { status: 500 }
+      );
+    }
+
+    if (existingAffiliate) {
+      return NextResponse.json(
+        { success: false, message: `An affiliate with email "${body.email}" already exists` },
+        { status: 400 }
+      );
+    }
     
     // Generate referral code and link
     const referralCode = `${body.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
@@ -120,22 +151,28 @@ export async function POST(request: NextRequest) {
     // Get ShareTribe marketplace URL from settings
     let baseUrl = 'https://marketplace.com'; // fallback
     try {
+      console.log('=== REFERRAL LINK DEBUG ===');
       console.log('Fetching ShareTribe marketplace URL for user:', user.id);
       
       // First, let's check what settings exist for this user
-      const allSettings = await authenticatedSupabase
+      const { data: allSettings, error: allSettingsError } = await authenticatedSupabase
         .from('settings')
         .select('*')
         .eq('user_id', user.id);
       
-      console.log('All settings for user:', allSettings);
+      if (allSettingsError) {
+        console.log('Error fetching all settings:', allSettingsError);
+      } else {
+        console.log('All settings for user:', allSettings);
+        console.log('ShareTribe settings:', allSettings?.filter(s => s.setting_type === 'sharetribe'));
+      }
       
       // Look for ShareTribe marketplace URL - try multiple variations
       let settingsResponse = null;
       
       // Try marketplaceUrl first
       try {
-        settingsResponse = await authenticatedSupabase
+        const { data, error } = await authenticatedSupabase
           .from('settings')
           .select('setting_value')
           .eq('user_id', user.id)
@@ -143,7 +180,12 @@ export async function POST(request: NextRequest) {
           .eq('setting_key', 'marketplaceUrl')
           .single();
         
-        console.log('Settings response (marketplaceUrl):', settingsResponse);
+        if (error) {
+          console.log('marketplaceUrl query error:', error);
+        } else {
+          settingsResponse = { data, error };
+          console.log('Settings response (marketplaceUrl):', settingsResponse);
+        }
       } catch (error) {
         console.log('No marketplaceUrl found, trying marketplace_url');
       }
@@ -151,7 +193,7 @@ export async function POST(request: NextRequest) {
       // Try marketplace_url if first attempt failed
       if (!settingsResponse?.data?.setting_value) {
         try {
-          settingsResponse = await authenticatedSupabase
+          const { data, error } = await authenticatedSupabase
             .from('settings')
             .select('setting_value')
             .eq('user_id', user.id)
@@ -159,7 +201,12 @@ export async function POST(request: NextRequest) {
             .eq('setting_key', 'marketplace_url')
             .single();
           
-          console.log('Settings response (marketplace_url):', settingsResponse);
+          if (error) {
+            console.log('marketplace_url query error:', error);
+          } else {
+            settingsResponse = { data, error };
+            console.log('Settings response (marketplace_url):', settingsResponse);
+          }
         } catch (error) {
           console.log('No marketplace_url found either');
         }
@@ -168,7 +215,7 @@ export async function POST(request: NextRequest) {
       // Try url if both attempts failed
       if (!settingsResponse?.data?.setting_value) {
         try {
-          settingsResponse = await authenticatedSupabase
+          const { data, error } = await authenticatedSupabase
             .from('settings')
             .select('setting_value')
             .eq('user_id', user.id)
@@ -176,7 +223,12 @@ export async function POST(request: NextRequest) {
             .eq('setting_key', 'url')
             .single();
           
-          console.log('Settings response (url):', settingsResponse);
+          if (error) {
+            console.log('url query error:', error);
+          } else {
+            settingsResponse = { data, error };
+            console.log('Settings response (url):', settingsResponse);
+          }
         } catch (error) {
           console.log('No url found either');
         }
@@ -184,11 +236,15 @@ export async function POST(request: NextRequest) {
       
       if (settingsResponse?.data?.setting_value) {
         baseUrl = settingsResponse.data.setting_value;
-        console.log('Using ShareTribe URL:', baseUrl);
+        console.log('✅ Using ShareTribe URL:', baseUrl);
       } else {
-        console.log('No ShareTribe URL found in settings, using fallback');
-        console.log('Available settings types:', allSettings.data?.map(s => `${s.setting_type}.${s.setting_key}`));
+        console.log('❌ No ShareTribe URL found in settings, using fallback');
+        if (allSettings) {
+          console.log('Available settings types:', allSettings.map(s => `${s.setting_type}.${s.setting_key}`));
+        }
       }
+      
+      console.log('=== END REFERRAL LINK DEBUG ===');
     } catch (error) {
       console.log('Error fetching ShareTribe marketplace URL:', error);
       console.log('Using fallback URL:', baseUrl);

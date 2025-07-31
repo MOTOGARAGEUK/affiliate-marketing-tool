@@ -253,15 +253,18 @@ export default function Affiliates() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {affiliate.referral_link ? (
                       <div className="flex items-center space-x-2">
-                        <span className="text-xs text-gray-500 truncate max-w-32">
-                          {affiliate.referral_link}
+                        <span className="text-xs text-gray-500 truncate max-w-20" title={affiliate.referral_link}>
+                          {affiliate.referral_link.length > 25 
+                            ? affiliate.referral_link.substring(0, 25) + '...' 
+                            : affiliate.referral_link
+                          }
                         </span>
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(affiliate.referral_link);
                             alert('Referral link copied to clipboard!');
                           }}
-                          className="text-xs px-2 py-1 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded"
+                          className="text-xs px-2 py-1 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded flex-shrink-0"
                         >
                           Copy
                         </button>

@@ -224,13 +224,27 @@ export async function POST(request: NextRequest) {
       // Update all referral links if marketplace URL changed
       if (newMarketplaceUrl && newMarketplaceUrl !== oldMarketplaceUrl) {
         console.log('Marketplace URL changed, updating all referral links...');
+        console.log('Old URL:', oldMarketplaceUrl);
+        console.log('New URL:', newMarketplaceUrl);
         try {
           const token = authHeader!.replace('Bearer ', '');
           const updateResult = await updateAllReferralLinks(user.id, newMarketplaceUrl, token);
           console.log('Referral links update result:', updateResult);
+          
+          // Return the update result in the response
+          return NextResponse.json({
+            success: true,
+            message: 'Settings saved and referral links updated',
+            referralLinksUpdated: updateResult
+          });
         } catch (updateError) {
           console.error('Error updating referral links:', updateError);
           // Don't fail the settings save if referral update fails
+          return NextResponse.json({
+            success: true,
+            message: 'Settings saved but referral links update failed',
+            error: updateError instanceof Error ? updateError.message : 'Unknown error'
+          });
         }
       }
     } else if (type === 'general') {
