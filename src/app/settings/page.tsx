@@ -174,66 +174,15 @@ function IntegrationSettings() {
     console.log('Saving Sharetribe integration settings:', sharetribeConfig);
   };
 
-  const testConnection = async () => {
-    setIsTesting(true);
-    setTestResult(null);
-    
-    try {
-      const response = await fetch('/api/test-sharetribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(sharetribeConfig),
-      });
-      
-      const result = await response.json();
-      setTestResult(result);
-    } catch (error) {
-      setTestResult({
-        success: false,
-        message: 'Failed to test connection. Please check your settings.',
-      });
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
-  const debugConnection = async () => {
-    setIsTesting(true);
-    setTestResult(null);
-    
-    try {
-      const response = await fetch('/api/debug-sharetribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(sharetribeConfig),
-      });
-      
-      const result = await response.json();
-      setTestResult(result);
-    } catch (error) {
-      setTestResult({
-        success: false,
-        message: 'Failed to debug connection. Please check your settings.',
-      });
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
-  const simpleTest = async () => {
-    console.log('Simple test button clicked!');
+  const finalTest = async () => {
+    console.log('Final test button clicked!');
     console.log('Config:', sharetribeConfig);
     
     setIsTesting(true);
     setTestResult(null);
     
     try {
-      // Test the credentials using our server-side endpoint
-      const response = await fetch('/api/test-credentials', {
+      const response = await fetch('/api/final-test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -246,71 +195,7 @@ function IntegrationSettings() {
       const result = await response.json();
       setTestResult(result);
     } catch (error) {
-      console.error('Test error:', error);
-      setTestResult({
-        success: false,
-        message: `❌ Network error: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
-  const testPermissions = async () => {
-    console.log('Test permissions button clicked!');
-    console.log('Config:', sharetribeConfig);
-    
-    setIsTesting(true);
-    setTestResult(null);
-    
-    try {
-      // Test the permissions using our server-side endpoint
-      const response = await fetch('/api/test-permissions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(sharetribeConfig),
-      });
-      
-      console.log('Response status:', response.status);
-      
-      const result = await response.json();
-      setTestResult(result);
-    } catch (error) {
-      console.error('Test error:', error);
-      setTestResult({
-        success: false,
-        message: `❌ Network error: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
-  const workingTest = async () => {
-    console.log('Working test button clicked!');
-    console.log('Config:', sharetribeConfig);
-    
-    setIsTesting(true);
-    setTestResult(null);
-    
-    try {
-      // Test using the working endpoint
-      const response = await fetch('/api/working-test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(sharetribeConfig),
-      });
-      
-      console.log('Response status:', response.status);
-      
-      const result = await response.json();
-      setTestResult(result);
-    } catch (error) {
-      console.error('Working test error:', error);
+      console.error('Final test error:', error);
       setTestResult({
         success: false,
         message: `❌ Network error: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -413,58 +298,13 @@ function IntegrationSettings() {
               <button
                 type="button"
                 onClick={() => {
-                  console.log('Test connection button clicked!');
-                  testConnection();
+                  console.log('Final test button clicked!');
+                  finalTest();
                 }}
                 disabled={isTesting || !sharetribeConfig.clientId || !sharetribeConfig.clientSecret}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isTesting ? 'Testing...' : 'Test Connection'}
-              </button>
-              
-              <button
-                type="button"
-                onClick={debugConnection}
-                disabled={isTesting || !sharetribeConfig.clientId || !sharetribeConfig.clientSecret}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Debug Connection
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('Simple test button clicked!');
-                  simpleTest();
-                }}
-                disabled={isTesting || !sharetribeConfig.clientId || !sharetribeConfig.clientSecret}
-                className="px-4 py-2 text-sm font-medium text-green-700 bg-green-100 border border-green-300 rounded-md hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Simple Test
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('Test permissions button clicked!');
-                  testPermissions();
-                }}
-                disabled={isTesting || !sharetribeConfig.clientId || !sharetribeConfig.clientSecret}
-                className="px-4 py-2 text-sm font-medium text-purple-700 bg-purple-100 border border-purple-300 rounded-md hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Test Permissions
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('Working test button clicked!');
-                  workingTest();
-                }}
-                disabled={isTesting || !sharetribeConfig.clientId || !sharetribeConfig.clientSecret}
-                className="px-4 py-2 text-sm font-medium text-orange-700 bg-orange-100 border border-orange-300 rounded-md hover:bg-orange-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Working Test
+                {isTesting ? 'Testing...' : 'Test Sharetribe Connection'}
               </button>
               
               {testResult && (
@@ -521,7 +361,7 @@ function IntegrationSettings() {
           <div className="flex justify-end space-x-3">
             <button
               type="button"
-              onClick={testConnection}
+              onClick={finalTest}
               disabled={isTesting || !sharetribeConfig.clientId || !sharetribeConfig.clientSecret}
               className="px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-300 rounded-md hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
