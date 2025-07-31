@@ -1,61 +1,70 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { integrationsAPI } from '@/lib/database';
-import { createServerClient } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Test Settings GET - Starting...');
-    const supabase = createServerClient();
-    
-    // Get the user from the request headers
+    // Get the authorization header
     const authHeader = request.headers.get('authorization');
-    console.log('Test Settings GET - Auth header:', authHeader ? 'Present' : 'Missing');
-    let user = null;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'No authorization header' }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
     
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
-      if (!authError && authUser) {
-        user = authUser;
-        console.log('Test Settings GET - User authenticated:', user.id);
-      } else {
-        console.log('Test Settings GET - Auth error:', authError);
+    // Create authenticated Supabase client
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       }
+    );
+
+    // Get user from token
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    if (!user) {
-      return NextResponse.json({
-        success: false,
-        message: 'Authentication required'
-      }, { status: 401 });
+    console.log('Testing settings for user:', user.id);
+
+    // Get all settings for this user
+    const { data: allSettings, error: allSettingsError } = await supabase
+      .from('settings')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (allSettingsError) {
+      console.log('Error fetching all settings:', allSettingsError);
+      return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
     }
 
-    // Test database operations
-    console.log('Test Settings GET - Testing database operations...');
-    
-    try {
-      const integrations = await integrationsAPI.getAll(user.id);
-      console.log('Test Settings GET - Database test successful, integrations count:', integrations?.length || 0);
-      
-      return NextResponse.json({
-        success: true,
-        message: 'Database operations working',
-        integrationsCount: integrations?.length || 0
-      });
-    } catch (dbError) {
-      console.error('Test Settings GET - Database error:', dbError);
-      return NextResponse.json({
-        success: false,
-        message: 'Database error',
-        error: dbError instanceof Error ? dbError.message : 'Unknown error'
-      }, { status: 500 });
-    }
-  } catch (error) {
-    console.error('Test Settings GET - General error:', error);
+    console.log('All settings:', allSettings);
+
+    // Get ShareTribe specific settings
+    const sharetribeSettings = allSettings?.filter(s => s.setting_type === 'sharetribe') || [];
+    console.log('ShareTribe settings:', sharetribeSettings);
+
+    // Try to get marketplace URL specifically
+    const marketplaceUrl = sharetribeSettings.find(s => s.setting_key === 'marketplaceUrl')?.setting_value;
+    console.log('Marketplace URL found:', marketplaceUrl);
+
     return NextResponse.json({
-      success: false,
-      message: 'General error',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+      success: true,
+      user_id: user.id,
+      all_settings: allSettings,
+      sharetribe_settings: sharetribeSettings,
+      marketplace_url: marketplaceUrl,
+      available_setting_types: allSettings?.map(s => s.setting_type) || [],
+      sharetribe_keys: sharetribeSettings?.map(s => s.setting_key) || []
+    });
+
+  } catch (error) {
+    console.error('Test error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

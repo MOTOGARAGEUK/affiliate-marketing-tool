@@ -123,12 +123,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if email already exists for this user
+    console.log('=== EMAIL VALIDATION DEBUG ===');
+    console.log('Checking for existing affiliate with email:', body.email);
+    console.log('User ID:', user.id);
+    
     const { data: existingAffiliate, error: checkError } = await authenticatedSupabase
       .from('affiliates')
       .select('id, name')
       .eq('user_id', user.id)
       .eq('email', body.email)
       .single();
+
+    console.log('Email check result:', { existingAffiliate, checkError });
 
     if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
       console.error('Error checking for existing affiliate:', checkError);
@@ -139,11 +145,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingAffiliate) {
+      console.log('❌ Duplicate email found:', existingAffiliate);
       return NextResponse.json(
         { success: false, message: `An affiliate with email "${body.email}" already exists` },
         { status: 400 }
       );
     }
+    
+    console.log('✅ Email validation passed - no duplicates found');
+    console.log('=== END EMAIL VALIDATION DEBUG ===');
     
     // Generate referral code and link
     const referralCode = `${body.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;

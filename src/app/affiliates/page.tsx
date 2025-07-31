@@ -24,6 +24,29 @@ export default function Affiliates() {
     fetchCurrencySettings();
   }, []);
 
+  // Refresh data when settings change
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'settings-updated') {
+        console.log('Settings updated, refreshing affiliate data...');
+        fetchData();
+      }
+    };
+
+    const handleReferralLinksUpdated = () => {
+      console.log('Referral links updated event received, refreshing affiliate data...');
+      fetchData();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('referral-links-updated', handleReferralLinksUpdated);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('referral-links-updated', handleReferralLinksUpdated);
+    };
+  }, []);
+
   const fetchCurrencySettings = async () => {
     try {
       const response = await fetch('/api/settings');

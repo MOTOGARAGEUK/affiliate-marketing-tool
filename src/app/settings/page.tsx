@@ -52,6 +52,15 @@ export default function Settings() {
         
         if (data.success) {
           setAllSettings(data.settings);
+          
+          // If referral links were updated, trigger a refresh
+          if (data.referralLinksUpdated) {
+            console.log('Referral links updated, triggering refresh...');
+            // Trigger a custom event to refresh affiliate data
+            window.dispatchEvent(new CustomEvent('referral-links-updated'));
+            // Also set a storage event for cross-tab communication
+            localStorage.setItem('settings-updated', Date.now().toString());
+          }
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
