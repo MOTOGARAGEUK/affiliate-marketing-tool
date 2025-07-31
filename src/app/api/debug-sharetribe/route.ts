@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSharetribeAPI } from '@/lib/sharetribe';
 
 export async function POST(request: NextRequest) {
   try {
-    const { clientId, clientSecret } = await request.json();
+    const body = await request.json();
+    const { clientId, clientSecret } = body;
 
     if (!clientId || !clientSecret) {
       return NextResponse.json(
@@ -30,7 +30,6 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('Debug: Token response status:', tokenResponse.status);
-    console.log('Debug: Token response headers:', Object.fromEntries(tokenResponse.headers.entries()));
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
