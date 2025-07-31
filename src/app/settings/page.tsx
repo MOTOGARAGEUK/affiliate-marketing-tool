@@ -75,18 +75,34 @@ function GeneralSettings() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
+        console.log('Loading general settings...');
+        
         // Get the current session
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('Session found:', !!session);
         
         const headers: Record<string, string> = {};
         
         // Add authorization header if user is authenticated
         if (session?.access_token) {
           headers['authorization'] = `Bearer ${session.access_token}`;
+          console.log('Added auth header');
+        } else {
+          console.log('No auth header - user not authenticated');
         }
         
+        console.log('Making request to /api/settings');
         const response = await fetch('/api/settings', { headers });
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          console.error('Settings API error:', response.status, response.statusText);
+          return;
+        }
+        
         const data = await response.json();
+        console.log('Response data:', data);
+        
         if (data.success && data.settings.general) {
           setSettings(data.settings.general);
         }
@@ -250,23 +266,39 @@ function IntegrationSettings() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
+        console.log('Loading integration settings...');
+        
         // Get the current session
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('Integration session found:', !!session);
         
         const headers: Record<string, string> = {};
         
         // Add authorization header if user is authenticated
         if (session?.access_token) {
           headers['authorization'] = `Bearer ${session.access_token}`;
+          console.log('Added integration auth header');
+        } else {
+          console.log('No integration auth header - user not authenticated');
         }
         
+        console.log('Making integration request to /api/settings');
         const response = await fetch('/api/settings', { headers });
+        console.log('Integration response status:', response.status);
+        
+        if (!response.ok) {
+          console.error('Integration settings API error:', response.status, response.statusText);
+          return;
+        }
+        
         const data = await response.json();
+        console.log('Integration response data:', data);
+        
         if (data.success && data.settings.sharetribe) {
           setSharetribeConfig(data.settings.sharetribe);
         }
       } catch (error) {
-        console.error('Failed to load settings:', error);
+        console.error('Failed to load integration settings:', error);
       }
     };
     loadSettings();
