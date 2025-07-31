@@ -15,9 +15,11 @@ export default function Affiliates() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingAffiliate, setEditingAffiliate] = useState<Affiliate | null>(null);
   const [selectedAffiliate, setSelectedAffiliate] = useState<Affiliate | null>(null);
+  const [deletingAffiliate, setDeletingAffiliate] = useState<Affiliate | null>(null);
   const [loading, setLoading] = useState(true);
   const [currency, setCurrency] = useState('$'); // Default currency
   const [isCreating, setIsCreating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Load data on component mount
   useEffect(() => {
@@ -162,16 +164,28 @@ export default function Affiliates() {
 
   const handleDeleteAffiliate = async (id: string) => {
     try {
+      setIsDeleting(true);
+      const { data: { session } } = await supabase().auth.getSession();
+      const token = session?.access_token;
+      
       const response = await fetch(`/api/affiliates/${id}`, {
         method: 'DELETE',
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
       });
-      
+
       const data = await response.json();
       if (data.success) {
-        await fetchData(); // Refresh the list
+        setAffiliates(affiliates.filter(affiliate => affiliate.id !== id));
+        setDeletingAffiliate(null);
+      } else {
+        console.error('Failed to delete affiliate');
       }
     } catch (error) {
       console.error('Failed to delete affiliate:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -312,7 +326,7 @@ export default function Affiliates() {
                         <PencilIcon className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteAffiliate(affiliate.id)}
+                        onClick={() => setDeletingAffiliate(affiliate)}
                         className="text-gray-400 hover:text-red-600"
                       >
                         <TrashIcon className="h-4 w-4" />
@@ -350,6 +364,44 @@ export default function Affiliates() {
           onClose={() => setSelectedAffiliate(null)}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingAffiliate && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3 text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <TrashIcon className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mt-4">Delete Affiliate</h3>
+              <div className="mt-2 px-7 py-3">
+                <p className="text-sm text-gray-500">
+                  Are you sure you want to delete <strong>{deletingAffiliate.name}</strong>? This action cannot be undone.
+                </p>
+              </div>
+              <div className="items-center px-4 py-3">
+                <button
+                  onClick={() => handleDeleteAffiliate(deletingAffiliate.id)}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {isDeleting && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  )}
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+                <button
+                  onClick={() => setDeletingAffiliate(null)}
+                  disabled={isDeleting}
+                  className="mt-2 px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -372,11 +424,76 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
     programId: affiliate?.programId || '',
   });
   const [marketplaceUrl, setMarketplaceUrl] = useState('https://marketplace.com');
+  const [emailError, setEmailError] = useState('');
+  const [isValidatingEmail, setIsValidatingEmail] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return; // Prevent submission while loading
+    if (isLoading || emailError || isValidatingEmail) return; // Prevent submission while loading or if email has errors
     onSubmit(formData);
+  };
+
+  const validateEmail = async (email: string) => {
+    if (!email) {
+      setEmailError('');
+      return;
+    }
+
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    setIsValidatingEmail(true);
+    setEmailError('');
+
+    try {
+      const { data: { session } } = await supabase().auth.getSession();
+      const token = session?.access_token;
+      
+      if (token) {
+        const response = await fetch('/api/validate-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ email: email.toLowerCase().trim() })
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+          setEmailError(data.message || 'This email is already in use');
+        } else {
+          setEmailError('');
+        }
+      }
+    } catch (error) {
+      console.error('Error validating email:', error);
+      setEmailError('Error checking email availability');
+    } finally {
+      setIsValidatingEmail(false);
+    }
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const email = e.target.value;
+    setFormData({ ...formData, email });
+    
+    // Clear error when user starts typing
+    if (emailError) {
+      setEmailError('');
+    }
+    
+    // Debounce email validation
+    const timeoutId = setTimeout(() => {
+      validateEmail(email);
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
   };
 
   // Fetch marketplace URL when component mounts
@@ -431,11 +548,19 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
+                onChange={handleEmailChange}
+                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-4 py-3 text-gray-900 bg-white ${
+                  emailError ? 'border-red-300' : 'border-gray-300'
+                }`}
                 required
                 disabled={isLoading}
               />
+              {isValidatingEmail && (
+                <p className="mt-1 text-sm text-blue-600">Checking email availability...</p>
+              )}
+              {emailError && (
+                <p className="mt-1 text-sm text-red-600">{emailError}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Phone</label>
@@ -546,7 +671,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
               </button>
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || emailError || isValidatingEmail}
                 className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 {isLoading && (

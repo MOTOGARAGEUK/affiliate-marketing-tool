@@ -45,7 +45,7 @@ export default function CopyButton({
     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
     : copied
     ? 'bg-green-500 text-white hover:bg-green-600'
-    : 'bg-blue-500 text-white hover:bg-blue-600';
+    : 'bg-indigo-600 text-white hover:bg-indigo-700';
 
   return (
     <button
