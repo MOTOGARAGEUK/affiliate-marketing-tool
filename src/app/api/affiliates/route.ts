@@ -113,6 +113,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('Affiliates POST - Request body:', body);
     
+    // Generate referral code and link
+    const referralCode = `${body.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://marketplace.com';
+    const referralLink = `${baseUrl}/ref/${referralCode}`;
+    
     // Use authenticated client to create affiliate
     const { data: affiliate, error } = await authenticatedSupabase
       .from('affiliates')
@@ -122,7 +127,9 @@ export async function POST(request: NextRequest) {
         phone: body.phone,
         status: body.status,
         program_id: body.programId,
-        user_id: user.id
+        user_id: user.id,
+        referral_code: referralCode,
+        referral_link: referralLink
       })
       .select()
       .single();
