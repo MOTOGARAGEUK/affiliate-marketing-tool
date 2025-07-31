@@ -8,46 +8,70 @@ import {
   CreditCardIcon,
 } from '@heroicons/react/24/outline';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { mockDashboardStats } from '@/lib/mockData';
 import { formatCurrency } from '@/lib/utils';
 
-const stats = [
-  {
-    name: 'Total Affiliates',
-    value: mockDashboardStats.totalAffiliates,
-    icon: UsersIcon,
-    change: '+12%',
-    changeType: 'positive',
-  },
-  {
-    name: 'Active Affiliates',
-    value: mockDashboardStats.activeAffiliates,
-    icon: UsersIcon,
-    change: '+8%',
-    changeType: 'positive',
-  },
-  {
-    name: 'Total Referrals',
-    value: mockDashboardStats.totalReferrals,
-    icon: ChartBarIcon,
-    change: '+15%',
-    changeType: 'positive',
-  },
-  {
-    name: 'Total Earnings',
-    value: formatCurrency(mockDashboardStats.totalEarnings),
-    icon: CurrencyDollarIcon,
-    change: '+23%',
-    changeType: 'positive',
-  },
-  {
-    name: 'Pending Payouts',
-    value: formatCurrency(mockDashboardStats.pendingPayouts),
-    icon: CreditCardIcon,
-    change: '+5%',
-    changeType: 'neutral',
-  },
-];
+export default function Dashboard() {
+  const [stats, setStats] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch('/api/dashboard');
+        const data = await response.json();
+        
+        if (data.success) {
+          const dashboardStats = [
+            {
+              name: 'Total Affiliates',
+              value: data.stats.totalAffiliates,
+              icon: UsersIcon,
+              change: '+12%',
+              changeType: 'positive',
+            },
+            {
+              name: 'Active Affiliates',
+              value: data.stats.activeAffiliates,
+              icon: UsersIcon,
+              change: '+8%',
+              changeType: 'positive',
+            },
+            {
+              name: 'Total Referrals',
+              value: data.stats.totalReferrals,
+              icon: ChartBarIcon,
+              change: '+15%',
+              changeType: 'positive',
+            },
+            {
+              name: 'Total Earnings',
+              value: formatCurrency(data.stats.totalEarnings),
+              icon: CurrencyDollarIcon,
+              change: '+23%',
+              changeType: 'positive',
+            },
+            {
+              name: 'Pending Payouts',
+              value: formatCurrency(data.stats.pendingPayouts),
+              icon: CreditCardIcon,
+              change: '+5%',
+              changeType: 'neutral',
+            },
+          ];
+          
+          setStats(dashboardStats);
+          setRecentActivity(data.recentActivity || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
 const chartData = [
   { month: 'Jan', referrals: 45, earnings: 1200 },

@@ -1,33 +1,87 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { mockPrograms } from '@/lib/mockData';
 import { formatDate, getStatusColor } from '@/lib/utils';
 
 export default function Programs() {
-  const [programs, setPrograms] = useState(mockPrograms);
+  const [programs, setPrograms] = useState<any[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingProgram, setEditingProgram] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleCreateProgram = (programData: any) => {
-    const newProgram = {
-      id: Date.now().toString(),
-      ...programData,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setPrograms([...programs, newProgram]);
-    setShowCreateModal(false);
+  // Load programs on component mount
+  useEffect(() => {
+    fetchPrograms();
+  }, []);
+
+  const fetchPrograms = async () => {
+    try {
+      const response = await fetch('/api/programs');
+      const data = await response.json();
+      if (data.success) {
+        setPrograms(data.programs);
+      }
+    } catch (error) {
+      console.error('Failed to fetch programs:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditProgram = (programData: any) => {
-    setPrograms(programs.map(p => p.id === editingProgram.id ? { ...p, ...programData, updatedAt: new Date() } : p));
-    setEditingProgram(null);
+  const handleCreateProgram = async (programData: any) => {
+    try {
+      const response = await fetch('/api/programs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(programData),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        await fetchPrograms(); // Refresh the list
+        setShowCreateModal(false);
+      }
+    } catch (error) {
+      console.error('Failed to create program:', error);
+    }
   };
 
-  const handleDeleteProgram = (id: string) => {
-    setPrograms(programs.filter(p => p.id !== id));
+  const handleEditProgram = async (programData: any) => {
+    try {
+      const response = await fetch(`/api/programs/${editingProgram.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(programData),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        await fetchPrograms(); // Refresh the list
+        setEditingProgram(null);
+      }
+    } catch (error) {
+      console.error('Failed to update program:', error);
+    }
+  };
+
+  const handleDeleteProgram = async (id: string) => {
+    try {
+      const response = await fetch(`/api/programs/${id}`, {
+        method: 'DELETE',
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        await fetchPrograms(); // Refresh the list
+      }
+    } catch (error) {
+      console.error('Failed to delete program:', error);
+    }
   };
 
   return (

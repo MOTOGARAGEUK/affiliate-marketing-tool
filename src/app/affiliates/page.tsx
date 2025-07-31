@@ -1,50 +1,102 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlusIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
-import { mockAffiliates, mockPrograms } from '@/lib/mockData';
-import { formatCurrency, formatDate, getStatusColor, generateReferralCode, generateReferralLink } from '@/lib/utils';
+import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
 import { Affiliate } from '@/types';
 
 export default function Affiliates() {
-  const [affiliates, setAffiliates] = useState(mockAffiliates);
+  const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
+  const [programs, setPrograms] = useState<any[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingAffiliate, setEditingAffiliate] = useState<Affiliate | null>(null);
   const [selectedAffiliate, setSelectedAffiliate] = useState<Affiliate | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleCreateAffiliate = (affiliateData: Partial<Affiliate>) => {
-    if (!affiliateData.name) return;
-    
-    const referralCode = generateReferralCode(affiliateData.name);
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://marketplace.com';
-    const referralLink = generateReferralLink(baseUrl, referralCode);
-    
-    const newAffiliate: Affiliate = {
-      id: Date.now().toString(),
-      name: affiliateData.name,
-      email: affiliateData.email || '',
-      phone: affiliateData.phone || '',
-      status: (affiliateData.status as 'active' | 'inactive' | 'pending') || 'pending',
-      programId: affiliateData.programId || '',
-      totalEarnings: 0,
-      totalReferrals: 0,
-      referralCode: referralCode,
-      referralLink: referralLink,
-      joinedAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setAffiliates([...affiliates, newAffiliate]);
-    setShowCreateModal(false);
+  // Load data on component mount
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [affiliatesResponse, programsResponse] = await Promise.all([
+        fetch('/api/affiliates'),
+        fetch('/api/programs')
+      ]);
+      
+      const affiliatesData = await affiliatesResponse.json();
+      const programsData = await programsResponse.json();
+      
+      if (affiliatesData.success) {
+        setAffiliates(affiliatesData.affiliates);
+      }
+      
+      if (programsData.success) {
+        setPrograms(programsData.programs);
+      }
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditAffiliate = (affiliateData: Partial<Affiliate>) => {
+  const handleCreateAffiliate = async (affiliateData: Partial<Affiliate>) => {
+    try {
+      const response = await fetch('/api/affiliates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(affiliateData),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        await fetchData(); // Refresh the list
+        setShowCreateModal(false);
+      }
+    } catch (error) {
+      console.error('Failed to create affiliate:', error);
+    }
+  };
+
+  const handleEditAffiliate = async (affiliateData: Partial<Affiliate>) => {
     if (!editingAffiliate) return;
-    setAffiliates(affiliates.map(a => a.id === editingAffiliate.id ? { ...a, ...affiliateData, updatedAt: new Date() } : a));
-    setEditingAffiliate(null);
+    
+    try {
+      const response = await fetch(`/api/affiliates/${editingAffiliate.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(affiliateData),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        await fetchData(); // Refresh the list
+        setEditingAffiliate(null);
+      }
+    } catch (error) {
+      console.error('Failed to update affiliate:', error);
+    }
   };
 
-  const handleDeleteAffiliate = (id: string) => {
-    setAffiliates(affiliates.filter(a => a.id !== id));
+  const handleDeleteAffiliate = async (id: string) => {
+    try {
+      const response = await fetch(`/api/affiliates/${id}`, {
+        method: 'DELETE',
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        await fetchData(); // Refresh the list
+      }
+    } catch (error) {
+      console.error('Failed to delete affiliate:', error);
+    }
   };
 
   return (
@@ -125,7 +177,7 @@ export default function Affiliates() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {(() => {
-                      const program = mockPrograms.find(p => p.id === affiliate.programId);
+                      const program = programs.find(p => p.id === affiliate.programId);
                       return program ? `${program.commission}${program.commissionType === 'percentage' ? '%' : '$'}` : 'N/A';
                     })()}
                   </td>
@@ -165,6 +217,7 @@ export default function Affiliates() {
       {(showCreateModal || editingAffiliate) && (
         <AffiliateModal
           affiliate={editingAffiliate}
+          programs={programs}
           onClose={() => {
             setShowCreateModal(false);
             setEditingAffiliate(null);
@@ -186,11 +239,12 @@ export default function Affiliates() {
 
 interface AffiliateModalProps {
   affiliate?: Affiliate | null;
+  programs: any[];
   onClose: () => void;
   onSubmit: (data: Partial<Affiliate>) => void;
 }
 
-function AffiliateModal({ affiliate, onClose, onSubmit }: AffiliateModalProps) {
+function AffiliateModal({ affiliate, programs, onClose, onSubmit }: AffiliateModalProps) {
   const [formData, setFormData] = useState({
     name: affiliate?.name || '',
     email: affiliate?.email || '',
@@ -205,12 +259,12 @@ function AffiliateModal({ affiliate, onClose, onSubmit }: AffiliateModalProps) {
   };
 
   // Get selected program details
-  const selectedProgram = mockPrograms.find(p => p.id === formData.programId);
+  const selectedProgram = programs.find(p => p.id === formData.programId);
   
   // Generate preview referral link for new affiliates
-  const previewReferralCode = affiliate ? affiliate.referralCode : generateReferralCode(formData.name);
+  const previewReferralCode = affiliate ? affiliate.referralCode : `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://marketplace.com';
-  const previewReferralLink = affiliate ? affiliate.referralLink : generateReferralLink(baseUrl, previewReferralCode);
+  const previewReferralLink = affiliate ? affiliate.referralLink : `https://marketplace.com/ref/${previewReferralCode}`;
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
