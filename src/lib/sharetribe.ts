@@ -68,6 +68,8 @@ class SharetribeAPI {
     }
 
     // Get new access token
+    console.log('Requesting access token from Sharetribe...');
+    
     const response = await fetch('https://auth.sharetribe.com/oauth/token', {
       method: 'POST',
       headers: {
@@ -80,11 +82,17 @@ class SharetribeAPI {
       }),
     });
 
+    console.log('Token response status:', response.status, response.statusText);
+
     if (!response.ok) {
-      throw new Error(`Failed to get access token: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Token request failed:', errorText);
+      throw new Error(`Failed to get access token: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('Token response data:', { access_token: data.access_token ? 'Received' : 'Missing', expires_in: data.expires_in });
+    
     this.accessToken = data.access_token;
     this.tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000; // Expire 1 minute early
 
@@ -93,7 +101,8 @@ class SharetribeAPI {
 
   private async makeRequest(endpoint: string, options: RequestInit = {}) {
     const token = await this.getAccessToken();
-    const baseUrl = this.config.marketplaceUrl || 'https://api.sharetribe.com/v1';
+    // Use the correct Sharetribe API base URL
+    const baseUrl = 'https://api.sharetribe.com/v1';
     const url = `${baseUrl}${endpoint}`;
     
     const response = await fetch(url, {
@@ -164,7 +173,12 @@ class SharetribeAPI {
   // Test API connection
   async testConnection(): Promise<boolean> {
     try {
-      await this.makeRequest('/users?limit=1');
+      console.log('Testing Sharetribe API connection...');
+      console.log('Client ID:', this.config.clientId ? 'Set' : 'Not set');
+      console.log('Client Secret:', this.config.clientSecret ? 'Set' : 'Not set');
+      
+      const response = await this.makeRequest('/users?limit=1');
+      console.log('API connection successful:', response);
       return true;
     } catch (error) {
       console.error('Sharetribe API connection test failed:', error);

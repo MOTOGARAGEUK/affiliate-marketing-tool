@@ -199,6 +199,31 @@ function IntegrationSettings() {
     }
   };
 
+  const debugConnection = async () => {
+    setIsTesting(true);
+    setTestResult(null);
+    
+    try {
+      const response = await fetch('/api/debug-sharetribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(sharetribeConfig),
+      });
+      
+      const result = await response.json();
+      setTestResult(result);
+    } catch (error) {
+      setTestResult({
+        success: false,
+        message: 'Failed to debug connection. Please check your settings.',
+      });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   const syncUsers = async () => {
     setIsSyncing(true);
     setSyncResult(null);
@@ -296,6 +321,15 @@ function IntegrationSettings() {
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isTesting ? 'Testing...' : 'Test Connection'}
+              </button>
+              
+              <button
+                type="button"
+                onClick={debugConnection}
+                disabled={isTesting || !sharetribeConfig.clientId || !sharetribeConfig.clientSecret}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Debug Connection
               </button>
               
               {testResult && (
