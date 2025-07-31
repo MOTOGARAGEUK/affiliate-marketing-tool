@@ -73,17 +73,32 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
-const chartData = [
-  { month: 'Jan', referrals: 45, earnings: 1200 },
-  { month: 'Feb', referrals: 52, earnings: 1400 },
-  { month: 'Mar', referrals: 48, earnings: 1300 },
-  { month: 'Apr', referrals: 61, earnings: 1800 },
-  { month: 'May', referrals: 55, earnings: 1600 },
-  { month: 'Jun', referrals: 67, earnings: 2100 },
-];
+  const chartData = [
+    { month: 'Jan', referrals: 45, earnings: 1200 },
+    { month: 'Feb', referrals: 52, earnings: 1400 },
+    { month: 'Mar', referrals: 48, earnings: 1300 },
+    { month: 'Apr', referrals: 61, earnings: 1800 },
+    { month: 'May', referrals: 55, earnings: 1600 },
+    { month: 'Jun', referrals: 67, earnings: 2100 },
+  ];
 
-export default function Dashboard() {
-  return (
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Overview of your affiliate marketing performance
+          </p>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-gray-500">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+    return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
