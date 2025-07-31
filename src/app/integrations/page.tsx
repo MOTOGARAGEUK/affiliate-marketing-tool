@@ -1,25 +1,92 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlusIcon, CogIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { mockIntegrations } from '@/lib/mockData';
 import { formatDate, getStatusColor } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
 export default function Integrations() {
   const [integrations, setIntegrations] = useState(mockIntegrations);
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [selectedIntegration, setSelectedIntegration] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleConnectIntegration = (integrationData: any) => {
-    const newIntegration = {
-      id: Date.now().toString(),
-      ...integrationData,
-      status: 'connected',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setIntegrations([...integrations, newIntegration]);
-    setShowConnectModal(false);
+  // Fetch integrations from database
+  useEffect(() => {
+    fetchIntegrations();
+  }, []);
+
+  const fetchIntegrations = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('integrations')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error fetching integrations:', error);
+        return;
+      }
+
+      // Transform database data to match expected format
+      const transformedIntegrations = data.map(integration => ({
+        id: integration.id,
+        name: integration.name,
+        type: integration.type,
+        status: integration.status,
+        config: integration.config,
+        createdAt: new Date(integration.created_at),
+        updatedAt: new Date(integration.updated_at),
+      }));
+
+      setIntegrations(transformedIntegrations);
+    } catch (error) {
+      console.error('Error fetching integrations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConnectIntegration = async (integrationData: any) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert('Please log in to connect integrations');
+        return;
+      }
+
+      // Save to database
+      const response = await fetch('/api/integrations/sharetribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          marketplaceId: integrationData.config.marketplaceId,
+          clientId: integrationData.config.clientId,
+          clientSecret: integrationData.config.clientSecret,
+          userId: user.id,
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Refresh integrations list
+        await fetchIntegrations();
+        setShowConnectModal(false);
+        alert('Integration connected successfully!');
+      } else {
+        alert('Failed to connect integration: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error connecting integration:', error);
+      alert('Failed to connect integration');
+    }
   };
 
   const handleDisconnectIntegration = (id: string) => {
@@ -165,7 +232,8 @@ function ConnectIntegrationModal({ onClose, onSubmit }: any) {
     type: 'sharetribe',
     config: {
       marketplaceId: '',
-      apiKey: '',
+      clientId: '',
+      clientSecret: '',
     },
   });
 
@@ -207,15 +275,30 @@ function ConnectIntegrationModal({ onClose, onSubmit }: any) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">API Key</label>
+              <label className="block text-sm font-medium text-gray-700">Client ID</label>
               <input
-                type="password"
-                value={formData.config.apiKey}
+                type="text"
+                value={formData.config.clientId}
                 onChange={(e) => setFormData({ 
                   ...formData, 
-                  config: { ...formData.config, apiKey: e.target.value }
+                  config: { ...formData.config, clientId: e.target.value }
                 })}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="Your Sharetribe Client ID"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Client Secret</label>
+              <input
+                type="password"
+                value={formData.config.clientSecret}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  config: { ...formData.config, clientSecret: e.target.value }
+                })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="Your Sharetribe Client Secret"
                 required
               />
             </div>
@@ -257,7 +340,11 @@ function ConfigureIntegrationModal({ integration, onClose }: any) {
               <p className="mt-1 text-sm text-gray-900">{integration.config.marketplaceId}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">API Key</label>
+              <label className="block text-sm font-medium text-gray-700">Client ID</label>
+              <p className="mt-1 text-sm text-gray-900 font-mono">{integration.config.clientId}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Client Secret</label>
               <p className="mt-1 text-sm text-gray-900 font-mono">••••••••••••••••</p>
             </div>
             <div>
