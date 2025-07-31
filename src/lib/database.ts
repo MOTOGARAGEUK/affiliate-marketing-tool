@@ -484,7 +484,7 @@ export const integrationsAPI = {
   async getAll(userId: string) {
     const { data, error } = await getSupabase()
       .from('integrations')
-      .select('*')
+      .select('id, name, type, status, config, user_id, created_at, updated_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -495,7 +495,7 @@ export const integrationsAPI = {
   async getById(id: string, userId: string) {
     const { data, error } = await getSupabase()
       .from('integrations')
-      .select('*')
+      .select('id, name, type, status, config, user_id, created_at, updated_at')
       .eq('id', id)
       .eq('user_id', userId)
       .single();
@@ -508,7 +508,7 @@ export const integrationsAPI = {
     const { data, error } = await getSupabase()
       .from('integrations')
       .insert(integration)
-      .select()
+      .select('id, name, type, status, config, user_id, created_at, updated_at')
       .single();
 
     if (error) throw error;
@@ -521,7 +521,7 @@ export const integrationsAPI = {
       .update(updates)
       .eq('id', id)
       .eq('user_id', userId)
-      .select()
+      .select('id, name, type, status, config, user_id, created_at, updated_at')
       .single();
 
     if (error) throw error;
