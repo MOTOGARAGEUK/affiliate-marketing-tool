@@ -160,8 +160,14 @@ export default function Affiliates() {
 
       {/* Affiliates Table */}
       <div className="bg-white shadow rounded-lg overflow-hidden table-container">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <span className="ml-3 text-gray-600">Loading affiliates...</span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -178,6 +184,9 @@ export default function Affiliates() {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Commission
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Referral Link
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Joined
@@ -227,22 +236,29 @@ export default function Affiliates() {
                           <div className="text-gray-500">
                             {program.commissionType === 'percentage' ? `${program.commission}%` : `${currency}${program.commission}`}
                           </div>
-                          {affiliate.referral_link && (
-                            <div className="mt-1">
-                              <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(affiliate.referral_link);
-                                  alert('Referral link copied to clipboard!');
-                                }}
-                                className="text-xs px-2 py-1 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded"
-                              >
-                                Copy Link
-                              </button>
-                            </div>
-                          )}
                         </div>
                       );
                     })()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {affiliate.referral_link ? (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-gray-500 truncate max-w-32">
+                          {affiliate.referral_link}
+                        </span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(affiliate.referral_link);
+                            alert('Referral link copied to clipboard!');
+                          }}
+                          className="text-xs px-2 py-1 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">No link</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDate(affiliate.created_at)}
@@ -274,6 +290,7 @@ export default function Affiliates() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* Create/Edit Modal */}

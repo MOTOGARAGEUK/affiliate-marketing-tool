@@ -204,7 +204,13 @@ export default function Programs() {
       </div>
 
       {/* Programs Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {loading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <span className="ml-3 text-gray-600">Loading programs...</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {programs.map((program) => (
           <div key={program.id} className="bg-white rounded-lg shadow p-6 dashboard-card">
             <div className="flex justify-between items-start mb-4">
@@ -254,7 +260,8 @@ export default function Programs() {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* Create/Edit Modal */}
       {(showCreateModal || editingProgram) && (

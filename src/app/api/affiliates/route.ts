@@ -120,6 +120,16 @@ export async function POST(request: NextRequest) {
     let baseUrl = 'https://marketplace.com'; // fallback
     try {
       console.log('Fetching ShareTribe marketplace URL for user:', user.id);
+      
+      // First, let's check what settings exist for this user
+      const allSettings = await authenticatedSupabase
+        .from('settings')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      console.log('All settings for user:', allSettings);
+      
+      // Look for ShareTribe marketplace URL
       const settingsResponse = await authenticatedSupabase
         .from('settings')
         .select('setting_value')
@@ -134,7 +144,23 @@ export async function POST(request: NextRequest) {
         baseUrl = settingsResponse.data.setting_value;
         console.log('Using ShareTribe URL:', baseUrl);
       } else {
-        console.log('No ShareTribe URL found in settings, using fallback');
+        // Try alternative key names
+        const altResponse = await authenticatedSupabase
+          .from('settings')
+          .select('setting_value')
+          .eq('user_id', user.id)
+          .eq('setting_type', 'sharetribe')
+          .eq('setting_key', 'marketplace_url')
+          .single();
+        
+        console.log('Alternative settings response:', altResponse);
+        
+        if (altResponse.data?.setting_value) {
+          baseUrl = altResponse.data.setting_value;
+          console.log('Using ShareTribe URL (alt):', baseUrl);
+        } else {
+          console.log('No ShareTribe URL found in settings, using fallback');
+        }
       }
     } catch (error) {
       console.log('Error fetching ShareTribe marketplace URL:', error);
