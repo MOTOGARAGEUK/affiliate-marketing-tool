@@ -295,11 +295,11 @@ interface IntegrationSettingsProps {
 
 function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: IntegrationSettingsProps) {
   const [sharetribeConfig, setSharetribeConfig] = useState({
-    clientId: '',
-    clientSecret: '',
+    marketplaceClientId: '',
+    marketplaceClientSecret: '',
+    integrationClientId: '',
+    integrationClientSecret: '',
     marketplaceUrl: '',
-    accessToken: '',
-    apiUrl: 'https://flex-api.sharetribe.com/v1',
   });
   const [isTesting, setIsTesting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -437,61 +437,73 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
         </p>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Client ID</label>
-              <input
-                type="text"
-                value={sharetribeConfig.clientId}
-                onChange={(e) => setSharetribeConfig({ ...sharetribeConfig, clientId: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="e.g., 2af9ca56-b055-4568-96e8-bf356a5085e1"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                For Marketplace API: Found in Sharetribe Admin → Advanced → Applications
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Client Secret</label>
-              <input
-                type="password"
-                value={sharetribeConfig.clientSecret}
-                onChange={(e) => setSharetribeConfig({ ...sharetribeConfig, clientSecret: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="e.g., 5bafb1946783560ae9d93760550194467fcbf61e"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                For Marketplace API: Generated when you create a new application
-              </p>
+          <div className="bg-blue-50 p-4 rounded-md mb-6">
+            <h4 className="text-sm font-medium text-blue-900 mb-2">Marketplace API Credentials</h4>
+            <p className="text-sm text-blue-800 mb-4">
+              Used for accessing marketplace data (users, transactions, listings)
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Marketplace Client ID</label>
+                <input
+                  type="text"
+                  value={sharetribeConfig.marketplaceClientId}
+                  onChange={(e) => setSharetribeConfig({ ...sharetribeConfig, marketplaceClientId: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="e.g., 2af9ca56-b055-4568-96e8-bf356a5085e1"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Found in Sharetribe Admin → Advanced → Applications → Marketplace API
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Marketplace Client Secret</label>
+                <input
+                  type="password"
+                  value={sharetribeConfig.marketplaceClientSecret}
+                  onChange={(e) => setSharetribeConfig({ ...sharetribeConfig, marketplaceClientSecret: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="e.g., 5bafb1946783560ae9d93760550194467fcbf61e"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Generated when you create a Marketplace API application
+                </p>
+              </div>
             </div>
           </div>
-          
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Access Token (Optional)</label>
-              <input
-                type="password"
-                value={sharetribeConfig.accessToken}
-                onChange={(e) => setSharetribeConfig({ ...sharetribeConfig, accessToken: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="For Integration API only"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                For Integration API: Your permanent access token (if you have one)
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">API URL</label>
-              <input
-                type="url"
-                value={sharetribeConfig.apiUrl}
-                onChange={(e) => setSharetribeConfig({ ...sharetribeConfig, apiUrl: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="https://flex-api.sharetribe.com/v1"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Default Sharetribe API URL (usually doesn't need to change)
-              </p>
+
+          <div className="bg-green-50 p-4 rounded-md mb-6">
+            <h4 className="text-sm font-medium text-green-900 mb-2">Integration API Credentials</h4>
+            <p className="text-sm text-green-800 mb-4">
+              Used for webhooks and marketplace management
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Integration Client ID</label>
+                <input
+                  type="text"
+                  value={sharetribeConfig.integrationClientId}
+                  onChange={(e) => setSharetribeConfig({ ...sharetribeConfig, integrationClientId: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="e.g., 3bf8db67-c166-4569-97f9-cf467b5085e2"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Found in Sharetribe Admin → Advanced → Applications → Integration API
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Integration Client Secret</label>
+                <input
+                  type="password"
+                  value={sharetribeConfig.integrationClientSecret}
+                  onChange={(e) => setSharetribeConfig({ ...sharetribeConfig, integrationClientSecret: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="e.g., 6cafc2957894671bf0e04871660295578gdcf72f"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Generated when you create an Integration API application
+                </p>
+              </div>
             </div>
           </div>
           
@@ -523,7 +535,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                   console.log('Final test button clicked!');
                   finalTest();
                 }}
-                disabled={isTesting || (!sharetribeConfig.clientId && !sharetribeConfig.accessToken)}
+                disabled={isTesting || (!sharetribeConfig.marketplaceClientId || !sharetribeConfig.marketplaceClientSecret)}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isTesting ? 'Testing...' : 'Test Sharetribe Connection'}
@@ -548,7 +560,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
               <button
                 type="button"
                 onClick={syncUsers}
-                disabled={isSyncing || (!sharetribeConfig.clientId && !sharetribeConfig.accessToken)}
+                disabled={isSyncing || (!sharetribeConfig.marketplaceClientId || !sharetribeConfig.marketplaceClientSecret)}
                 className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSyncing ? 'Syncing...' : 'Sync Recent Users'}
@@ -572,19 +584,15 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
           <div className="bg-blue-50 p-4 rounded-md">
             <h4 className="text-sm font-medium text-blue-900 mb-2">Setup Instructions</h4>
             <div className="text-sm text-blue-800 space-y-2">
-              <p><strong>Option 1 - Marketplace API (Recommended):</strong></p>
               <p><strong>1.</strong> Go to Sharetribe admin panel → Advanced → Applications</p>
-              <p><strong>2.</strong> Create a new application to get Client ID and Client Secret</p>
-              <p><strong>3.</strong> Leave Access Token empty (will use OAuth flow)</p>
-              <p><strong>4.</strong> Test the connection using the button above</p>
-              <p><strong>5.</strong> Add referral tracking to your marketplace signup form</p>
-              <p><strong>6.</strong> Use the sync button to manually track recent signups</p>
+              <p><strong>2.</strong> Create a Marketplace API application to get Marketplace Client ID and Secret</p>
+              <p><strong>3.</strong> Create an Integration API application to get Integration Client ID and Secret</p>
+              <p><strong>4.</strong> Enter both sets of credentials above</p>
+              <p><strong>5.</strong> Test the connection using the button above</p>
+              <p><strong>6.</strong> Add referral tracking to your marketplace signup form</p>
+              <p><strong>7.</strong> Use the sync button to manually track recent signups</p>
               <br />
-              <p><strong>Option 2 - Integration API:</strong></p>
-              <p><strong>1.</strong> If you have a permanent access token from Sharetribe</p>
-              <p><strong>2.</strong> Enter the access token in the Access Token field</p>
-              <p><strong>3.</strong> Leave Client ID and Client Secret empty</p>
-              <p><strong>4.</strong> Test the connection using the button above</p>
+              <p><strong>Note:</strong> Both APIs are required for full functionality. Marketplace API for data access, Integration API for webhooks.</p>
             </div>
           </div>
 
@@ -598,7 +606,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
             <button
               type="button"
               onClick={finalTest}
-              disabled={isTesting || (!sharetribeConfig.clientId && !sharetribeConfig.accessToken)}
+              disabled={isTesting || (!sharetribeConfig.marketplaceClientId || !sharetribeConfig.marketplaceClientSecret)}
               className="px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-300 rounded-md hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Test Connection

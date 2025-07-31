@@ -12,78 +12,44 @@ export async function POST(request: NextRequest) {
       hasApiUrl: !!body.apiUrl
     });
     
-    const { clientId, clientSecret, accessToken, apiUrl = 'https://flex-api.sharetribe.com/v1' } = body;
+    const { 
+      marketplaceClientId, 
+      marketplaceClientSecret, 
+      integrationClientId, 
+      integrationClientSecret 
+    } = body;
     
-    // Determine which API type to use
-    const useIntegrationAPI = !!accessToken;
-    const useMarketplaceAPI = !!clientId && !!clientSecret;
+    // Check if we have the required credentials
+    const hasMarketplaceAPI = !!marketplaceClientId && !!marketplaceClientSecret;
+    const hasIntegrationAPI = !!integrationClientId && !!integrationClientSecret;
     
-    if (!useIntegrationAPI && !useMarketplaceAPI) {
+    if (!hasMarketplaceAPI) {
       return NextResponse.json({
         success: false,
-        message: 'Missing credentials. Please provide either Client ID + Client Secret (Marketplace API) or Access Token (Integration API)',
+        message: 'Missing Marketplace API credentials. Please provide Marketplace Client ID and Client Secret.',
         received: { 
-          hasClientId: !!clientId, 
-          hasClientSecret: !!clientSecret,
-          hasAccessToken: !!accessToken
+          hasMarketplaceClientId: !!marketplaceClientId, 
+          hasMarketplaceClientSecret: !!marketplaceClientSecret
         }
       }, { status: 400 });
     }
 
-    if (useIntegrationAPI) {
-      console.log('Testing Sharetribe Integration API with Access Token...');
-      console.log('Access Token:', accessToken.substring(0, 8) + '...');
-      
-      // Test Integration API with access token
-      const apiResponse = await fetch(`${apiUrl}/integration_api/marketplace/show`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
+    console.log('Testing Sharetribe Marketplace API...');
+    console.log('Marketplace Client ID:', marketplaceClientId.substring(0, 8) + '...');
+    console.log('Marketplace Client Secret:', marketplaceClientSecret.substring(0, 8) + '...');
 
-      console.log('Integration API response status:', apiResponse.status);
-
-      if (apiResponse.ok) {
-        const apiData = await apiResponse.json();
-        console.log('Integration API call successful');
-        
-        return NextResponse.json({
-          success: true,
-          message: '✅ SUCCESS! Your Sharetribe Integration API access token is working!',
-          apiType: 'Integration API',
-          marketplaceData: apiData,
-          suggestion: 'Your access token is valid and can access the Integration API'
-        });
-      } else {
-        const errorText = await apiResponse.text();
-        console.error('Integration API call failed:', errorText);
-        
-        return NextResponse.json({
-          success: false,
-          message: `❌ Integration API call failed: ${apiResponse.status} ${apiResponse.statusText}`,
-          details: errorText,
-          suggestion: 'Please check your access token in Sharetribe Admin'
-        }, { status: 400 });
-      }
-    } else {
-      console.log('Testing Sharetribe Marketplace API...');
-      console.log('Client ID:', clientId.substring(0, 8) + '...');
-      console.log('Client Secret:', clientSecret.substring(0, 8) + '...');
-
-      // Try the Marketplace API authentication endpoint
-      const authResponse = await fetch(`${apiUrl}/auth/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'client_credentials',
-          client_id: clientId,
-          client_secret: clientSecret,
-        }),
-      });
+    // Try the Marketplace API authentication endpoint
+    const authResponse = await fetch('https://flex-api.sharetribe.com/v1/auth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: marketplaceClientId,
+        client_secret: marketplaceClientSecret,
+      }),
+    });
 
           console.log('Auth response status:', authResponse.status);
       console.log('Auth response ok:', authResponse.ok);
@@ -93,7 +59,7 @@ export async function POST(request: NextRequest) {
         console.log('Authentication successful, got access token');
         
         // Now test the actual API call with the access token
-        const apiResponse = await fetch(`${apiUrl}/users/query`, {
+        const apiResponse = await fetch('https://flex-api.sharetribe.com/v1/users/query', {
           method: 'POST',
           headers: {
             'Authorization': `bearer ${authData.access_token}`,
