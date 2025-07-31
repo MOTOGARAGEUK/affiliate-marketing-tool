@@ -18,9 +18,39 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // For now, use a default user ID if no user is found
-    const userId = user?.id || 'default-user-id';
-    const integrations = await integrationsAPI.getAll(userId);
+    // If no user is authenticated, return default settings
+    if (!user) {
+      console.log('Settings GET - No authenticated user, returning defaults');
+      return NextResponse.json({
+        success: true,
+        settings: {
+          sharetribe: {
+            clientId: '',
+            clientSecret: '',
+            marketplaceUrl: '',
+          },
+          general: {
+            companyName: 'My Affiliate Program',
+            defaultCommission: 10,
+            currency: 'USD',
+            timezone: 'UTC',
+            autoApproveReferrals: true,
+            minimumPayout: 50,
+          }
+        }
+      });
+    }
+
+    console.log('Settings GET - User ID:', user.id);
+    
+    let integrations = [];
+    try {
+      integrations = await integrationsAPI.getAll(user.id);
+      console.log('Settings GET - Integrations loaded:', integrations?.length || 0);
+    } catch (dbError) {
+      console.error('Settings GET - Database error:', dbError);
+      throw dbError;
+    }
     
     // Transform integrations to settings format
     const settings = {
@@ -87,15 +117,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // For now, use a default user ID if no user is found
-    const userId = user?.id || 'default-user-id';
+    // If no user is authenticated, return error
+    if (!user) {
+      return NextResponse.json({
+        success: false,
+        message: 'Authentication required to save settings'
+      }, { status: 401 });
+    }
 
     const body = await request.json();
     const { type, settings } = body;
 
     if (type === 'sharetribe') {
       // Find existing Sharetribe integration or create new one
-      const integrations = await integrationsAPI.getAll(userId);
+      const integrations = await integrationsAPI.getAll(user.id);
       const sharetribeIntegration = integrations.find(integration => integration.type === 'sharetribe');
       
       if (sharetribeIntegration) {
@@ -106,7 +141,7 @@ export async function POST(request: NextRequest) {
             clientSecret: settings.clientSecret,
             marketplaceUrl: settings.marketplaceUrl,
           }
-        }, userId);
+        }, user.id);
       } else {
         // Create new integration
         await integrationsAPI.create({
@@ -118,19 +153,19 @@ export async function POST(request: NextRequest) {
             clientSecret: settings.clientSecret,
             marketplaceUrl: settings.marketplaceUrl,
           },
-          userId: userId
+          userId: user.id
         });
       }
     } else if (type === 'general') {
       // Save general settings to a general settings integration
-      const integrations = await integrationsAPI.getAll(userId);
+      const integrations = await integrationsAPI.getAll(user.id);
       const generalIntegration = integrations.find(integration => integration.type === 'custom' && integration.name === 'General Settings');
       
       if (generalIntegration) {
         // Update existing general settings
         await integrationsAPI.update(generalIntegration.id, {
           config: settings
-        }, userId);
+        }, user.id);
       } else {
         // Create new general settings
         await integrationsAPI.create({
@@ -138,13 +173,13 @@ export async function POST(request: NextRequest) {
           type: 'custom',
           status: 'connected',
           config: settings,
-          userId: userId
+          userId: user.id
         });
       }
     }
 
     // Return updated settings
-    const updatedIntegrations = await integrationsAPI.getAll(userId);
+    const updatedIntegrations = await integrationsAPI.getAll(user.id);
     
     // Transform integrations to settings format
     const updatedSettings = {
