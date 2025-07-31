@@ -369,7 +369,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                 <option value="">Select a program</option>
                 {programs.filter(p => p.status === 'active').map(program => (
                   <option key={program.id} value={program.id}>
-                    {program.name} - {program.commission}{program.commissionType === 'percentage' ? '%' : currency}
+                    {program.name} - {program.commissionType === 'percentage' ? `${program.commission}%` : `${currency}${program.commission}`}
                   </option>
                 ))}
               </select>
@@ -380,7 +380,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
               <div className="bg-blue-50 p-3 rounded-md">
                 <h4 className="text-sm font-medium text-blue-900 mb-1">Program Details</h4>
                 <p className="text-sm text-blue-800">
-                  <strong>Commission:</strong> {selectedProgram.commission}{selectedProgram.commissionType === 'percentage' ? '%' : currency} per {selectedProgram.type === 'signup' ? 'signup' : 'purchase'}
+                  <strong>Commission:</strong> {selectedProgram.commissionType === 'percentage' ? `${selectedProgram.commission}%` : `${currency}${selectedProgram.commission}`} per {selectedProgram.type === 'signup' ? 'signup' : 'purchase'}
                 </p>
                 <p className="text-sm text-blue-800">
                   <strong>Type:</strong> {selectedProgram.type === 'signup' ? 'Sign Up Referrals' : 'Purchase Referrals'}

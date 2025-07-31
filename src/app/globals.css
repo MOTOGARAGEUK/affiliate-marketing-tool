@@ -38,3 +38,13 @@ input::placeholder, textarea::placeholder {
 .form-input, .form-select, .form-textarea {
   color: #1f2937 !important;
 }
+
+/* Remove background color when modal is active */
+body.modal-active {
+  background: transparent !important;
+}
+
+/* Override background color for modal containers */
+.modal-container {
+  background: transparent !important;
+}

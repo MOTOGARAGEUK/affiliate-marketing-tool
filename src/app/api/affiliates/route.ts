@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { affiliatesAPI } from '@/lib/database';
 import { createServerClient } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerClient();
-    
     // Get the user from the request headers
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
@@ -16,7 +15,21 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    // Create an authenticated client with the user's token
+    const authenticatedSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    );
+    
+    const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
     
     if (authError || !user) {
       return NextResponse.json(
@@ -25,8 +38,24 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const affiliates = await affiliatesAPI.getAll(user.id);
-    return NextResponse.json({ success: true, affiliates });
+    // Use authenticated client to fetch affiliates
+    const { data: affiliates, error } = await authenticatedSupabase
+      .from('affiliates')
+      .select(`
+        *,
+        programs (
+          id,
+          name,
+          commission,
+          commission_type,
+          type
+        )
+      `)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return NextResponse.json({ success: true, affiliates: affiliates || [] });
   } catch (error) {
     console.error('Failed to fetch affiliates:', error);
     return NextResponse.json(
@@ -38,8 +67,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerClient();
-    
     // Get the user from the request headers
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
@@ -50,7 +77,21 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    // Create an authenticated client with the user's token
+    const authenticatedSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    );
+    
+    const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
     
     if (authError || !user) {
       return NextResponse.json(
@@ -60,7 +101,22 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const affiliate = await affiliatesAPI.create({ ...body, userId: user.id });
+    
+    // Use authenticated client to create affiliate
+    const { data: affiliate, error } = await authenticatedSupabase
+      .from('affiliates')
+      .insert({
+        name: body.name,
+        email: body.email,
+        phone: body.phone,
+        status: body.status,
+        program_id: body.programId,
+        user_id: user.id
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
     
     if (affiliate) {
       return NextResponse.json({ success: true, affiliate });
