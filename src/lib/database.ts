@@ -164,13 +164,24 @@ export const affiliatesAPI = {
   },
 
   async delete(id: string, userId: string) {
-    const { error } = await getSupabase()
+    console.log('=== DATABASE DELETE DEBUG ===');
+    console.log('Deleting affiliate ID:', id);
+    console.log('User ID:', userId);
+    
+    const { data, error } = await getSupabase()
       .from('affiliates')
       .delete()
       .eq('id', id)
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Database delete error:', error);
+      throw error;
+    }
+    
+    console.log('✅ Database delete successful, rows affected:', data?.length || 0);
+    console.log('=== END DATABASE DELETE DEBUG ===');
     return true;
   }
 };

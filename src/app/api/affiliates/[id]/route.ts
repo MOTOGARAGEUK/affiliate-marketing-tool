@@ -130,19 +130,28 @@ export async function DELETE(
 
     console.log('✅ User authenticated:', user.id);
 
-    const success = await affiliatesAPI.delete(params.id, user.id);
-    console.log('Delete result:', success);
-    
-    if (success) {
-      console.log('✅ Affiliate deleted successfully');
-      console.log('=== END DELETE AFFILIATE DEBUG ===');
-      return NextResponse.json({ success: true, message: 'Affiliate deleted successfully' });
-    } else {
-      console.log('❌ Affiliate not found or delete failed');
+    try {
+      const success = await affiliatesAPI.delete(params.id, user.id);
+      console.log('Delete result:', success);
+      
+      if (success) {
+        console.log('✅ Affiliate deleted successfully');
+        console.log('=== END DELETE AFFILIATE DEBUG ===');
+        return NextResponse.json({ success: true, message: 'Affiliate deleted successfully' });
+      } else {
+        console.log('❌ Affiliate not found or delete failed');
+        console.log('=== END DELETE AFFILIATE DEBUG ===');
+        return NextResponse.json(
+          { success: false, message: 'Affiliate not found' },
+          { status: 404 }
+        );
+      }
+    } catch (deleteError) {
+      console.error('❌ Error in affiliatesAPI.delete:', deleteError);
       console.log('=== END DELETE AFFILIATE DEBUG ===');
       return NextResponse.json(
-        { success: false, message: 'Affiliate not found' },
-        { status: 404 }
+        { success: false, message: 'Failed to delete affiliate', error: deleteError instanceof Error ? deleteError.message : 'Unknown error' },
+        { status: 500 }
       );
     }
   } catch (error) {
