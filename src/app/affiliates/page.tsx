@@ -177,10 +177,11 @@ export default function Affiliates() {
 
       const data = await response.json();
       if (data.success) {
-        setAffiliates(affiliates.filter(affiliate => affiliate.id !== id));
+        // Refresh data from database instead of just updating local state
+        await fetchData();
         setDeletingAffiliate(null);
       } else {
-        console.error('Failed to delete affiliate');
+        console.error('Failed to delete affiliate:', data.message);
       }
     } catch (error) {
       console.error('Failed to delete affiliate:', error);

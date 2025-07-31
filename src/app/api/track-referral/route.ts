@@ -3,7 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('=== REFERRAL TRACKING DEBUG ===');
+    console.log('Request received at:', new Date().toISOString());
+    
     const body = await request.json();
+    console.log('Request body:', body);
+    
     let { 
       referralCode, 
       customerEmail, 
@@ -15,7 +20,10 @@ export async function POST(request: NextRequest) {
 
     // If no referral code provided in body, try to get it from cookies
     if (!referralCode) {
+      console.log('No referral code in body, checking cookies...');
       const cookieHeader = request.headers.get('cookie');
+      console.log('Cookie header:', cookieHeader);
+      
       if (cookieHeader) {
         const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
           const [key, value] = cookie.trim().split('=');
@@ -24,7 +32,12 @@ export async function POST(request: NextRequest) {
         }, {} as Record<string, string>);
 
         referralCode = cookies.referralCode;
+        console.log('Found referral code in cookies:', referralCode);
+      } else {
+        console.log('No cookie header found');
       }
+    } else {
+      console.log('Referral code provided in body:', referralCode);
     }
 
     if (!customerEmail || !customerName || !action) {
@@ -36,13 +49,16 @@ export async function POST(request: NextRequest) {
 
     // If still no referral code, return success but log it
     if (!referralCode) {
-      console.log('No referral code found for customer:', customerEmail);
+      console.log('❌ No referral code found for customer:', customerEmail);
+      console.log('=== END REFERRAL TRACKING DEBUG ===');
       return NextResponse.json({
         success: true,
         message: 'No referral code found',
         referral: null
       });
     }
+
+    console.log('✅ Using referral code:', referralCode);
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -69,12 +85,16 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (affiliateError || !affiliate) {
-      console.log('Referral code not found:', referralCode);
+      console.log('❌ Referral code not found in database:', referralCode);
+      console.log('Affiliate error:', affiliateError);
+      console.log('=== END REFERRAL TRACKING DEBUG ===');
       return NextResponse.json(
         { success: false, message: 'Invalid referral code' },
         { status: 404 }
       );
     }
+
+    console.log('✅ Found affiliate:', affiliate.affiliate_name);
 
     // Check if this customer has already been tracked for this affiliate
     const { data: existingReferral, error: checkError } = await supabase
@@ -153,6 +173,7 @@ export async function POST(request: NextRequest) {
       action: action,
       commission: commissionEarned
     });
+    console.log('=== END REFERRAL TRACKING DEBUG ===');
 
     return NextResponse.json({
       success: true,
