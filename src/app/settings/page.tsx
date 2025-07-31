@@ -228,41 +228,23 @@ function IntegrationSettings() {
     console.log('Simple test button clicked!');
     console.log('Config:', sharetribeConfig);
     
-    // First, let's just test if the button works
-    alert(`Testing credentials:\nClient ID: ${sharetribeConfig.clientId ? 'Set' : 'Not set'}\nClient Secret: ${sharetribeConfig.clientSecret ? 'Set' : 'Not set'}`);
-    
     setIsTesting(true);
     setTestResult(null);
     
     try {
-      // Test the credentials directly in the browser
-      const response = await fetch('https://auth.sharetribe.com/oauth/token', {
+      // Test the credentials using our server-side endpoint
+      const response = await fetch('/api/test-credentials', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
-        body: new URLSearchParams({
-          grant_type: 'client_credentials',
-          client_id: sharetribeConfig.clientId,
-          client_secret: sharetribeConfig.clientSecret,
-        }),
+        body: JSON.stringify(sharetribeConfig),
       });
       
       console.log('Response status:', response.status);
       
-      if (response.ok) {
-        const data = await response.json();
-        setTestResult({
-          success: true,
-          message: `✅ Credentials are valid! Token received: ${data.access_token ? 'Yes' : 'No'}`
-        });
-      } else {
-        const errorText = await response.text();
-        setTestResult({
-          success: false,
-          message: `❌ Failed: ${response.status} ${response.statusText}\n${errorText}`
-        });
-      }
+      const result = await response.json();
+      setTestResult(result);
     } catch (error) {
       console.error('Test error:', error);
       setTestResult({
