@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CogIcon, UserIcon, BellIcon, ShieldCheckIcon, LinkIcon } from '@heroicons/react/24/outline';
 
 export default function Settings() {
@@ -66,11 +66,52 @@ function GeneralSettings() {
     autoApproveReferrals: true,
     minimumPayout: 50,
   });
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Load settings on component mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+        if (data.success && data.settings.general) {
+          setSettings(data.settings.general);
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle settings save
-    console.log('Saving general settings:', settings);
+    setIsSaving(true);
+    setSaveResult(null);
+    
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'general',
+          settings: settings
+        }),
+      });
+      
+      const result = await response.json();
+      setSaveResult(result);
+    } catch (error) {
+      setSaveResult({
+        success: false,
+        message: 'Failed to save settings. Please try again.'
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -145,12 +186,20 @@ function GeneralSettings() {
           </div>
         </div>
       </div>
+      
+      {saveResult && (
+        <div className={`text-sm ${saveResult.success ? 'text-green-600' : 'text-red-600'}`}>
+          {saveResult.message}
+        </div>
+      )}
+      
       <div className="flex justify-end">
         <button
           type="submit"
-          className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
+          disabled={isSaving}
+          className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Save Settings
+          {isSaving ? 'Saving...' : 'Save Settings'}
         </button>
       </div>
     </form>
@@ -165,13 +214,60 @@ function IntegrationSettings() {
   });
   const [isTesting, setIsTesting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string; data?: any } | null>(null);
+  const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Load settings on component mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+        if (data.success && data.settings.sharetribe) {
+          setSharetribeConfig(data.settings.sharetribe);
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle settings save
-    console.log('Saving Sharetribe integration settings:', sharetribeConfig);
+    setIsSaving(true);
+    setSaveResult(null);
+    
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'sharetribe',
+          settings: sharetribeConfig
+        }),
+      });
+      
+      const result = await response.json();
+      setSaveResult(result);
+      
+      if (result.success) {
+        // Clear any previous test results when saving new settings
+        setTestResult(null);
+        setSyncResult(null);
+      }
+    } catch (error) {
+      setSaveResult({
+        success: false,
+        message: 'Failed to save settings. Please try again.'
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const finalTest = async () => {
@@ -358,6 +454,12 @@ function IntegrationSettings() {
             </div>
           </div>
 
+          {saveResult && (
+            <div className={`text-sm ${saveResult.success ? 'text-green-600' : 'text-red-600'}`}>
+              {saveResult.message}
+            </div>
+          )}
+
           <div className="flex justify-end space-x-3">
             <button
               type="button"
@@ -369,9 +471,10 @@ function IntegrationSettings() {
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Save Integration
+              {isSaving ? 'Saving...' : 'Save Integration'}
             </button>
           </div>
         </form>
