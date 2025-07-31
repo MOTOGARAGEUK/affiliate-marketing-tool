@@ -61,8 +61,10 @@ export async function GET(request: NextRequest) {
         success: true,
         settings: {
           sharetribe: {
-            clientId: '',
-            clientSecret: '',
+            marketplaceClientId: '',
+            marketplaceClientSecret: '',
+            integrationClientId: '',
+            integrationClientSecret: '',
             marketplaceUrl: '',
           },
           general: {
@@ -98,8 +100,10 @@ export async function GET(request: NextRequest) {
     // Transform settings to the expected format
     const settings = {
       sharetribe: {
-        clientId: '',
-        clientSecret: '',
+        marketplaceClientId: '',
+        marketplaceClientSecret: '',
+        integrationClientId: '',
+        integrationClientSecret: '',
         marketplaceUrl: '',
       },
       general: {
@@ -200,8 +204,10 @@ export async function POST(request: NextRequest) {
       
       // Save sharetribe settings using authenticated client
       const settingsArray = Object.entries({
-        clientId: settings.clientId,
-        clientSecret: settings.clientSecret,
+        marketplaceClientId: settings.marketplaceClientId,
+        marketplaceClientSecret: settings.marketplaceClientSecret,
+        integrationClientId: settings.integrationClientId,
+        integrationClientSecret: settings.integrationClientSecret,
         marketplaceUrl: settings.marketplaceUrl,
       }).map(([key, value]) => ({
         user_id: user.id,
@@ -282,8 +288,10 @@ export async function POST(request: NextRequest) {
     // Transform settings to the expected format
     const updatedSettings = {
       sharetribe: {
-        clientId: '',
-        clientSecret: '',
+        marketplaceClientId: '',
+        marketplaceClientSecret: '',
+        integrationClientId: '',
+        integrationClientSecret: '',
         marketplaceUrl: '',
       },
       general: {

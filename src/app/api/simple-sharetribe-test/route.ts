@@ -12,12 +12,18 @@ export async function POST(request: NextRequest) {
       hasApiUrl: !!body.apiUrl
     });
     
-    const { 
-      marketplaceClientId, 
-      marketplaceClientSecret, 
-      integrationClientId, 
-      integrationClientSecret 
-    } = body;
+    // Handle both old and new field names for backward compatibility
+    const marketplaceClientId = body.marketplaceClientId || body.clientId;
+    const marketplaceClientSecret = body.marketplaceClientSecret || body.clientSecret;
+    const integrationClientId = body.integrationClientId;
+    const integrationClientSecret = body.integrationClientSecret;
+    
+    console.log('Processed credentials:', {
+      hasMarketplaceClientId: !!marketplaceClientId,
+      hasMarketplaceClientSecret: !!marketplaceClientSecret,
+      hasIntegrationClientId: !!integrationClientId,
+      hasIntegrationClientSecret: !!integrationClientSecret
+    });
     
     // Check if we have the required credentials
     const hasMarketplaceAPI = !!marketplaceClientId && !!marketplaceClientSecret;
@@ -29,7 +35,8 @@ export async function POST(request: NextRequest) {
         message: 'Missing Marketplace API credentials. Please provide Marketplace Client ID and Client Secret.',
         received: { 
           hasMarketplaceClientId: !!marketplaceClientId, 
-          hasMarketplaceClientSecret: !!marketplaceClientSecret
+          hasMarketplaceClientSecret: !!marketplaceClientSecret,
+          oldFieldNames: { hasClientId: !!body.clientId, hasClientSecret: !!body.clientSecret }
         }
       }, { status: 400 });
     }
