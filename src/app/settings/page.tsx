@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase';
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('general');
+  const [allSettings, setAllSettings] = useState<any>(null);
+  const [settingsLoading, setSettingsLoading] = useState(true);
 
   const tabs = [
     { id: 'general', name: 'General', icon: CogIcon },
@@ -15,6 +17,51 @@ export default function Settings() {
     { id: 'notifications', name: 'Notifications', icon: BellIcon },
     { id: 'security', name: 'Security', icon: ShieldCheckIcon },
   ];
+
+  // Load all settings once for the entire page
+  useEffect(() => {
+    const loadAllSettings = async () => {
+      try {
+        console.log('Loading all settings...');
+        
+        // Get the current session
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Session found:', !!session);
+        
+        const headers: Record<string, string> = {};
+        
+        // Add authorization header if user is authenticated
+        if (session?.access_token) {
+          headers['authorization'] = `Bearer ${session.access_token}`;
+          console.log('Added auth header');
+        } else {
+          console.log('No auth header - user not authenticated');
+        }
+        
+        console.log('Making request to /api/settings');
+        const response = await fetch('/api/settings', { headers });
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          console.error('Settings API error:', response.status, response.statusText);
+          return;
+        }
+        
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (data.success) {
+          setAllSettings(data.settings);
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      } finally {
+        setSettingsLoading(false);
+      }
+    };
+    
+    loadAllSettings();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -48,18 +95,32 @@ export default function Settings() {
 
         {/* Tab Content */}
         <div className="p-6">
-          {activeTab === 'general' && <GeneralSettings />}
-          {activeTab === 'integrations' && <IntegrationSettings />}
-          {activeTab === 'profile' && <ProfileSettings />}
-          {activeTab === 'notifications' && <NotificationSettings />}
-          {activeTab === 'security' && <SecuritySettings />}
+          {settingsLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+              <p className="mt-2 text-gray-500">Loading settings...</p>
+            </div>
+          ) : (
+            <>
+              {activeTab === 'general' && <GeneralSettings settings={allSettings?.general} onSettingsUpdate={setAllSettings} />}
+              {activeTab === 'integrations' && <IntegrationSettings settings={allSettings?.sharetribe} onSettingsUpdate={setAllSettings} />}
+              {activeTab === 'profile' && <ProfileSettings />}
+              {activeTab === 'notifications' && <NotificationSettings />}
+              {activeTab === 'security' && <SecuritySettings />}
+            </>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function GeneralSettings() {
+interface GeneralSettingsProps {
+  settings?: any;
+  onSettingsUpdate?: (settings: any) => void;
+}
+
+function GeneralSettings({ settings: initialSettings, onSettingsUpdate }: GeneralSettingsProps) {
   const [settings, setSettings] = useState({
     companyName: 'My Affiliate Program',
     defaultCommission: 10,
@@ -71,47 +132,12 @@ function GeneralSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  // Load settings on component mount
+  // Update settings when props change
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        console.log('Loading general settings...');
-        
-        // Get the current session
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('Session found:', !!session);
-        
-        const headers: Record<string, string> = {};
-        
-        // Add authorization header if user is authenticated
-        if (session?.access_token) {
-          headers['authorization'] = `Bearer ${session.access_token}`;
-          console.log('Added auth header');
-        } else {
-          console.log('No auth header - user not authenticated');
-        }
-        
-        console.log('Making request to /api/settings');
-        const response = await fetch('/api/settings', { headers });
-        console.log('Response status:', response.status);
-        
-        if (!response.ok) {
-          console.error('Settings API error:', response.status, response.statusText);
-          return;
-        }
-        
-        const data = await response.json();
-        console.log('Response data:', data);
-        
-        if (data.success && data.settings.general) {
-          setSettings(data.settings.general);
-        }
-      } catch (error) {
-        console.error('Failed to load settings:', error);
-      }
-    };
-    loadSettings();
-  }, []);
+    if (initialSettings) {
+      setSettings(initialSettings);
+    }
+  }, [initialSettings]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,7 +275,12 @@ function GeneralSettings() {
   );
 }
 
-function IntegrationSettings() {
+interface IntegrationSettingsProps {
+  settings?: any;
+  onSettingsUpdate?: (settings: any) => void;
+}
+
+function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: IntegrationSettingsProps) {
   const [sharetribeConfig, setSharetribeConfig] = useState({
     clientId: '',
     clientSecret: '',
@@ -262,47 +293,12 @@ function IntegrationSettings() {
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string; data?: any } | null>(null);
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  // Load settings on component mount
+  // Update settings when props change
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        console.log('Loading integration settings...');
-        
-        // Get the current session
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('Integration session found:', !!session);
-        
-        const headers: Record<string, string> = {};
-        
-        // Add authorization header if user is authenticated
-        if (session?.access_token) {
-          headers['authorization'] = `Bearer ${session.access_token}`;
-          console.log('Added integration auth header');
-        } else {
-          console.log('No integration auth header - user not authenticated');
-        }
-        
-        console.log('Making integration request to /api/settings');
-        const response = await fetch('/api/settings', { headers });
-        console.log('Integration response status:', response.status);
-        
-        if (!response.ok) {
-          console.error('Integration settings API error:', response.status, response.statusText);
-          return;
-        }
-        
-        const data = await response.json();
-        console.log('Integration response data:', data);
-        
-        if (data.success && data.settings.sharetribe) {
-          setSharetribeConfig(data.settings.sharetribe);
-        }
-      } catch (error) {
-        console.error('Failed to load integration settings:', error);
-      }
-    };
-    loadSettings();
-  }, []);
+    if (initialSettings) {
+      setSharetribeConfig(initialSettings);
+    }
+  }, [initialSettings]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
