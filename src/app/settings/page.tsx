@@ -25,7 +25,7 @@ export default function Settings() {
         console.log('Loading all settings...');
         
         // Get the current session
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase().auth.getSession();
         console.log('Session found:', !!session);
         
         const headers: Record<string, string> = {};
@@ -146,7 +146,7 @@ function GeneralSettings({ settings: initialSettings, onSettingsUpdate }: Genera
 
     try {
       // Get the current session
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase().auth.getSession();
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -311,7 +311,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
     
     try {
       // Get the current session
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase().auth.getSession();
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',

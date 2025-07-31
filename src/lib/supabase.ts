@@ -4,12 +4,22 @@ import { createBrowserClient } from '@supabase/ssr'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Browser client for client-side operations
-export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
+// Browser client for client-side operations (singleton)
+let browserClient: ReturnType<typeof createBrowserClient> | null = null
+export const supabase = () => {
+  if (!browserClient) {
+    browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey)
+  }
+  return browserClient
+}
 
-// Server client for server-side operations
+// Server client for server-side operations (singleton)
+let serverClient: ReturnType<typeof createClient> | null = null
 export const createServerClient = () => {
-  return createClient(supabaseUrl, supabaseAnonKey)
+  if (!serverClient) {
+    serverClient = createClient(supabaseUrl, supabaseAnonKey)
+  }
+  return serverClient
 }
 
 // Database types

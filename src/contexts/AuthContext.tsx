@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase().auth.getSession();
       setUser(session?.user ?? null);
       setLoading(false);
     };
@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     getInitialSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = supabase().auth.onAuthStateChange(
       async (event, session) => {
         setUser(session?.user ?? null);
         setLoading(false);
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase().auth.signInWithPassword({
       email,
       password,
     });
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { error } = await supabase().auth.signUp({
       email,
       password,
       options: {
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await supabase().auth.signOut();
   };
 
   const value = {
