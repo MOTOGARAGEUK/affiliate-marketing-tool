@@ -292,16 +292,16 @@ export default function Affiliates() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {affiliate.referral_link ? (
                       <div className="flex items-center space-x-2">
-                        <span className="text-xs text-gray-500 truncate max-w-20" title={affiliate.referral_link}>
-                          {affiliate.referral_link.length > 25 
-                            ? affiliate.referral_link.substring(0, 25) + '...' 
+                        <span className="text-xs text-gray-500 truncate max-w-16" title={affiliate.referral_link}>
+                          {affiliate.referral_link.length > 20 
+                            ? affiliate.referral_link.substring(0, 20) + '...' 
                             : affiliate.referral_link
                           }
                         </span>
                         <CopyButton
                           text={affiliate.referral_link}
                           size="sm"
-                          className="text-xs text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 flex-shrink-0"
+                          className="flex-shrink-0"
                         />
                       </div>
                     ) : (
