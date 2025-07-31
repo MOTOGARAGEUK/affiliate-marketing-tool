@@ -136,11 +136,15 @@ export async function POST(request: NextRequest) {
     console.log('Settings POST - Request body:', { type, settings });
 
     if (type === 'sharetribe') {
+      console.log('Settings POST - Processing sharetribe settings');
       // Find existing Sharetribe integration or create new one
       const integrations = await integrationsAPI.getAll(user.id);
+      console.log('Settings POST - Found integrations:', integrations?.length || 0);
       const sharetribeIntegration = integrations.find(integration => integration.type === 'sharetribe');
+      console.log('Settings POST - Existing sharetribe integration:', !!sharetribeIntegration);
       
       if (sharetribeIntegration) {
+        console.log('Settings POST - Updating existing sharetribe integration');
         // Update existing integration
         await integrationsAPI.update(sharetribeIntegration.id, {
           config: {
@@ -149,7 +153,9 @@ export async function POST(request: NextRequest) {
             marketplaceUrl: settings.marketplaceUrl,
           }
         }, user.id);
+        console.log('Settings POST - ShareTribe integration updated successfully');
       } else {
+        console.log('Settings POST - Creating new sharetribe integration');
         // Create new integration
         await integrationsAPI.create({
           name: 'Sharetribe Integration',
@@ -162,18 +168,25 @@ export async function POST(request: NextRequest) {
           },
           userId: user.id
         });
+        console.log('Settings POST - ShareTribe integration created successfully');
       }
     } else if (type === 'general') {
+      console.log('Settings POST - Processing general settings');
       // Save general settings to a general settings integration
       const integrations = await integrationsAPI.getAll(user.id);
+      console.log('Settings POST - Found integrations for general:', integrations?.length || 0);
       const generalIntegration = integrations.find(integration => integration.type === 'custom' && integration.name === 'General Settings');
+      console.log('Settings POST - Existing general integration:', !!generalIntegration);
       
       if (generalIntegration) {
+        console.log('Settings POST - Updating existing general integration');
         // Update existing general settings
         await integrationsAPI.update(generalIntegration.id, {
           config: settings
         }, user.id);
+        console.log('Settings POST - General integration updated successfully');
       } else {
+        console.log('Settings POST - Creating new general integration');
         // Create new general settings
         await integrationsAPI.create({
           name: 'General Settings',
@@ -182,6 +195,7 @@ export async function POST(request: NextRequest) {
           config: settings,
           userId: user.id
         });
+        console.log('Settings POST - General integration created successfully');
       }
     }
 
@@ -233,8 +247,17 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Failed to save settings:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : 'Unknown'
+    });
     return NextResponse.json(
-      { success: false, message: 'Failed to save settings' },
+      { 
+        success: false, 
+        message: 'Failed to save settings',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
