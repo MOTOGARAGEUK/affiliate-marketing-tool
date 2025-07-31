@@ -374,12 +374,38 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
     status: (affiliate?.status || 'pending') as 'active' | 'inactive' | 'pending',
     programId: affiliate?.programId || '',
   });
+  const [marketplaceUrl, setMarketplaceUrl] = useState('https://marketplace.com');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return; // Prevent submission while loading
     onSubmit(formData);
   };
+
+  // Fetch marketplace URL when component mounts
+  useEffect(() => {
+    const fetchMarketplaceUrl = async () => {
+      try {
+        const { data: { session } } = await supabase().auth.getSession();
+        const token = session?.access_token;
+        
+        if (token) {
+          const response = await fetch('/api/test-settings', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await response.json();
+          
+          if (data.success && data.marketplace_url) {
+            setMarketplaceUrl(data.marketplace_url);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching marketplace URL:', error);
+      }
+    };
+    
+    fetchMarketplaceUrl();
+  }, []);
 
   // Get selected program details
   const selectedProgram = programs.find(p => p.id === formData.programId);
@@ -465,54 +491,58 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
               </select>
             </div>
             
-            {/* Show referral link if editing existing affiliate */}
-            {affiliate?.referral_link && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Referral Link</label>
-                <div className="mt-1 flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={affiliate.referral_link}
-                    readOnly
-                    className="flex-1 rounded-md border-gray-300 shadow-sm px-4 py-3 text-gray-900 bg-gray-50"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(affiliate.referral_link);
-                      alert('Referral link copied to clipboard!');
-                    }}
-                    className="px-3 py-3 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
-                  >
-                    Copy
-                  </button>
-                </div>
+            {/* Show referral link for both new and existing affiliates */}
+            <div className="bg-gray-50 p-3 rounded-md">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Generated Referral Link</label>
+              <div className="flex items-center space-x-2">
+                <input
+                  readOnly
+                  className="flex-1 text-sm bg-white border border-gray-300 rounded px-2 py-1 font-mono"
+                  type="text"
+                                     value={(() => {
+                     if (affiliate?.referral_link) {
+                       return affiliate.referral_link;
+                     }
+                     if (formData.name && formData.programId) {
+                       const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
+                       // Use the marketplace URL from settings
+                       return `${marketplaceUrl}/ref/${referralCode}`;
+                     }
+                     return 'Enter affiliate name and select program to generate link';
+                   })()}
+                />
+                <button
+                  type="button"
+                                     onClick={() => {
+                     const linkValue = (() => {
+                       if (affiliate?.referral_link) {
+                         return affiliate.referral_link;
+                       }
+                       if (formData.name && formData.programId) {
+                         const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
+                         return `${marketplaceUrl}/ref/${referralCode}`;
+                       }
+                       return '';
+                     })();
+                     if (linkValue && linkValue !== 'Enter affiliate name and select program to generate link') {
+                       navigator.clipboard.writeText(linkValue);
+                       alert('Referral link copied to clipboard!');
+                     }
+                   }}
+                  className={`px-2 py-1 text-xs rounded ${
+                    formData.name && formData.programId 
+                      ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                      : 'bg-gray-400 text-white cursor-not-allowed'
+                  }`}
+                  disabled={!formData.name || !formData.programId}
+                >
+                  Copy
+                </button>
               </div>
-            )}
-
-            {/* Show placeholder for new affiliate */}
-            {!affiliate && (
-              <div className="bg-gray-50 p-3 rounded-md">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Generated Referral Link</label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    readOnly
-                    className="flex-1 text-sm bg-white border border-gray-300 rounded px-2 py-1 font-mono"
-                    type="text"
-                    value="Link will be generated after affiliate is created"
-                    disabled
-                  />
-                  <button
-                    type="button"
-                    className="px-2 py-1 text-xs bg-gray-400 text-white rounded cursor-not-allowed"
-                    disabled
-                  >
-                    Copy
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">This link will be generated automatically when the affiliate is created</p>
-              </div>
-            )}
+              <p className="text-xs text-gray-500 mt-1">
+                {affiliate ? 'This is the affiliate\'s referral link' : 'This link will be generated automatically when the affiliate is created'}
+              </p>
+            </div>
             
             {/* Show program commission details */}
             {selectedProgram && (
