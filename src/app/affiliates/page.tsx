@@ -616,12 +616,12 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                       const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
                       
                       if (selectedProgram?.type === 'signup') {
-                        // For signup programs, use our cookie-setting endpoint first
-                        return `${window.location.origin}/api/set-referral-cookie?ref=${referralCode}&redirect=https://test.moto-garage.co.uk/signup`;
+                        // For signup programs, use UTM parameters for Google Analytics tracking
+                        return `https://test.moto-garage.co.uk/signup?utm_source=affiliate&utm_medium=referral&utm_campaign=${referralCode}`;
                       } else {
-                        // For purchase programs, use the marketplace URL
+                        // For purchase programs, use the marketplace URL with UTM parameters
                         const cleanUrl = marketplaceUrl.replace(/\/+$/, '');
-                        return `${cleanUrl}/ref/${referralCode}`;
+                        return `${cleanUrl}?utm_source=affiliate&utm_medium=referral&utm_campaign=${referralCode}`;
                       }
                     }
                     return 'Enter affiliate name and select program to generate link';
@@ -637,12 +637,12 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                       const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
                       
                       if (selectedProgram?.type === 'signup') {
-                        // For signup programs, use our cookie-setting endpoint first
-                        return `${window.location.origin}/api/set-referral-cookie?ref=${referralCode}&redirect=https://test.moto-garage.co.uk/signup`;
+                        // For signup programs, use UTM parameters for Google Analytics tracking
+                        return `https://test.moto-garage.co.uk/signup?utm_source=affiliate&utm_medium=referral&utm_campaign=${referralCode}`;
                       } else {
-                        // For purchase programs, use the marketplace URL
+                        // For purchase programs, use the marketplace URL with UTM parameters
                         const cleanUrl = marketplaceUrl.replace(/\/+$/, '');
-                        return `${cleanUrl}/ref/${referralCode}`;
+                        return `${cleanUrl}?utm_source=affiliate&utm_medium=referral&utm_campaign=${referralCode}`;
                       }
                     }
                     return '';
