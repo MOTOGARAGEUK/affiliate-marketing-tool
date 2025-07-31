@@ -182,7 +182,7 @@ export default function Affiliates() {
                     })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(affiliate.joinedAt)}
+                    {formatDate(affiliate.createdAt)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
@@ -480,7 +480,7 @@ function ViewAffiliateModal({ affiliate, onClose }: ViewAffiliateModalProps) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Joined</label>
-              <p className="mt-1 text-sm text-gray-900">{formatDate(affiliate.joinedAt)}</p>
+                              <p className="mt-1 text-sm text-gray-900">{formatDate(affiliate.createdAt)}</p>
             </div>
           </div>
           <div className="mt-6 flex justify-end">

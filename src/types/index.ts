@@ -6,8 +6,8 @@ export interface Program {
   commissionType: 'percentage' | 'fixed';
   status: 'active' | 'inactive';
   description: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Affiliate {
@@ -21,8 +21,8 @@ export interface Affiliate {
   totalReferrals: number;
   referralCode: string;
   referralLink: string;
-  joinedAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Referral {
