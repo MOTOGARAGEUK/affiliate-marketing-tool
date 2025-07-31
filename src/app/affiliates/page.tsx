@@ -124,6 +124,7 @@ export default function Affiliates() {
       if (data.success) {
         await fetchData(); // Refresh the list
         setShowCreateModal(false);
+        alert('Affiliate created successfully! The referral link has been generated.');
       } else {
         console.error('Failed to create affiliate:', data.message);
         alert('Failed to create affiliate: ' + data.message);
@@ -486,6 +487,30 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                     Copy
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* Show placeholder for new affiliate */}
+            {!affiliate && (
+              <div className="bg-gray-50 p-3 rounded-md">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Generated Referral Link</label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    readOnly
+                    className="flex-1 text-sm bg-white border border-gray-300 rounded px-2 py-1 font-mono"
+                    type="text"
+                    value="Link will be generated after affiliate is created"
+                    disabled
+                  />
+                  <button
+                    type="button"
+                    className="px-2 py-1 text-xs bg-gray-400 text-white rounded cursor-not-allowed"
+                    disabled
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">This link will be generated automatically when the affiliate is created</p>
               </div>
             )}
             

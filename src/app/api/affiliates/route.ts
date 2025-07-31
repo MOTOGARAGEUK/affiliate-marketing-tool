@@ -127,16 +127,26 @@ export async function POST(request: NextRequest) {
     console.log('Checking for existing affiliate with email:', body.email);
     console.log('User ID:', user.id);
     
+    // First, let's check all affiliates for this user to see what's there
+    const { data: allAffiliates, error: allAffiliatesError } = await authenticatedSupabase
+      .from('affiliates')
+      .select('id, name, email')
+      .eq('user_id', user.id);
+    
+    console.log('All affiliates for user:', allAffiliates);
+    console.log('All affiliate emails:', allAffiliates?.map(a => a.email));
+    
+    // Now check for the specific email
     const { data: existingAffiliate, error: checkError } = await authenticatedSupabase
       .from('affiliates')
-      .select('id, name')
+      .select('id, name, email')
       .eq('user_id', user.id)
-      .eq('email', body.email)
-      .single();
+      .eq('email', body.email.toLowerCase().trim())
+      .maybeSingle(); // Use maybeSingle instead of single to avoid errors
 
     console.log('Email check result:', { existingAffiliate, checkError });
 
-    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+    if (checkError) {
       console.error('Error checking for existing affiliate:', checkError);
       return NextResponse.json(
         { success: false, message: 'Error checking for existing affiliate' },
@@ -147,7 +157,7 @@ export async function POST(request: NextRequest) {
     if (existingAffiliate) {
       console.log('❌ Duplicate email found:', existingAffiliate);
       return NextResponse.json(
-        { success: false, message: `An affiliate with email "${body.email}" already exists` },
+        { success: false, message: `Sorry, this affiliate email already exists` },
         { status: 400 }
       );
     }
@@ -164,93 +174,31 @@ export async function POST(request: NextRequest) {
       console.log('=== REFERRAL LINK DEBUG ===');
       console.log('Fetching ShareTribe marketplace URL for user:', user.id);
       
-      // First, let's check what settings exist for this user
-      const { data: allSettings, error: allSettingsError } = await authenticatedSupabase
+      // Get all ShareTribe settings for this user
+      const { data: sharetribeSettings, error: sharetribeError } = await authenticatedSupabase
         .from('settings')
-        .select('*')
-        .eq('user_id', user.id);
+        .select('setting_key, setting_value')
+        .eq('user_id', user.id)
+        .eq('setting_type', 'sharetribe');
       
-      if (allSettingsError) {
-        console.log('Error fetching all settings:', allSettingsError);
+      if (sharetribeError) {
+        console.log('Error fetching ShareTribe settings:', sharetribeError);
       } else {
-        console.log('All settings for user:', allSettings);
-        console.log('ShareTribe settings:', allSettings?.filter(s => s.setting_type === 'sharetribe'));
-      }
-      
-      // Look for ShareTribe marketplace URL - try multiple variations
-      let settingsResponse = null;
-      
-      // Try marketplaceUrl first
-      try {
-        const { data, error } = await authenticatedSupabase
-          .from('settings')
-          .select('setting_value')
-          .eq('user_id', user.id)
-          .eq('setting_type', 'sharetribe')
-          .eq('setting_key', 'marketplaceUrl')
-          .single();
+        console.log('ShareTribe settings found:', sharetribeSettings);
         
-        if (error) {
-          console.log('marketplaceUrl query error:', error);
+        // Look for marketplace URL in any of the ShareTribe settings
+        const marketplaceUrlSetting = sharetribeSettings?.find(s => 
+          s.setting_key === 'marketplaceUrl' || 
+          s.setting_key === 'marketplace_url' || 
+          s.setting_key === 'url'
+        );
+        
+        if (marketplaceUrlSetting?.setting_value) {
+          baseUrl = marketplaceUrlSetting.setting_value;
+          console.log('✅ Using ShareTribe URL:', baseUrl);
         } else {
-          settingsResponse = { data, error };
-          console.log('Settings response (marketplaceUrl):', settingsResponse);
-        }
-      } catch (error) {
-        console.log('No marketplaceUrl found, trying marketplace_url');
-      }
-      
-      // Try marketplace_url if first attempt failed
-      if (!settingsResponse?.data?.setting_value) {
-        try {
-          const { data, error } = await authenticatedSupabase
-            .from('settings')
-            .select('setting_value')
-            .eq('user_id', user.id)
-            .eq('setting_type', 'sharetribe')
-            .eq('setting_key', 'marketplace_url')
-            .single();
-          
-          if (error) {
-            console.log('marketplace_url query error:', error);
-          } else {
-            settingsResponse = { data, error };
-            console.log('Settings response (marketplace_url):', settingsResponse);
-          }
-        } catch (error) {
-          console.log('No marketplace_url found either');
-        }
-      }
-      
-      // Try url if both attempts failed
-      if (!settingsResponse?.data?.setting_value) {
-        try {
-          const { data, error } = await authenticatedSupabase
-            .from('settings')
-            .select('setting_value')
-            .eq('user_id', user.id)
-            .eq('setting_type', 'sharetribe')
-            .eq('setting_key', 'url')
-            .single();
-          
-          if (error) {
-            console.log('url query error:', error);
-          } else {
-            settingsResponse = { data, error };
-            console.log('Settings response (url):', settingsResponse);
-          }
-        } catch (error) {
-          console.log('No url found either');
-        }
-      }
-      
-      if (settingsResponse?.data?.setting_value) {
-        baseUrl = settingsResponse.data.setting_value;
-        console.log('✅ Using ShareTribe URL:', baseUrl);
-      } else {
-        console.log('❌ No ShareTribe URL found in settings, using fallback');
-        if (allSettings) {
-          console.log('Available settings types:', allSettings.map(s => `${s.setting_type}.${s.setting_key}`));
+          console.log('❌ No marketplace URL found in ShareTribe settings');
+          console.log('Available ShareTribe keys:', sharetribeSettings?.map(s => s.setting_key));
         }
       }
       
