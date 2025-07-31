@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { CogIcon, UserIcon, BellIcon, ShieldCheckIcon, LinkIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('general');
@@ -484,39 +486,113 @@ function IntegrationSettings() {
 }
 
 function ProfileSettings() {
+  const { user } = useAuth();
   const [profile, setProfile] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john@example.com',
-    phone: '+1234567890',
+    fullName: '',
+    email: '',
+    phone: '',
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Load user profile on component mount
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('full_name, email')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        setProfile({
+          fullName: data?.full_name || '',
+          email: data?.email || user.email || '',
+          phone: '', // Phone not in users table yet
+        });
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+        // Set default values from auth user
+        setProfile({
+          fullName: '',
+          email: user.email || '',
+          phone: '',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Saving profile:', profile);
+    if (!user) return;
+
+    setIsSaving(true);
+    setSaveResult(null);
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          full_name: profile.fullName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setSaveResult({ success: true, message: 'Profile updated successfully!' });
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      setSaveResult({ success: false, message: 'Failed to update profile. Please try again.' });
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-2 text-gray-500">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4">Profile Information</h3>
+        
+        {saveResult && (
+          <div className={`mb-4 p-4 rounded-md ${
+            saveResult.success 
+              ? 'bg-green-50 text-green-700 border border-green-200' 
+              : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+            {saveResult.message}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-gray-700">First Name</label>
+            <label className="block text-sm font-medium text-gray-700">Full Name</label>
             <input
               type="text"
-              value={profile.firstName}
-              onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
+              value={profile.fullName}
+              onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Last Name</label>
-            <input
-              type="text"
-              value={profile.lastName}
-              onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              placeholder="Enter your full name"
             />
           </div>
           <div>
@@ -524,27 +600,20 @@ function ProfileSettings() {
             <input
               type="email"
               value={profile.email}
-              onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              disabled
+              className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm text-gray-500"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Phone</label>
-            <input
-              type="tel"
-              value={profile.phone}
-              onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
+            <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
           </div>
         </div>
       </div>
       <div className="flex justify-end">
         <button
           type="submit"
-          className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
+          disabled={isSaving}
+          className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Update Profile
+          {isSaving ? 'Saving...' : 'Update Profile'}
         </button>
       </div>
     </form>
