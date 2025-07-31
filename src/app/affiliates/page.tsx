@@ -616,8 +616,8 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                       const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
                       
                       if (selectedProgram?.type === 'signup') {
-                        // For signup programs, use the signup page URL
-                        return `https://test.moto-garage.co.uk/signup?ref=${referralCode}`;
+                        // For signup programs, use our cookie-setting endpoint first
+                        return `${window.location.origin}/api/set-referral-cookie?ref=${referralCode}&redirect=https://test.moto-garage.co.uk/signup`;
                       } else {
                         // For purchase programs, use the marketplace URL
                         const cleanUrl = marketplaceUrl.replace(/\/+$/, '');
@@ -637,8 +637,8 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                       const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
                       
                       if (selectedProgram?.type === 'signup') {
-                        // For signup programs, use the signup page URL
-                        return `https://test.moto-garage.co.uk/signup?ref=${referralCode}`;
+                        // For signup programs, use our cookie-setting endpoint first
+                        return `${window.location.origin}/api/set-referral-cookie?ref=${referralCode}&redirect=https://test.moto-garage.co.uk/signup`;
                       } else {
                         // For purchase programs, use the marketplace URL
                         const cleanUrl = marketplaceUrl.replace(/\/+$/, '');

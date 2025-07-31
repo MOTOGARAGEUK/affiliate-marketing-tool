@@ -186,8 +186,8 @@ export async function POST(request: NextRequest) {
     let referralLink: string;
     
     if (program.type === 'signup') {
-      // For signup programs, use the signup page URL
-      referralLink = `https://test.moto-garage.co.uk/signup?ref=${referralCode}`;
+      // For signup programs, use our cookie-setting endpoint first
+      referralLink = `https://your-domain.com/api/set-referral-cookie?ref=${referralCode}&redirect=https://test.moto-garage.co.uk/signup`;
       console.log('✅ Generated signup referral link:', referralLink);
     } else {
       // For purchase programs, get ShareTribe marketplace URL from settings
