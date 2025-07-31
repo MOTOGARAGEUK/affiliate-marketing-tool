@@ -48,3 +48,13 @@ body.modal-active {
 .modal-container {
   background: transparent !important;
 }
+
+/* Override .bg-white when modal is active */
+body .bg-white {
+  background-color: transparent !important;
+}
+
+/* Specific override for modal backgrounds */
+.fixed.inset-0 .bg-white {
+  background-color: transparent !important;
+}

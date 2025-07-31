@@ -67,8 +67,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Affiliates POST - Starting...');
+    
     // Get the user from the request headers
     const authHeader = request.headers.get('authorization');
+    console.log('Affiliates POST - Auth header:', authHeader ? 'Present' : 'Missing');
+    
     if (!authHeader) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
@@ -77,6 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '');
+    console.log('Affiliates POST - Token length:', token.length);
     
     // Create an authenticated client with the user's token
     const authenticatedSupabase = createClient(
@@ -91,16 +96,22 @@ export async function POST(request: NextRequest) {
       }
     );
     
+    console.log('Affiliates POST - Authenticated client created');
+    
     const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
     
     if (authError || !user) {
+      console.log('Affiliates POST - Auth error:', authError);
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    console.log('Affiliates POST - User authenticated:', user.id);
+
     const body = await request.json();
+    console.log('Affiliates POST - Request body:', body);
     
     // Use authenticated client to create affiliate
     const { data: affiliate, error } = await authenticatedSupabase
@@ -116,7 +127,12 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.log('Affiliates POST - Database error:', error);
+      throw error;
+    }
+    
+    console.log('Affiliates POST - Affiliate created successfully:', affiliate);
     
     if (affiliate) {
       return NextResponse.json({ success: true, affiliate });
@@ -127,9 +143,13 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('Failed to create affiliate:', error);
+    console.error('Affiliates POST - Failed:', error);
     return NextResponse.json(
-      { success: false, message: 'Failed to create affiliate' },
+      { 
+        success: false, 
+        message: 'Failed to create affiliate',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
