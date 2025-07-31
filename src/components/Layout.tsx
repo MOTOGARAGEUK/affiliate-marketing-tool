@@ -13,12 +13,14 @@ import {
   Bars3Icon,
   XMarkIcon,
   ArrowRightOnRectangleIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: ChartBarIcon },
   { name: 'Programs', href: '/programs', icon: PuzzlePieceIcon },
   { name: 'Affiliates', href: '/affiliates', icon: UserGroupIcon },
+  { name: 'Referrals', href: '/referrals', icon: ArrowPathIcon },
   { name: 'Payouts', href: '/payouts', icon: CreditCardIcon },
   { name: 'Settings', href: '/settings', icon: CogIcon },
 ];
