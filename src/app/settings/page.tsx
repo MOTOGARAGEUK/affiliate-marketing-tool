@@ -301,11 +301,11 @@ function IntegrationSettings() {
                 value={sharetribeConfig.clientId}
                 onChange={(e) => setSharetribeConfig({ ...sharetribeConfig, clientId: e.target.value })}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="e.g., client_1234567890abcdef"
+                placeholder="e.g., 2af9ca56-b055-4568-96e8-bf356a5085e1"
                 required
               />
               <p className="mt-1 text-xs text-gray-500">
-                Found in your Sharetribe admin panel under Settings → API
+                Found in Sharetribe Admin → Advanced → Applications → Add new application
               </p>
             </div>
             <div>
@@ -315,11 +315,11 @@ function IntegrationSettings() {
                 value={sharetribeConfig.clientSecret}
                 onChange={(e) => setSharetribeConfig({ ...sharetribeConfig, clientSecret: e.target.value })}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="secret_..."
+                placeholder="e.g., 5bafb1946783560ae9d93760550194467fcbf61e"
                 required
               />
               <p className="mt-1 text-xs text-gray-500">
-                Generate in Sharetribe admin panel under Settings → API
+                Generated when you create a new application in Advanced → Applications
               </p>
             </div>
           </div>
