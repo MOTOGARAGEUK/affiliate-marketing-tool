@@ -9,7 +9,12 @@ export async function POST(request: NextRequest) {
       hasClientId: !!body.clientId, 
       hasClientSecret: !!body.clientSecret,
       hasAccessToken: !!body.accessToken,
-      hasApiUrl: !!body.apiUrl
+      hasApiUrl: !!body.apiUrl,
+      hasMarketplaceClientId: !!body.marketplaceClientId,
+      hasMarketplaceClientSecret: !!body.marketplaceClientSecret,
+      hasIntegrationClientId: !!body.integrationClientId,
+      hasIntegrationClientSecret: !!body.integrationClientSecret,
+      fullBody: body
     });
     
     // Handle both old and new field names for backward compatibility
