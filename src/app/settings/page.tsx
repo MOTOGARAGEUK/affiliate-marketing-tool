@@ -302,9 +302,11 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
     marketplaceUrl: '',
   });
   const [isTesting, setIsTesting] = useState(false);
+  const [isTestingReferralFlow, setIsTestingReferralFlow] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [referralFlowResult, setReferralFlowResult] = useState<{ success: boolean; message: string; data?: any } | null>(null);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string; data?: any } | null>(null);
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -407,6 +409,34 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
       });
     } finally {
       setIsTesting(false);
+    }
+  };
+
+  const testReferralFlow = async () => {
+    setIsTestingReferralFlow(true);
+    setReferralFlowResult(null);
+    
+    try {
+      const response = await fetch('/api/test-referral-flow', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('Referral flow test response status:', response.status);
+      
+      const result = await response.json();
+      console.log('Referral flow test result:', result);
+      setReferralFlowResult(result);
+    } catch (error) {
+      console.error('Referral flow test error:', error);
+      setReferralFlowResult({
+        success: false,
+        message: `❌ Network error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    } finally {
+      setIsTestingReferralFlow(false);
     }
   };
 
@@ -554,6 +584,31 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
               {testResult && (
                 <div className={`text-sm ${testResult.success ? 'text-green-600' : 'text-red-600'}`}>
                   {testResult.message}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Referral Flow Test Section */}
+          <div className="bg-yellow-50 p-4 rounded-md">
+            <h4 className="text-sm font-medium text-yellow-900 mb-2">Test Referral Flow</h4>
+            <p className="text-sm text-yellow-800 mb-4">
+              Check if referral tracking is working and see what data is in your database.
+            </p>
+            
+            <div className="flex items-center space-x-4">
+              <button
+                type="button"
+                onClick={testReferralFlow}
+                disabled={isTestingReferralFlow}
+                className="px-4 py-2 text-sm font-medium text-white bg-yellow-600 border border-transparent rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isTestingReferralFlow ? 'Testing...' : 'Test Referral Flow'}
+              </button>
+              
+              {referralFlowResult && (
+                <div className={`text-sm ${referralFlowResult.success ? 'text-green-600' : 'text-red-600'}`}>
+                  {referralFlowResult.message}
                 </div>
               )}
             </div>
