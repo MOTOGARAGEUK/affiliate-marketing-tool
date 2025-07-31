@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   ChartBarIcon,
@@ -28,6 +28,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const { user, signOut } = useAuth();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/login');
+  };
+
+  const truncateEmail = (email: string) => {
+    return email?.length > 20 ? `${email.substring(0, 20)}...` : email;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -76,14 +86,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     </span>
                   </div>
                 </div>
-                <div className="ml-3 flex-1">
+                <div className="ml-3 flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-700 truncate">
-                    {user.email}
+                    {truncateEmail(user.email || '')}
                   </p>
                 </div>
                 <button
-                  onClick={signOut}
-                  className="ml-2 text-gray-400 hover:text-gray-600"
+                  onClick={handleSignOut}
+                  className="ml-2 flex-shrink-0 text-gray-400 hover:text-red-600"
                   title="Sign out"
                 >
                   <ArrowRightOnRectangleIcon className="h-5 w-5" />
@@ -131,14 +141,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     </span>
                   </div>
                 </div>
-                <div className="ml-3 flex-1">
+                <div className="ml-3 flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-700 truncate">
-                    {user.email}
+                    {truncateEmail(user.email || '')}
                   </p>
                 </div>
                 <button
-                  onClick={signOut}
-                  className="ml-2 text-gray-400 hover:text-gray-600"
+                  onClick={handleSignOut}
+                  className="ml-2 flex-shrink-0 text-gray-400 hover:text-red-600"
                   title="Sign out"
                 >
                   <ArrowRightOnRectangleIcon className="h-5 w-5" />
