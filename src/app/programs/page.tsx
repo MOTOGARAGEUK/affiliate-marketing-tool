@@ -100,6 +100,7 @@ export default function Programs() {
   };
 
   const [isUpdating, setIsUpdating] = useState(false);
+  const [deletingProgram, setDeletingProgram] = useState<any>(null);
 
   const handleEditProgram = async (programData: any) => {
     // Prevent multiple submissions
@@ -162,11 +163,14 @@ export default function Programs() {
       const data = await response.json();
       if (data.success) {
         await fetchPrograms(); // Refresh the list
+        setDeletingProgram(null); // Close confirmation dialog
       } else {
         console.error('Failed to delete program:', data.message);
+        alert('Failed to delete program: ' + data.message);
       }
     } catch (error) {
       console.error('Failed to delete program:', error);
+      alert('Failed to delete program. Please try again.');
     }
   };
 
@@ -205,7 +209,7 @@ export default function Programs() {
                   <PencilIcon className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => handleDeleteProgram(program.id)}
+                  onClick={() => setDeletingProgram(program)}
                   className="text-gray-400 hover:text-red-600"
                 >
                   <TrashIcon className="h-4 w-4" />
@@ -252,6 +256,34 @@ export default function Programs() {
           isLoading={isCreating || isUpdating}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingProgram && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Delete</h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Are you sure you want to delete the program <strong>"{deletingProgram.name}"</strong>?
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setDeletingProgram(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDeleteProgram(deletingProgram.id)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700"
+                >
+                  Yes, Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -283,7 +315,7 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm overflow-y-auto h-full w-full z-50">
       <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
         <div className="mt-3">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
