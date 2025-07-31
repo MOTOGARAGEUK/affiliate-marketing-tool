@@ -230,6 +230,7 @@ export default function Affiliates() {
       {selectedAffiliate && (
         <ViewAffiliateModal
           affiliate={selectedAffiliate}
+          programs={programs}
           onClose={() => setSelectedAffiliate(null)}
         />
       )}
@@ -249,7 +250,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit }: AffiliateMod
     name: affiliate?.name || '',
     email: affiliate?.email || '',
     phone: affiliate?.phone || '',
-    status: affiliate?.status || 'pending',
+    status: (affiliate?.status || 'pending') as 'active' | 'inactive' | 'pending',
     programId: affiliate?.programId || '',
   });
 
@@ -312,7 +313,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit }: AffiliateMod
               <label className="block text-sm font-medium text-gray-700">Status</label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'pending' })}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               >
                 <option value="pending">Pending</option>
@@ -329,7 +330,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit }: AffiliateMod
                 required
               >
                 <option value="">Select a program</option>
-                {mockPrograms.filter(p => p.status === 'active').map(program => (
+                {programs.filter(p => p.status === 'active').map(program => (
                   <option key={program.id} value={program.id}>
                     {program.name} - {program.commission}{program.commissionType === 'percentage' ? '%' : '$'}
                   </option>
@@ -399,10 +400,11 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit }: AffiliateMod
 
 interface ViewAffiliateModalProps {
   affiliate: Affiliate;
+  programs: any[];
   onClose: () => void;
 }
 
-function ViewAffiliateModal({ affiliate, onClose }: ViewAffiliateModalProps) {
+function ViewAffiliateModal({ affiliate, programs, onClose }: ViewAffiliateModalProps) {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     // You could add a toast notification here
@@ -464,7 +466,7 @@ function ViewAffiliateModal({ affiliate, onClose }: ViewAffiliateModalProps) {
               <label className="block text-sm font-medium text-gray-700">Program</label>
               <p className="mt-1 text-sm text-gray-900">
                 {(() => {
-                  const program = mockPrograms.find(p => p.id === affiliate.programId);
+                  const program = programs.find(p => p.id === affiliate.programId);
                   return program ? program.name : 'N/A';
                 })()}
               </p>
@@ -473,7 +475,7 @@ function ViewAffiliateModal({ affiliate, onClose }: ViewAffiliateModalProps) {
               <label className="block text-sm font-medium text-gray-700">Commission</label>
               <p className="mt-1 text-sm text-gray-900">
                 {(() => {
-                  const program = mockPrograms.find(p => p.id === affiliate.programId);
+                  const program = programs.find(p => p.id === affiliate.programId);
                   return program ? `${program.commission}${program.commissionType === 'percentage' ? '%' : '$'} per ${program.type === 'signup' ? 'signup' : 'purchase'}` : 'N/A';
                 })()}
               </p>
