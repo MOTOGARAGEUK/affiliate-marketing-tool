@@ -103,10 +103,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Settings POST - Starting...');
     const supabase = createServerClient();
     
     // Get the user from the request headers
     const authHeader = request.headers.get('authorization');
+    console.log('Settings POST - Auth header:', authHeader ? 'Present' : 'Missing');
     let user = null;
     
     if (authHeader) {
@@ -114,11 +116,15 @@ export async function POST(request: NextRequest) {
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
       if (!authError && authUser) {
         user = authUser;
+        console.log('Settings POST - User authenticated:', user.id);
+      } else {
+        console.log('Settings POST - Auth error:', authError);
       }
     }
 
     // If no user is authenticated, return error
     if (!user) {
+      console.log('Settings POST - No authenticated user, returning 401');
       return NextResponse.json({
         success: false,
         message: 'Authentication required to save settings'
@@ -127,6 +133,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { type, settings } = body;
+    console.log('Settings POST - Request body:', { type, settings });
 
     if (type === 'sharetribe') {
       // Find existing Sharetribe integration or create new one
@@ -179,7 +186,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Return updated settings
+    console.log('Settings POST - Fetching updated integrations...');
     const updatedIntegrations = await integrationsAPI.getAll(user.id);
+    console.log('Settings POST - Updated integrations count:', updatedIntegrations?.length || 0);
     
     // Transform integrations to settings format
     const updatedSettings = {

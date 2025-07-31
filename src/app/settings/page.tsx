@@ -139,11 +139,11 @@ function GeneralSettings({ settings: initialSettings, onSettingsUpdate }: Genera
     }
   }, [initialSettings]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setSaveResult(null);
-    
+
     try {
       // Get the current session
       const { data: { session } } = await supabase.auth.getSession();
@@ -172,6 +172,10 @@ function GeneralSettings({ settings: initialSettings, onSettingsUpdate }: Genera
       // Update local state with the returned settings if save was successful
       if (result.success && result.settings?.general) {
         setSettings(result.settings.general);
+        // Update parent state if callback is provided
+        if (onSettingsUpdate) {
+          onSettingsUpdate(result.settings);
+        }
       }
     } catch (error) {
       setSaveResult({
@@ -333,6 +337,10 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
       // Update local state with the returned settings if save was successful
       if (result.success && result.settings?.sharetribe) {
         setSharetribeConfig(result.settings.sharetribe);
+        // Update parent state if callback is provided
+        if (onSettingsUpdate) {
+          onSettingsUpdate(result.settings);
+        }
       }
       
       if (result.success) {
