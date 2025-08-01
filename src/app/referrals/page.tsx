@@ -226,6 +226,35 @@ export default function Referrals() {
           >
             👥 List Users
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                const response = await fetch('/api/debug-sharetribe-raw', {
+                  headers: {
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  }
+                });
+                const data = await response.json();
+                if (data.success) {
+                  console.log('✅ Raw ShareTribe API response:', data);
+                  alert('Raw API response captured! Check console for details.\n\n' + 
+                        'Marketplace: ' + JSON.stringify(data.marketplaceData, null, 2) + '\n\n' +
+                        'Users: ' + JSON.stringify(data.usersData, null, 2));
+                } else {
+                  alert('Debug failed: ' + data.message + '\n\n' + JSON.stringify(data, null, 2));
+                }
+              } catch (error) {
+                console.error('Debug error:', error);
+                alert('Debug error: ' + error);
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
+          >
+            🔍 Debug Raw API
+          </button>
         </div>
       </div>
 
