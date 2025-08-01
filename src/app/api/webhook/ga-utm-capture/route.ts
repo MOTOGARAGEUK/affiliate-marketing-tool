@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
               purchases_count: 0,
               total_revenue: 0,
               status: 'pending',
-              commission_earned: 0
+              commission: 0
             })
             .select()
             .single();

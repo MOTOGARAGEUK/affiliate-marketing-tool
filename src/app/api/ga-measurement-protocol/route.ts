@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
           purchases_count: 0,
           total_revenue: 0,
           status: 'pending',
-          commission_earned: 0
+          commission: 0
         })
         .select()
         .single();
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
         .update({
           purchases_count: existingReferral.purchases_count + 1,
           total_revenue: existingReferral.total_revenue + parseFloat(value),
-          commission_earned: existingReferral.commission_earned + commissionEarned,
+          commission: existingReferral.commission + commissionEarned,
           status: 'approved'
         })
         .eq('id', existingReferral.id);

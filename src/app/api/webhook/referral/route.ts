@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
         purchases_count: action === 'purchase' ? 1 : 0,
         total_revenue: action === 'purchase' ? amount : 0,
         status: status,
-        commission_earned: commissionEarned
+        commission: commissionEarned
       })
       .select()
       .single();
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
         affiliate_name: affiliate.affiliate_name,
         customer_name: customerName,
         action: action,
-        commission_earned: commissionEarned,
+        commission: commissionEarned,
         status: status
       }
     });

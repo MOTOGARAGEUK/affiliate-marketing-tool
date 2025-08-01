@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
         purchases_count: action === 'purchase' ? 1 : 0,
         total_revenue: action === 'purchase' ? amount : 0,
         status: status,
-        commission_earned: commissionEarned
+        commission: commissionEarned
       })
       .select()
       .single();
@@ -269,7 +269,7 @@ export async function POST(request: NextRequest) {
         affiliate_name: affiliate.name,
         customer_name: customerName,
         action: action,
-        commission_earned: commissionEarned,
+        commission: commissionEarned,
         status: status
       }
     });
@@ -443,7 +443,7 @@ async function processSignupCompletion(referralCode: string, customerEmail: stri
         id: referral.id,
         affiliate_name: affiliate.name,
         customer_name: customerName,
-        commission_earned: commissionEarned,
+        commission: commissionEarned,
         status: status
       }
     }, {

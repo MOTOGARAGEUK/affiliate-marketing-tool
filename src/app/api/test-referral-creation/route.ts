@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
         affiliate_name: affiliate.name,
         customer_name: testName,
         customer_email: testEmail,
-        commission_earned: 10,
+        commission: 10,
         status: 'approved'
       }
     });

@@ -549,16 +549,16 @@ export const dashboardAPI = {
               .gte('created_at', month.startDate)
               .lt('created_at', month.endDate),
             
-            getSupabase()
-              .from('referrals')
-              .select('commission_earned')
-              .eq('user_id', userId)
-              .gte('created_at', month.startDate)
-              .lt('created_at', month.endDate)
+                      getSupabase()
+            .from('referrals')
+            .select('commission')
+            .eq('user_id', userId)
+            .gte('created_at', month.startDate)
+            .lt('created_at', month.endDate)
           ]);
 
           const referrals = referralsResult.count || 0;
-          const earnings = earningsResult.data?.reduce((sum, r) => sum + Number(r.commission_earned || 0), 0) || 0;
+          const earnings = earningsResult.data?.reduce((sum, r) => sum + Number(r.commission || 0), 0) || 0;
 
           return {
             month: month.month,
