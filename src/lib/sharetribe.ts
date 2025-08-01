@@ -96,7 +96,23 @@ class SharetribeAPI {
     // Get new access token
     console.log('Requesting access token from Sharetribe...');
     
-    const response = await fetch('https://auth.sharetribe.com/oauth/token', {
+    // Determine the correct auth URL based on marketplace URL
+    let authUrl = 'https://auth.sharetribe.com/oauth/token'; // Default to production
+    
+    if (this.config.marketplaceUrl) {
+      if (this.config.marketplaceUrl.includes('dev.sharetribe.com')) {
+        authUrl = 'https://auth.dev.sharetribe.com/oauth/token';
+      } else if (this.config.marketplaceUrl.includes('test.sharetribe.com')) {
+        authUrl = 'https://auth.test.sharetribe.com/oauth/token';
+      } else if (this.config.marketplaceUrl.includes('sharetribe.com')) {
+        authUrl = 'https://auth.sharetribe.com/oauth/token';
+      }
+    }
+    
+    console.log('Using auth URL:', authUrl);
+    console.log('Marketplace URL:', this.config.marketplaceUrl);
+    
+    const response = await fetch(authUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -127,11 +143,25 @@ class SharetribeAPI {
 
   private async makeRequest(endpoint: string, options: RequestInit = {}) {
     const token = await this.getAccessToken();
-    // Use the correct Sharetribe API base URL
-    const baseUrl = 'https://api.sharetribe.com/v1';
+    
+    // Determine the correct API base URL based on marketplace URL
+    let baseUrl = 'https://api.sharetribe.com/v1'; // Default to production
+    
+    if (this.config.marketplaceUrl) {
+      if (this.config.marketplaceUrl.includes('dev.sharetribe.com')) {
+        baseUrl = 'https://api.dev.sharetribe.com/v1';
+      } else if (this.config.marketplaceUrl.includes('test.sharetribe.com')) {
+        baseUrl = 'https://api.test.sharetribe.com/v1';
+      } else if (this.config.marketplaceUrl.includes('sharetribe.com')) {
+        baseUrl = 'https://api.sharetribe.com/v1';
+      }
+    }
+    
     const url = `${baseUrl}${endpoint}`;
     
     console.log('Making ShareTribe API request to:', url);
+    console.log('Marketplace URL:', this.config.marketplaceUrl);
+    console.log('Using API base URL:', baseUrl);
     
     const response = await fetch(url, {
       ...options,
@@ -143,7 +173,9 @@ class SharetribeAPI {
     });
 
     if (!response.ok) {
-      throw new Error(`Sharetribe API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('ShareTribe API error:', response.status, response.statusText, errorText);
+      throw new Error(`Sharetribe API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     return response.json();
