@@ -1,143 +1,116 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getSharetribeCredentials, createSharetribeAPI } from '@/lib/sharetribe';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { referralId, userEmail } = body;
-
-    if (!referralId || !userEmail) {
-      return NextResponse.json(
-        { success: false, message: 'Missing referralId or userEmail' },
-        { status: 400 }
-      );
+    // Get authenticated user
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json({ success: false, message: 'No authorization header' }, { status: 401 });
     }
 
-    console.log('🔍 Debugging sync failure for referral:', referralId, 'user:', userEmail);
-
-    // Create Supabase client
+    const token = authHeader.replace('Bearer ', '');
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Get the user ID from the referral
-    const { data: referral, error: referralError } = await supabase
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !authUser) {
+      return NextResponse.json({ success: false, message: 'Authentication failed' }, { status: 401 });
+    }
+
+    // Get all referrals with ShareTribe user IDs
+    const { data: referrals, error: referralsError } = await supabase
       .from('referrals')
-      .select('user_id')
-      .eq('id', referralId)
-      .single();
+      .select('id, user_id, customer_email, sharetribe_user_id, listings_count, transactions_count, total_revenue, last_sync_at')
+      .not('sharetribe_user_id', 'is', null);
 
-    if (referralError || !referral) {
-      console.error('Error fetching referral:', referralError);
-      return NextResponse.json(
-        { success: false, message: 'Referral not found' },
-        { status: 404 }
-      );
+    if (referralsError) {
+      return NextResponse.json({ success: false, message: 'Error fetching referrals', error: referralsError.message }, { status: 500 });
     }
 
-    console.log('✅ Found referral for user:', referral.user_id);
+    if (!referrals || referrals.length === 0) {
+      return NextResponse.json({ success: false, message: 'No referrals with ShareTribe user IDs found' });
+    }
 
-    // Get ShareTribe credentials from database
-    const { getSharetribeCredentials } = await import('@/lib/sharetribe');
-    const credentials = await getSharetribeCredentials(referral.user_id);
+    console.log('🔍 Found referrals:', referrals);
 
+    // Get ShareTribe credentials
+    const credentials = await getSharetribeCredentials(authUser.id);
     if (!credentials) {
-      console.error('No ShareTribe credentials found for user:', referral.user_id);
-      return NextResponse.json(
-        { success: false, message: 'ShareTribe integration not configured' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, message: 'No ShareTribe credentials found' }, { status: 400 });
     }
 
-    console.log('✅ Found ShareTribe credentials for user:', referral.user_id);
-
-    const { createSharetribeAPI } = await import('@/lib/sharetribe');
     const sharetribeAPI = createSharetribeAPI(credentials);
 
-    // Test connection first
-    console.log('🔍 Testing ShareTribe connection...');
-    const connectionTest = await sharetribeAPI.testConnection();
-    if (!connectionTest) {
-      return NextResponse.json(
-        { success: false, message: 'ShareTribe connection failed' },
-        { status: 500 }
-      );
+    // Test each referral's ShareTribe user ID
+    const debugResults = [];
+
+    for (const referral of referrals) {
+      console.log(`🔍 Testing referral ${referral.id} with ShareTribe user ID: ${referral.sharetribe_user_id}`);
+      
+      try {
+        // Test if user exists in ShareTribe
+        const user = await sharetribeAPI.getUserById(referral.sharetribe_user_id);
+        
+        if (!user) {
+          debugResults.push({
+            referralId: referral.id,
+            customerEmail: referral.customer_email,
+            sharetribeUserId: referral.sharetribe_user_id,
+            status: 'User not found in ShareTribe',
+            error: 'User does not exist in ShareTribe marketplace'
+          });
+          continue;
+        }
+
+        // Test getUserStats
+        const stats = await sharetribeAPI.getUserStats(referral.sharetribe_user_id);
+        
+        debugResults.push({
+          referralId: referral.id,
+          customerEmail: referral.customer_email,
+          sharetribeUserId: referral.sharetribe_user_id,
+          status: 'Success',
+          user: {
+            id: user.id,
+            email: user.email,
+            displayName: user.profile?.displayName
+          },
+          stats: stats ? {
+            listingsCount: stats.listingsCount,
+            transactionsCount: stats.transactionsCount,
+            totalRevenue: stats.totalRevenue
+          } : null,
+          error: stats ? null : 'getUserStats returned null'
+        });
+
+      } catch (error) {
+        debugResults.push({
+          referralId: referral.id,
+          customerEmail: referral.customer_email,
+          sharetribeUserId: referral.sharetribe_user_id,
+          status: 'Error',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
     }
-    console.log('✅ ShareTribe connection successful');
-
-    // Get user by email
-    console.log('🔍 Looking for user by email in ShareTribe:', userEmail);
-    const user = await sharetribeAPI.getUserByEmail(userEmail);
-    if (!user) {
-      console.log('❌ User not found in ShareTribe:', userEmail);
-      return NextResponse.json(
-        { success: false, message: 'User not found in ShareTribe' },
-        { status: 404 }
-      );
-    }
-
-    console.log('✅ Found user in ShareTribe:', user.id);
-
-    // Get comprehensive user stats with detailed logging
-    console.log('🔍 Fetching user stats...');
-    const stats = await sharetribeAPI.getUserStats(user.id);
-    if (!stats) {
-      console.log('❌ Could not fetch user stats for:', user.id);
-      return NextResponse.json(
-        { success: false, message: 'Could not fetch user stats' },
-        { status: 500 }
-      );
-    }
-
-    console.log('📊 User stats fetched:', stats);
-
-    // Update referral record with ShareTribe data
-    const { error: updateError } = await supabase
-      .from('referrals')
-      .update({
-        sharetribe_user_id: user.id,
-        sharetribe_created_at: stats.createdAt,
-        listings_count: stats.listingsCount,
-        transactions_count: stats.transactionsCount,
-        total_revenue: stats.totalRevenue,
-        last_sync_at: new Date().toISOString()
-      })
-      .eq('id', referralId);
-
-    if (updateError) {
-      console.error('❌ Error updating referral with ShareTribe stats:', updateError);
-      return NextResponse.json(
-        { success: false, message: 'Error updating referral stats' },
-        { status: 500 }
-      );
-    }
-
-    console.log('✅ ShareTribe user stats updated successfully for referral:', referralId);
 
     return NextResponse.json({
       success: true,
-      message: 'Debug sync completed successfully',
-      stats: {
-        userId: user.id,
-        createdAt: stats.createdAt,
-        listingsCount: stats.listingsCount,
-        transactionsCount: stats.transactionsCount,
-        totalRevenue: stats.totalRevenue,
-        currency: stats.currency
-      }
+      message: 'Debug sync failure completed',
+      totalReferrals: referrals.length,
+      debugResults
     });
 
   } catch (error) {
-    console.error('❌ Error in debug sync:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: 'Error in debug sync',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      },
-      { status: 500 }
-    );
+    console.error('❌ Error in debug sync failure:', error);
+    return NextResponse.json({
+      success: false,
+      message: 'Debug sync failure failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 } 
