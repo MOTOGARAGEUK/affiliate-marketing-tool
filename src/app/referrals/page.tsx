@@ -196,6 +196,36 @@ export default function Referrals() {
           >
             🔗 Test ShareTribe
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                const response = await fetch('/api/test-sharetribe-users', {
+                  headers: {
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  }
+                });
+                const data = await response.json();
+                if (data.success) {
+                  console.log('✅ ShareTribe users found:', data);
+                  const userList = data.users.map((u: any) => 
+                    `${u.email} (${u.displayName}) - Created: ${new Date(u.createdAt).toLocaleDateString()}`
+                  ).join('\n');
+                  alert(`ShareTribe users found:\n\n${userList}\n\nUse one of these email addresses to test sync functionality.`);
+                } else {
+                  alert('Failed to fetch ShareTribe users:\n\n' + data.message);
+                }
+              } catch (error) {
+                console.error('ShareTribe users test error:', error);
+                alert('ShareTribe users test error: ' + error);
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
+          >
+            👥 List Users
+          </button>
         </div>
       </div>
 
