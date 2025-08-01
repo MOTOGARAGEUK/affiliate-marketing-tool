@@ -311,6 +311,39 @@ export default function Referrals() {
           >
             🧪 Test Basic
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                // Use one of the user IDs from the basic test
+                const userId = "688d0c51-8fbc-45e6-8a29-fc66c9ab7990"; // Jacob M's ID
+                
+                const response = await fetch('/api/debug-user-stats', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  },
+                  body: JSON.stringify({ userId })
+                });
+                const data = await response.json();
+                if (data.success) {
+                  alert('User stats debug successful!\n\nCheck console for detailed logs.');
+                  console.log('User stats debug result:', data);
+                } else {
+                  alert('User stats debug failed: ' + data.message + '\n\n' + JSON.stringify(data, null, 2));
+                }
+              } catch (error) {
+                console.error('User stats debug error:', error);
+                alert('User stats debug error: ' + error);
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700"
+          >
+            🔍 Debug Stats
+          </button>
         </div>
       </div>
 
