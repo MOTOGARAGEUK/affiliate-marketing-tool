@@ -344,6 +344,33 @@ export default function Referrals() {
           >
             🔍 Debug Stats
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                const response = await fetch('/api/test-simple', {
+                  headers: {
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  }
+                });
+                const data = await response.json();
+                if (data.success) {
+                  alert('Simple test successful!\n\nCheck console for details.');
+                  console.log('Simple test result:', data);
+                } else {
+                  alert('Simple test failed: ' + data.message + '\n\n' + JSON.stringify(data, null, 2));
+                }
+              } catch (error) {
+                console.error('Simple test error:', error);
+                alert('Simple test error: ' + error);
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700"
+          >
+            🧪 Simple Test
+          </button>
         </div>
       </div>
 
