@@ -219,16 +219,13 @@ export default function Affiliates() {
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Referrals
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Earnings
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Commission
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Referral Link
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Total Referrals
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Total Earnings
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Joined
@@ -262,24 +259,25 @@ export default function Affiliates() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      <CopyButton 
-                        text={affiliate.referralLink} 
-                        className="text-indigo-600 hover:text-indigo-900"
-                      />
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      <CopyButton 
-                        text={affiliate.referralCode} 
-                        className="text-gray-500 hover:text-gray-700"
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-gray-500 truncate max-w-16" title={affiliate.referralLink}>
+                        {affiliate.referralLink && affiliate.referralLink.length > 20 
+                          ? affiliate.referralLink.substring(0, 20) + '...' 
+                          : affiliate.referralLink || 'No link'
+                        }
+                      </span>
+                      <CopyButton
+                        text={affiliate.referralLink || ''}
+                        size="sm"
+                        className="flex-shrink-0"
                       />
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{affiliate.totalReferrals}</div>
+                    <div className="text-sm text-gray-900">{affiliate.totalReferrals || 0}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{formatCurrency(affiliate.totalEarnings, currency)}</div>
+                    <div className="text-sm text-gray-900">{formatCurrency(affiliate.totalEarnings || 0, currency)}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-500">{formatDate(affiliate.createdAt)}</div>
