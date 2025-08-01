@@ -115,19 +115,34 @@ class SharetribeAPI {
       console.log('Searching for user by email:', email);
       
       const sdk = await this.getSDK();
-      const response = await sdk.users.query({ email });
       
-      if (response.data && response.data.data && response.data.data.length > 0) {
-        const userData = response.data.data[0];
-        console.log('User found:', userData.id);
+      // According to ShareTribe docs, we need to query all users and filter by email
+      // since there's no direct email filter parameter
+      const response = await sdk.users.query({ 
+        perPage: 1000 // Get a large number to ensure we find the user
+      });
+      
+      console.log('Users query response:', {
+        totalCount: response.data?.meta?.totalItems,
+        dataLength: response.data?.data?.length
+      });
+      
+      if (response.data && response.data.data) {
+        // Filter users by email
+        const userData = response.data.data.find((user: any) => 
+          user.attributes.email.toLowerCase() === email.toLowerCase()
+        );
         
-        return {
-          id: userData.id,
-          email: userData.attributes.email,
-          profile: userData.attributes.profile || {},
-          attributes: userData.attributes,
-          createdAt: userData.attributes.createdAt
-        };
+        if (userData) {
+          console.log('User found:', userData.id);
+          return {
+            id: userData.id,
+            email: userData.attributes.email,
+            profile: userData.attributes.profile || {},
+            attributes: userData.attributes,
+            createdAt: userData.attributes.createdAt
+          };
+        }
       }
       
       console.log('No user found with email:', email);
