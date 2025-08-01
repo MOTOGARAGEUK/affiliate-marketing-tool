@@ -57,7 +57,12 @@ export async function GET(request: NextRequest) {
 
     // Step 1: Get access token
     console.log('Step 1: Getting access token...');
-    const authUrl = 'https://auth.sharetribe.com/oauth/token';
+    
+    // Use dev auth URL since user is testing in dev environment
+    const authUrl = 'https://auth.dev.sharetribe.com/oauth/token';
+    
+    console.log('Using auth URL:', authUrl);
+    console.log('Marketplace URL:', credentials.marketplaceUrl);
     
     const tokenResponse = await fetch(authUrl, {
       method: 'POST',
@@ -101,7 +106,7 @@ export async function GET(request: NextRequest) {
 
     // Step 2: Test marketplace endpoint
     console.log('Step 2: Testing marketplace endpoint...');
-    const marketplaceUrl = 'https://flex-integ-api.sharetribe.com/v1/integration_api/marketplace/show';
+    const marketplaceUrl = 'https://api.dev.sharetribe.com/v1/integration_api/marketplace/show';
     
     const marketplaceResponse = await fetch(marketplaceUrl, {
       headers: {
@@ -130,7 +135,7 @@ export async function GET(request: NextRequest) {
 
     // Step 3: Test users endpoint
     console.log('Step 3: Testing users endpoint...');
-    const usersUrl = 'https://flex-integ-api.sharetribe.com/v1/integration_api/users/query?limit=10';
+    const usersUrl = 'https://api.dev.sharetribe.com/v1/integration_api/users/query?limit=10';
     
     const usersResponse = await fetch(usersUrl, {
       headers: {

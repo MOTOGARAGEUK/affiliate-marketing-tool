@@ -102,8 +102,18 @@ class SharetribeAPI {
     // Get new access token
     console.log('Requesting access token from Sharetribe...');
     
-    // Use the correct auth URL as per ShareTribe documentation
-    const authUrl = 'https://auth.sharetribe.com/oauth/token';
+    // Determine the correct auth URL based on marketplace URL
+    let authUrl = 'https://auth.dev.sharetribe.com/oauth/token'; // Default to dev
+    
+    if (this.config.marketplaceUrl) {
+      if (this.config.marketplaceUrl.includes('dev.sharetribe.com')) {
+        authUrl = 'https://auth.dev.sharetribe.com/oauth/token';
+      } else if (this.config.marketplaceUrl.includes('test.sharetribe.com')) {
+        authUrl = 'https://auth.test.sharetribe.com/oauth/token';
+      } else if (this.config.marketplaceUrl.includes('sharetribe.com')) {
+        authUrl = 'https://auth.sharetribe.com/oauth/token';
+      }
+    }
     
     console.log('Using auth URL:', authUrl);
     console.log('Marketplace URL:', this.config.marketplaceUrl);
@@ -140,8 +150,19 @@ class SharetribeAPI {
   private async makeRequest(endpoint: string, options: RequestInit = {}) {
     const token = await this.getAccessToken();
     
-    // Use the Integration API base URL as per ShareTribe documentation
-    const baseUrl = 'https://flex-integ-api.sharetribe.com/v1';
+    // Determine the correct API base URL based on marketplace URL
+    let baseUrl = 'https://api.dev.sharetribe.com/v1'; // Default to dev
+    
+    if (this.config.marketplaceUrl) {
+      if (this.config.marketplaceUrl.includes('dev.sharetribe.com')) {
+        baseUrl = 'https://api.dev.sharetribe.com/v1';
+      } else if (this.config.marketplaceUrl.includes('test.sharetribe.com')) {
+        baseUrl = 'https://api.test.sharetribe.com/v1';
+      } else if (this.config.marketplaceUrl.includes('sharetribe.com')) {
+        baseUrl = 'https://flex-integ-api.sharetribe.com/v1';
+      }
+    }
+    
     const url = `${baseUrl}${endpoint}`;
     
     console.log('Making ShareTribe API request to:', url);
