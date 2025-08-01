@@ -1,120 +1,57 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { PlusIcon, CogIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
-import { mockIntegrations } from '@/lib/mockData';
-import { formatDate, getStatusColor } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
+import { useState } from 'react';
+import { PlusIcon, CogIcon, CheckCircleIcon, XCircleIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline';
 
 export default function Integrations() {
-  const [integrations, setIntegrations] = useState(mockIntegrations);
-  const [showConnectModal, setShowConnectModal] = useState(false);
-  const [selectedIntegration, setSelectedIntegration] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Fetch integrations from database
-  useEffect(() => {
-    fetchIntegrations();
-  }, []);
-
-  const fetchIntegrations = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('integrations')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error fetching integrations:', error);
-        return;
-      }
-
-      // Transform database data to match expected format
-      const transformedIntegrations = data.map(integration => ({
-        id: integration.id,
-        name: integration.name,
-        type: integration.type,
-        status: integration.status,
-        config: integration.config,
-        createdAt: new Date(integration.created_at),
-        updatedAt: new Date(integration.updated_at),
-      }));
-
-      setIntegrations(transformedIntegrations);
-    } catch (error) {
-      console.error('Error fetching integrations:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleConnectIntegration = async (integrationData: any) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        alert('Please log in to connect integrations');
-        return;
-      }
-
-      // Prepare request body based on API type
-      const requestBody = {
-        marketplaceId: integrationData.config.marketplaceId,
-        apiType: integrationData.config.apiType,
-        userId: user.id,
-        ...(integrationData.config.apiType === 'marketplace' ? {
-          clientId: integrationData.config.clientId,
-          clientSecret: integrationData.config.clientSecret,
-        } : {
-          apiUrl: integrationData.config.apiUrl,
-          accessToken: integrationData.config.accessToken,
-        })
-      };
-
-      // Save to database
-      const response = await fetch('/api/integrations/sharetribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        // Refresh integrations list
-        await fetchIntegrations();
-        setShowConnectModal(false);
-        alert('Integration connected successfully!');
-      } else {
-        alert('Failed to connect integration: ' + result.message);
-      }
-    } catch (error) {
-      console.error('Error connecting integration:', error);
-      alert('Failed to connect integration');
-    }
-  };
-
-  const handleDisconnectIntegration = (id: string) => {
-    setIntegrations(integrations.map(i => 
-      i.id === id ? { ...i, status: 'disconnected', updatedAt: new Date() } : i
-    ));
-  };
-
-  const getIntegrationIcon = (type: string) => {
-    switch (type) {
-      case 'sharetribe':
-        return '🏪';
-      case 'shopify':
-        return '🛍️';
-      case 'woocommerce':
-        return '🛒';
-      default:
-        return '🔗';
-    }
+  const copyTrackingScript = () => {
+    const scriptText = `<!-- Affiliate Referral Tracking Script for ShareTribe -->
+<script>
+(function() {
+  // Get referral parameters from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const utmSource = urlParams.get('utm_source');
+  const utmMedium = urlParams.get('utm_medium');
+  const utmCampaign = urlParams.get('utm_campaign');
+  
+  // Check if this is an affiliate referral
+  if (utmSource === 'affiliate' && utmMedium === 'referral' && utmCampaign) {
+    // Store referral data in localStorage
+    localStorage.setItem('affiliate_referral', JSON.stringify({
+      source: utmSource,
+      medium: utmMedium,
+      campaign: utmCampaign,
+      timestamp: new Date().toISOString(),
+      page: window.location.href
+    }));
+    
+    // Send referral data to your tracking endpoint
+    fetch('https://affiliate-marketing-tool-jt268n7ck-scoopies-projects.vercel.app/api/track-referral', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        source: utmSource,
+        medium: utmMedium,
+        campaign: utmCampaign,
+        page: window.location.href,
+        userAgent: navigator.userAgent
+      })
+    }).catch(error => {
+      console.log('Referral tracking error:', error);
+    });
+    
+    console.log('Affiliate referral detected:', utmCampaign);
+  }
+})();
+</script>`;
+    
+    navigator.clipboard.writeText(scriptText).then(() => {
+      alert('ShareTribe tracking script copied to clipboard!');
+    }).catch(() => {
+      alert('Failed to copy script. Please select and copy manually.');
+    });
   };
 
   return (
@@ -127,7 +64,7 @@ export default function Integrations() {
           </p>
         </div>
         <button
-          onClick={() => setShowConnectModal(true)}
+          onClick={() => alert('Connect Platform functionality coming soon')}
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
         >
           <PlusIcon className="h-4 w-4 mr-2" />
@@ -135,59 +72,96 @@ export default function Integrations() {
         </button>
       </div>
 
-      {/* Integrations Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {integrations.map((integration) => (
-          <div key={integration.id} className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center">
-                <span className="text-2xl mr-3">{getIntegrationIcon(integration.type)}</span>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">{integration.name}</h3>
-                  <p className="text-sm text-gray-500 capitalize">{integration.type}</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                {integration.status === 'connected' ? (
-                  <CheckCircleIcon className="h-5 w-5 text-green-500" />
-                ) : (
-                  <XCircleIcon className="h-5 w-5 text-red-500" />
-                )}
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Status:</span>
-                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(integration.status)}`}>
-                  {integration.status}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Connected:</span>
-                <span className="text-sm text-gray-900">{formatDate(integration.createdAt)}</span>
-              </div>
-            </div>
-
-            <div className="mt-4 flex space-x-2">
-              <button
-                onClick={() => setSelectedIntegration(integration)}
-                className="flex-1 px-3 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100"
-              >
-                <CogIcon className="h-4 w-4 mr-1" />
-                Configure
-              </button>
-              {integration.status === 'connected' && (
-                <button
-                  onClick={() => handleDisconnectIntegration(integration.id)}
-                  className="flex-1 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100"
-                >
-                  Disconnect
-                </button>
-              )}
-            </div>
+      {/* SHARETRIBE TRACKING SCRIPT SECTION - ALWAYS VISIBLE */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-bold text-blue-900 mb-2">🚀 ShareTribe Referral Tracking</h2>
+            <p className="text-blue-700">
+              Copy this tracking script and add it to your ShareTribe signup page to enable affiliate referral tracking.
+            </p>
           </div>
-        ))}
+        </div>
+
+        {/* Instructions */}
+        <div className="bg-white border border-blue-200 rounded-lg p-4 mb-4">
+          <h3 className="font-semibold text-gray-900 mb-3">📋 How to Add to ShareTribe:</h3>
+          <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
+            <li>Go to your <strong>ShareTribe admin panel</strong></li>
+            <li>Navigate to <strong>Design → Theme editor</strong></li>
+            <li>Find your <strong>signup page template</strong></li>
+            <li>Locate the <strong>&lt;head&gt; section</strong></li>
+            <li><strong>Paste the script below</strong> just before the closing &lt;/head&gt; tag</li>
+            <li><strong>Save and publish</strong> your changes</li>
+          </ol>
+        </div>
+
+        {/* Tracking Script */}
+        <div className="bg-gray-900 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-gray-300">Tracking Script:</span>
+            <button
+              onClick={copyTrackingScript}
+              className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
+            >
+              <DocumentDuplicateIcon className="h-3 w-3 mr-1" />
+              Copy Script
+            </button>
+          </div>
+          <pre className="text-xs text-green-400 overflow-x-auto whitespace-pre-wrap">
+{`<!-- Affiliate Referral Tracking Script for ShareTribe -->
+<script>
+(function() {
+  // Get referral parameters from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const utmSource = urlParams.get('utm_source');
+  const utmMedium = urlParams.get('utm_medium');
+  const utmCampaign = urlParams.get('utm_campaign');
+  
+  // Check if this is an affiliate referral
+  if (utmSource === 'affiliate' && utmMedium === 'referral' && utmCampaign) {
+    // Store referral data in localStorage
+    localStorage.setItem('affiliate_referral', JSON.stringify({
+      source: utmSource,
+      medium: utmMedium,
+      campaign: utmCampaign,
+      timestamp: new Date().toISOString(),
+      page: window.location.href
+    }));
+    
+    // Send referral data to your tracking endpoint
+    fetch('https://affiliate-marketing-tool-jt268n7ck-scoopies-projects.vercel.app/api/track-referral', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        source: utmSource,
+        medium: utmMedium,
+        campaign: utmCampaign,
+        page: window.location.href,
+        userAgent: navigator.userAgent
+      })
+    }).catch(error => {
+      console.log('Referral tracking error:', error);
+    });
+    
+    console.log('Affiliate referral detected:', utmCampaign);
+  }
+})();
+</script>`}
+          </pre>
+        </div>
+
+        {/* Testing Instructions */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+          <h3 className="font-semibold text-yellow-900 mb-2">🧪 Test Your Integration:</h3>
+          <ol className="text-sm text-yellow-800 space-y-1 list-decimal list-inside">
+            <li>Visit an affiliate link (e.g., <code className="bg-yellow-100 px-1 rounded">yoursite.com/signup?utm_source=affiliate&utm_medium=referral&utm_campaign=TEST123</code>)</li>
+            <li>Check browser console for "Affiliate referral detected" message</li>
+            <li>Verify data appears in your affiliate dashboard</li>
+          </ol>
+        </div>
       </div>
 
       {/* Available Integrations */}
@@ -198,308 +172,12 @@ export default function Integrations() {
             { name: 'Sharetribe', type: 'sharetribe', description: 'Connect with Sharetribe marketplace' },
             { name: 'Shopify', type: 'shopify', description: 'Integrate with Shopify stores' },
             { name: 'WooCommerce', type: 'woocommerce', description: 'Connect with WooCommerce sites' },
-          ].map((platform) => (
-            <div key={platform.type} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center mb-2">
-                <span className="text-xl mr-2">{getIntegrationIcon(platform.type)}</span>
-                <h4 className="font-medium text-gray-900">{platform.name}</h4>
-              </div>
-              <p className="text-sm text-gray-500 mb-3">{platform.description}</p>
-              <button
-                onClick={() => setShowConnectModal(true)}
-                className="w-full px-3 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100"
-              >
-                Connect
-              </button>
+          ].map((integration) => (
+            <div key={integration.type} className="border border-gray-200 rounded-lg p-4">
+              <h4 className="font-medium text-gray-900">{integration.name}</h4>
+              <p className="text-sm text-gray-500 mt-1">{integration.description}</p>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Connect Integration Modal */}
-      {showConnectModal && (
-        <ConnectIntegrationModal
-          onClose={() => setShowConnectModal(false)}
-          onSubmit={handleConnectIntegration}
-        />
-      )}
-
-      {/* Configure Integration Modal */}
-      {selectedIntegration && (
-        <ConfigureIntegrationModal
-          integration={selectedIntegration}
-          onClose={() => setSelectedIntegration(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-function ConnectIntegrationModal({ onClose, onSubmit }: any) {
-  const [formData, setFormData] = useState({
-    name: '',
-    type: 'sharetribe',
-    config: {
-      marketplaceId: '',
-      clientId: '',
-      clientSecret: '',
-      apiType: 'marketplace', // 'marketplace' or 'integration'
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div className="mt-3">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Connect Platform</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Platform</label>
-              <select
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              >
-                <option value="sharetribe">Sharetribe</option>
-                <option value="shopify">Shopify</option>
-                <option value="woocommerce">WooCommerce</option>
-              </select>
-            </div>
-            
-            {formData.type === 'sharetribe' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">API Type</label>
-                <div className="mt-1 space-y-2">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="apiType"
-                      value="marketplace"
-                      checked={formData.config.apiType === 'marketplace'}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        config: { ...formData.config, apiType: e.target.value }
-                      })}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">
-                      <strong>Marketplace API</strong> (Client ID + Secret)
-                      <br />
-                      <span className="text-xs text-gray-500">
-                        Use this if you have Client ID and Client Secret from Sharetribe Flex Console
-                      </span>
-                    </span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="apiType"
-                      value="integration"
-                      checked={formData.config.apiType === 'integration'}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        config: { ...formData.config, apiType: e.target.value }
-                      })}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">
-                      <strong>Integration API</strong> (API URL + Access Token)
-                      <br />
-                      <span className="text-xs text-gray-500">
-                        Use this if you have API URL and Access Token from Sharetribe Integration API
-                      </span>
-                    </span>
-                  </label>
-                </div>
-              </div>
-            )}
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Marketplace ID</label>
-              <input
-                type="text"
-                value={formData.config.marketplaceId}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  config: { ...formData.config, marketplaceId: e.target.value },
-                  name: `${e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1)} Marketplace`
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="e.g., test.moto-garage.co.uk"
-                required
-              />
-            </div>
-            {formData.config.apiType === 'marketplace' ? (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Client ID <span className="text-xs text-gray-500">(Marketplace API)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.config.clientId}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      config: { ...formData.config, clientId: e.target.value }
-                    })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    placeholder="Your Sharetribe Marketplace API Client ID"
-                    required
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Found in Sharetribe Flex Console → API → Marketplace API
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Client Secret <span className="text-xs text-gray-500">(Marketplace API)</span>
-                  </label>
-                  <input
-                    type="password"
-                    value={formData.config.clientSecret}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      config: { ...formData.config, clientSecret: e.target.value }
-                    })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    placeholder="Your Sharetribe Marketplace API Client Secret"
-                    required
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Found in Sharetribe Flex Console → API → Marketplace API
-                  </p>
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    API URL <span className="text-xs text-gray-500">(Integration API)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.config.apiUrl || ''}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      config: { ...formData.config, apiUrl: e.target.value }
-                    })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    placeholder="https://flex-api.sharetribe.com/v1"
-                    required
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Usually: https://flex-api.sharetribe.com/v1
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Access Token <span className="text-xs text-gray-500">(Integration API)</span>
-                  </label>
-                  <input
-                    type="password"
-                    value={formData.config.accessToken || ''}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      config: { ...formData.config, accessToken: e.target.value }
-                    })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    placeholder="Your Sharetribe Integration API Access Token"
-                    required
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Found in Sharetribe Flex Console → Integration API
-                  </p>
-                </div>
-              </>
-            )}
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
-              >
-                Connect
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ConfigureIntegrationModal({ integration, onClose }: any) {
-  return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div className="mt-3">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Configure Integration</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Platform</label>
-              <p className="mt-1 text-sm text-gray-900 capitalize">{integration.type}</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Marketplace ID</label>
-              <p className="mt-1 text-sm text-gray-900">{integration.config.marketplaceId}</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">API Type</label>
-              <p className="mt-1 text-sm text-gray-900">
-                {integration.config.apiType === 'marketplace' ? 'Marketplace API' : 'Integration API'}
-              </p>
-            </div>
-            {integration.config.apiType === 'marketplace' ? (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Client ID</label>
-                  <p className="mt-1 text-sm text-gray-900 font-mono">{integration.config.clientId}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Client Secret</label>
-                  <p className="mt-1 text-sm text-gray-900 font-mono">••••••••••••••••</p>
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">API URL</label>
-                  <p className="mt-1 text-sm text-gray-900 font-mono">{integration.config.apiUrl}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Access Token</label>
-                  <p className="mt-1 text-sm text-gray-900 font-mono">••••••••••••••••</p>
-                </div>
-              </>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Status</label>
-              <p className="mt-1 text-sm text-gray-900">{integration.status}</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Connected</label>
-              <p className="mt-1 text-sm text-gray-900">{formatDate(integration.createdAt)}</p>
-            </div>
-          </div>
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Close
-            </button>
-          </div>
         </div>
       </div>
     </div>

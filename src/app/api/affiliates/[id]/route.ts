@@ -101,8 +101,6 @@ export async function DELETE(
     console.log('=== DELETE AFFILIATE DEBUG ===');
     console.log('Deleting affiliate ID:', params.id);
     
-    const supabase = createServerClient();
-    
     // Get the user from the request headers
     const authHeader = request.headers.get('authorization');
     console.log('Auth header present:', !!authHeader);
@@ -118,7 +116,21 @@ export async function DELETE(
     const token = authHeader.replace('Bearer ', '');
     console.log('Token length:', token.length);
     
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    // Create an authenticated client with the user's token
+    const { createClient } = await import('@supabase/supabase-js');
+    const authenticatedSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    );
+    
+    const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
     
     if (authError || !user) {
       console.log('❌ Auth error:', authError);
@@ -131,23 +143,78 @@ export async function DELETE(
     console.log('✅ User authenticated:', user.id);
 
     try {
-      const success = await affiliatesAPI.delete(params.id, user.id);
-      console.log('Delete result:', success);
-      
-      if (success) {
-        console.log('✅ Affiliate deleted successfully');
-        console.log('=== END DELETE AFFILIATE DEBUG ===');
-        return NextResponse.json({ success: true, message: 'Affiliate deleted successfully' });
-      } else {
-        console.log('❌ Affiliate not found or delete failed');
-        console.log('=== END DELETE AFFILIATE DEBUG ===');
+      // First, check if the affiliate exists and belongs to this user
+      const { data: existingAffiliate, error: checkError } = await authenticatedSupabase
+        .from('affiliates')
+        .select('id, name')
+        .eq('id', params.id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (checkError || !existingAffiliate) {
+        console.log('❌ Affiliate not found or access denied:', checkError);
         return NextResponse.json(
           { success: false, message: 'Affiliate not found' },
           { status: 404 }
         );
       }
+
+      console.log('✅ Found affiliate to delete:', existingAffiliate.name);
+
+      // Delete related records first (referrals, payouts)
+      console.log('Deleting related referrals...');
+      const { error: referralsError } = await authenticatedSupabase
+        .from('referrals')
+        .delete()
+        .eq('affiliate_id', params.id)
+        .eq('user_id', user.id);
+
+      if (referralsError) {
+        console.error('❌ Error deleting referrals:', referralsError);
+      } else {
+        console.log('✅ Referrals deleted successfully');
+      }
+
+      console.log('Deleting related payouts...');
+      const { error: payoutsError } = await authenticatedSupabase
+        .from('payouts')
+        .delete()
+        .eq('affiliate_id', params.id)
+        .eq('user_id', user.id);
+
+      if (payoutsError) {
+        console.error('❌ Error deleting payouts:', payoutsError);
+      } else {
+        console.log('✅ Payouts deleted successfully');
+      }
+
+      // Now delete the affiliate
+      console.log('Deleting affiliate...');
+      const { data: deleteResult, error: deleteError } = await authenticatedSupabase
+        .from('affiliates')
+        .delete()
+        .eq('id', params.id)
+        .eq('user_id', user.id)
+        .select();
+
+      if (deleteError) {
+        console.error('❌ Error deleting affiliate:', deleteError);
+        return NextResponse.json(
+          { success: false, message: 'Failed to delete affiliate', error: deleteError.message },
+          { status: 500 }
+        );
+      }
+
+      console.log('✅ Affiliate deleted successfully:', deleteResult);
+      console.log('=== END DELETE AFFILIATE DEBUG ===');
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Affiliate deleted successfully',
+        deletedAffiliate: deleteResult?.[0]
+      });
+      
     } catch (deleteError) {
-      console.error('❌ Error in affiliatesAPI.delete:', deleteError);
+      console.error('❌ Error in delete operation:', deleteError);
       console.log('=== END DELETE AFFILIATE DEBUG ===');
       return NextResponse.json(
         { success: false, message: 'Failed to delete affiliate', error: deleteError instanceof Error ? deleteError.message : 'Unknown error' },

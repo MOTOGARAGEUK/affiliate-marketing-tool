@@ -39,10 +39,27 @@ export function formatCurrencyUSD(amount: number): string {
 
 export function formatDate(date: Date | string): string {
   try {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    let dateObj: Date;
+    
+    if (typeof date === 'string') {
+      // Handle different date string formats
+      if (date.includes('T') || date.includes('Z')) {
+        // ISO string format
+        dateObj = new Date(date);
+      } else if (date.includes('-')) {
+        // Date only format (YYYY-MM-DD)
+        dateObj = new Date(date + 'T00:00:00');
+      } else {
+        // Try parsing as is
+        dateObj = new Date(date);
+      }
+    } else {
+      dateObj = date;
+    }
     
     // Check if the date is valid
     if (isNaN(dateObj.getTime())) {
+      console.warn('Invalid date received:', date);
       return 'Invalid date';
     }
     
@@ -52,6 +69,7 @@ export function formatDate(date: Date | string): string {
       day: 'numeric',
     }).format(dateObj);
   } catch (error) {
+    console.error('Error formatting date:', error, 'Date value:', date);
     return 'Invalid date';
   }
 }

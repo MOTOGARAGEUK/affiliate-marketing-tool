@@ -52,6 +52,32 @@ export interface SharetribeTransaction {
   };
 }
 
+export interface SharetribeListing {
+  id: string;
+  type: 'listing';
+  attributes: {
+    title: string;
+    description: string;
+    state: string;
+    createdAt: string;
+    updatedAt: string;
+    price: {
+      amount: number;
+      currency: string;
+    };
+    [key: string]: any;
+  };
+}
+
+export interface SharetribeUserStats {
+  userId: string;
+  createdAt: string;
+  listingsCount: number;
+  transactionsCount: number;
+  totalRevenue: number;
+  currency: string;
+}
+
 class SharetribeAPI {
   private config: SharetribeConfig;
   private accessToken: string | null = null;
@@ -105,6 +131,8 @@ class SharetribeAPI {
     const baseUrl = 'https://api.sharetribe.com/v1';
     const url = `${baseUrl}${endpoint}`;
     
+    console.log('Making ShareTribe API request to:', url);
+    
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -156,6 +184,70 @@ class SharetribeAPI {
     } catch (error) {
       console.error('Error fetching user transactions:', error);
       return [];
+    }
+  }
+
+  // Get listings for a user
+  async getUserListings(userId: string, limit: number = 50): Promise<SharetribeListing[]> {
+    try {
+      const response = await this.makeRequest(`/listings?author_id=${userId}&limit=${limit}`);
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching user listings:', error);
+      return [];
+    }
+  }
+
+  // Get comprehensive user stats (listings, transactions, revenue)
+  async getUserStats(userId: string): Promise<SharetribeUserStats | null> {
+    try {
+      console.log('Fetching comprehensive stats for user:', userId);
+      
+      // Get user details
+      const user = await this.getUserById(userId);
+      if (!user) {
+        console.log('User not found:', userId);
+        return null;
+      }
+
+      // Get user's listings
+      const listings = await this.getUserListings(userId, 100);
+      const activeListings = listings.filter(listing => 
+        listing.attributes.state === 'published' || listing.attributes.state === 'active'
+      );
+
+      // Get user's transactions (both as buyer and seller)
+      const transactions = await this.getUserTransactions(userId, 100);
+      const completedTransactions = transactions.filter(transaction => 
+        transaction.attributes.lastTransition === 'confirmed' || 
+        transaction.attributes.lastTransition === 'completed'
+      );
+
+      // Calculate total revenue from completed transactions
+      let totalRevenue = 0;
+      let currency = 'USD';
+      
+      completedTransactions.forEach(transaction => {
+        if (transaction.attributes.totalPrice) {
+          totalRevenue += transaction.attributes.totalPrice.amount;
+          currency = transaction.attributes.totalPrice.currency;
+        }
+      });
+
+      const stats: SharetribeUserStats = {
+        userId: userId,
+        createdAt: user.createdAt,
+        listingsCount: activeListings.length,
+        transactionsCount: completedTransactions.length,
+        totalRevenue: totalRevenue,
+        currency: currency
+      };
+
+      console.log('User stats calculated:', stats);
+      return stats;
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+      return null;
     }
   }
 
@@ -230,6 +322,62 @@ export default SharetribeAPI;
 // Utility function to create Sharetribe API instance
 export function createSharetribeAPI(config: SharetribeConfig): SharetribeAPI {
   return new SharetribeAPI(config);
+}
+
+// Utility function to get ShareTribe credentials from database
+export async function getSharetribeCredentials(userId: string): Promise<SharetribeConfig | null> {
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Get ShareTribe settings from the settings table
+    const { data: settings, error } = await supabase
+      .from('settings')
+      .select('setting_key, setting_value')
+      .eq('user_id', userId)
+      .eq('setting_type', 'sharetribe');
+
+    if (error || !settings || settings.length === 0) {
+      console.log('No ShareTribe settings found for user:', userId);
+      return null;
+    }
+
+    // Convert settings array to object
+    const settingsObj: any = {};
+    settings.forEach(setting => {
+      settingsObj[setting.setting_key] = setting.setting_value;
+    });
+
+    console.log('Found ShareTribe settings:', Object.keys(settingsObj));
+
+    // Check if marketplace API credentials are available
+    if (settingsObj.marketplaceClientId && settingsObj.marketplaceClientSecret && settingsObj.marketplaceUrl) {
+      return {
+        clientId: settingsObj.marketplaceClientId,
+        clientSecret: settingsObj.marketplaceClientSecret,
+        marketplaceUrl: settingsObj.marketplaceUrl
+      };
+    }
+    
+    // Check if integration API credentials are available
+    if (settingsObj.integrationClientId && settingsObj.integrationClientSecret && settingsObj.marketplaceUrl) {
+      return {
+        clientId: settingsObj.integrationClientId,
+        clientSecret: settingsObj.integrationClientSecret,
+        marketplaceUrl: settingsObj.marketplaceUrl
+      };
+    }
+
+    console.log('No valid ShareTribe credentials found in settings:', settingsObj);
+    return null;
+
+  } catch (error) {
+    console.error('Error fetching ShareTribe credentials:', error);
+    return null;
+  }
 }
 
 // Utility function to extract referral code from user attributes

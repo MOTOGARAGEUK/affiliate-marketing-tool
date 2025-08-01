@@ -1,77 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Test Schema GET - Starting...');
-    const supabase = createServerClient();
-    
-    // Test if we can connect to the database
-    console.log('Test Schema GET - Testing database connection...');
-    
-    // Check if integrations table exists
-    try {
-      const { data: integrations, error: integrationsError } = await supabase
-        .from('integrations')
-        .select('*')
-        .limit(1);
-      
-      console.log('Test Schema GET - Integrations table test:', {
-        success: !integrationsError,
-        error: integrationsError?.message,
-        dataCount: integrations?.length || 0
-      });
-      
-      if (integrationsError) {
-        return NextResponse.json({
-          success: false,
-          message: 'Integrations table error',
-          error: integrationsError.message,
-          code: integrationsError.code
-        }, { status: 500 });
-      }
-      
-      // Check table structure by trying to select specific columns
-      const { data: structureTest, error: structureError } = await supabase
-        .from('integrations')
-        .select('id, name, type, status, config, user_id, created_at, updated_at')
-        .limit(1);
-      
-      console.log('Test Schema GET - Structure test:', {
-        success: !structureError,
-        error: structureError?.message,
-        columns: structureTest ? Object.keys(structureTest[0] || {}) : []
-      });
-      
-      if (structureError) {
-        return NextResponse.json({
-          success: false,
-          message: 'Structure test error',
-          error: structureError.message,
-          code: structureError.code
-        }, { status: 500 });
-      }
-      
-      return NextResponse.json({
-        success: true,
-        message: 'Database schema is correct',
-        integrationsCount: integrations?.length || 0,
-        columns: structureTest ? Object.keys(structureTest[0] || {}) : []
-      });
-      
-    } catch (dbError) {
-      console.error('Test Schema GET - Database error:', dbError);
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Test basic connection
+    const { data: testData, error: testError } = await supabase
+      .from('referrals')
+      .select('id, created_at')
+      .limit(1);
+
+    if (testError) {
+      console.error('Database connection test failed:', testError);
       return NextResponse.json({
         success: false,
-        message: 'Database connection error',
-        error: dbError instanceof Error ? dbError.message : 'Unknown error'
+        error: testError.message,
+        code: testError.code
       }, { status: 500 });
     }
+
+    // Test date range query
+    const now = new Date();
+    const startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+    const { data: dateTestData, error: dateTestError } = await supabase
+      .from('referrals')
+      .select('id, created_at, commission_earned')
+      .gte('created_at', startDate.toISOString())
+      .lt('created_at', endDate.toISOString())
+      .limit(5);
+
+    if (dateTestError) {
+      console.error('Date range query test failed:', dateTestError);
+      return NextResponse.json({
+        success: false,
+        error: dateTestError.message,
+        code: dateTestError.code,
+        query: {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        }
+      }, { status: 500 });
+    }
+
+    // Test table structure
+    const { data: structureData, error: structureError } = await supabase
+      .from('referrals')
+      .select('*')
+      .limit(0);
+
+    return NextResponse.json({
+      success: true,
+      connection: 'OK',
+      dateQuery: 'OK',
+      sampleData: testData,
+      dateTestData: dateTestData,
+      tableStructure: structureError ? 'Error getting structure' : 'OK',
+      structureError: structureError?.message
+    });
+
   } catch (error) {
-    console.error('Test Schema GET - General error:', error);
+    console.error('Schema test error:', error);
     return NextResponse.json({
       success: false,
-      message: 'General error',
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }

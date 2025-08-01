@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Transform the data to include affiliate information
+    // Transform the data to include affiliate information and ShareTribe fields
     const transformedReferrals = referrals?.map(referral => ({
       id: referral.id,
       affiliate_id: referral.affiliate_id,
@@ -66,13 +66,17 @@ export async function GET(request: NextRequest) {
       affiliate_email: referral.affiliates?.email || 'No email',
       customer_email: referral.customer_email,
       customer_name: referral.customer_name,
-      signup_date: referral.signup_date,
-      listings_count: referral.listings_count || 0,
-      purchases_count: referral.purchases_count || 0,
-      total_revenue: referral.total_revenue || 0,
       status: referral.status || 'pending',
-      commission_earned: referral.commission_earned || 0,
-      created_at: referral.created_at
+      commission: referral.commission || 0,
+      referral_code: referral.referral_code,
+      created_at: referral.created_at,
+      // ShareTribe fields
+      sharetribe_user_id: referral.sharetribe_user_id,
+      sharetribe_created_at: referral.sharetribe_created_at,
+      listings_count: referral.listings_count,
+      transactions_count: referral.transactions_count,
+      total_revenue: referral.total_revenue,
+      last_sync_at: referral.last_sync_at
     })) || [];
 
     return NextResponse.json({ 

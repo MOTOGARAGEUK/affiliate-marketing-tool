@@ -4,7 +4,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const referralCode = searchParams.get('ref');
-    const redirectUrl = searchParams.get('redirect') || 'https://test.moto-garage.co.uk/signup';
+    const redirectUrl = searchParams.get('redirect') || 'https://marketplace.com/signup';
     
     console.log('=== SET REFERRAL COOKIE DEBUG ===');
     console.log('Referral code:', referralCode);
@@ -38,6 +38,6 @@ export async function GET(request: NextRequest) {
     
   } catch (error) {
     console.error('Error setting referral cookie:', error);
-    return NextResponse.redirect('https://test.moto-garage.co.uk/signup');
+    return NextResponse.redirect('https://marketplace.com/signup');
   }
 } 

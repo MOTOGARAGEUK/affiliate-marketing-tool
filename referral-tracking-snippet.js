@@ -1,100 +1,78 @@
-// Add this to your signup page to test referral tracking
+/**
+ * Affiliate Referral Tracking Script
+ * 
+ * Add this script to the <head> section of your signup page to automatically 
+ * capture referral data from affiliate links.
+ * 
+ * This script will:
+ * 1. Detect affiliate referrals from UTM parameters
+ * 2. Store referral data in localStorage
+ * 3. Send referral data to your tracking endpoint
+ * 4. Log referral detection for debugging
+ */
 
-// Function to get referral code from cookies
-function getReferralCodeFromCookies() {
-  const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-    const [key, value] = cookie.trim().split('=');
-    acc[key] = value;
-    return acc;
-  }, {});
+(function() {
+  'use strict';
   
-  return cookies.referralCode;
-}
-
-// Function to test referral tracking
-async function testReferralTracking() {
-  const referralCode = getReferralCodeFromCookies();
+  // Get referral parameters from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const utmSource = urlParams.get('utm_source');
+  const utmMedium = urlParams.get('utm_medium');
+  const utmCampaign = urlParams.get('utm_campaign');
   
-  console.log('=== REFERRAL TRACKING TEST ===');
-  console.log('Referral code from cookies:', referralCode);
-  
-  if (!referralCode) {
-    console.log('❌ No referral code found in cookies');
-    return;
-  }
-  
-  // Test the tracking API
-  try {
-    const response = await fetch('https://your-domain.com/api/track-referral', {
+  // Check if this is an affiliate referral
+  if (utmSource === 'affiliate' && utmMedium === 'referral' && utmCampaign) {
+    
+    // Create referral data object
+    const referralData = {
+      source: utmSource,
+      medium: utmMedium,
+      campaign: utmCampaign,
+      timestamp: new Date().toISOString(),
+      page: window.location.href,
+      referrer: document.referrer,
+      userAgent: navigator.userAgent
+    };
+    
+    // Store referral data in localStorage
+    try {
+      localStorage.setItem('affiliate_referral', JSON.stringify(referralData));
+      console.log('Affiliate referral data stored in localStorage');
+    } catch (error) {
+      console.warn('Could not store referral data in localStorage:', error);
+    }
+    
+    // Send referral data to tracking endpoint
+    fetch('/api/track-referral', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        customerEmail: 'test@example.com',
-        customerName: 'Test User',
-        action: 'signup',
-        listingsCount: 1
-      })
-    });
-    
-    const result = await response.json();
-    console.log('Tracking result:', result);
-    
-    if (result.success) {
-      console.log('✅ Referral tracked successfully!');
-    } else {
-      console.log('❌ Failed to track referral:', result.message);
-    }
-  } catch (error) {
-    console.error('❌ Error testing referral tracking:', error);
-  }
-}
-
-// Function to clear referral code (for testing)
-function clearReferralCode() {
-  document.cookie = 'referralCode=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-  localStorage.removeItem('referralCode');
-  console.log('Referral code cleared');
-}
-
-// Add these to your signup form submission
-function handleSignupFormSubmission(formData) {
-  console.log('Signup form submitted:', formData);
-  
-  // Track the referral
-  fetch('https://your-domain.com/api/track-referral', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      customerEmail: formData.email,
-      customerName: formData.name,
-      action: 'signup',
-      listingsCount: 1
+      body: JSON.stringify(referralData)
     })
-  }).then(response => response.json())
-    .then(result => {
-      if (result.success) {
-        console.log('✅ Referral tracked successfully!');
-        // Clear the referral code after successful tracking
-        clearReferralCode();
+    .then(response => {
+      if (response.ok) {
+        console.log('Affiliate referral tracked successfully');
       } else {
-        console.log('❌ Failed to track referral:', result.message);
+        console.warn('Failed to track referral:', response.status);
       }
     })
     .catch(error => {
-      console.error('❌ Error tracking referral:', error);
+      console.log('Referral tracking error:', error);
     });
-}
-
-// Test functions - call these in browser console
-window.testReferralTracking = testReferralTracking;
-window.clearReferralCode = clearReferralCode;
-window.getReferralCodeFromCookies = getReferralCodeFromCookies;
-
-console.log('Referral tracking functions loaded. Use:');
-console.log('- testReferralTracking() - Test referral tracking');
-console.log('- clearReferralCode() - Clear referral code');
-console.log('- getReferralCodeFromCookies() - Get referral code from cookies'); 
+    
+    // Log referral detection for debugging
+    console.log('Affiliate referral detected:', {
+      campaign: utmCampaign,
+      source: utmSource,
+      medium: utmMedium
+    });
+    
+    // Optional: Set a cookie for server-side tracking
+    try {
+      document.cookie = `affiliate_referral=${utmCampaign}; path=/; max-age=86400`; // 24 hours
+    } catch (error) {
+      console.warn('Could not set affiliate referral cookie:', error);
+    }
+  }
+})(); 

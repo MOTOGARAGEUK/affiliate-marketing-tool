@@ -645,6 +645,588 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
             </div>
           </div>
 
+          {/* ShareTribe Tracking Script Section */}
+          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 p-4 rounded-md">
+            <h4 className="text-lg font-bold text-indigo-900 mb-3">🚀 ShareTribe Referral Tracking Script</h4>
+            <p className="text-indigo-700 mb-4">
+              Copy this tracking script and add it to your ShareTribe signup page to enable affiliate referral tracking.
+            </p>
+
+            {/* Instructions */}
+            <div className="bg-white border border-indigo-200 rounded-lg p-4 mb-4">
+              <h5 className="font-semibold text-gray-900 mb-3">📋 How to Add to ShareTribe:</h5>
+              <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
+                <li>Go to your <strong>ShareTribe admin panel</strong></li>
+                <li>Navigate to <strong>Design → Theme editor</strong></li>
+                <li>Find your <strong>signup page template</strong></li>
+                <li>Locate the <strong>&lt;head&gt; section</strong></li>
+                <li><strong>Paste the script below</strong> just before the closing &lt;/head&gt; tag</li>
+                <li><strong>Save and publish</strong> your changes</li>
+              </ol>
+            </div>
+
+            {/* Tracking Script */}
+            <div className="bg-gray-900 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-gray-300">Tracking Script:</span>
+                <button
+                  onClick={() => {
+                                         const scriptText = `<!-- Affiliate Referral Tracking Script for ShareTribe - Version 1.6 -->
+<script>
+(function() {
+  // Get referral parameters from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const utmSource = urlParams.get('utm_source');
+  const utmMedium = urlParams.get('utm_medium');
+  const utmCampaign = urlParams.get('utm_campaign');
+  
+  // Check if this is an affiliate referral
+  if (utmSource === 'affiliate' && utmMedium === 'referral' && utmCampaign) {
+    console.log('Affiliate referral detected:', utmCampaign);
+    
+    // Store referral data in localStorage
+    localStorage.setItem('affiliate_referral', JSON.stringify({
+      source: utmSource,
+      medium: utmMedium,
+      campaign: utmCampaign,
+      timestamp: new Date().toISOString(),
+      page: window.location.href
+    }));
+    
+    // Send initial page view tracking
+    fetch('https://affiliate-marketing-tool.vercel.app/api/track-referral', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'page_view',
+        referralCode: utmCampaign,
+        page: window.location.href
+      })
+    }).catch(error => {
+      console.log('Referral tracking error:', error);
+    });
+    
+    // Store referral data for later use
+    const referralData = {
+      referralCode: utmCampaign,
+      timestamp: new Date().toISOString(),
+      page: window.location.href
+    };
+    
+    // Store in localStorage for cross-page access
+    localStorage.setItem('affiliate_referral_data', JSON.stringify(referralData));
+    
+    // Function to track signup completion
+    function trackSignupCompletion(email, name) {
+      console.log('Tracking signup completion for:', email, 'with referral:', utmCampaign);
+      
+      fetch('https://affiliate-marketing-tool.vercel.app/api/track-referral', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'signup_complete',
+          referralCode: utmCampaign,
+          email: email,
+          userInfo: {
+            email: email,
+            name: name || 'New User'
+          }
+        })
+      }).then(response => {
+        console.log('Signup completion tracked successfully for affiliate:', utmCampaign);
+        return response.json();
+      }).catch(error => {
+        console.log('Signup completion tracking error:', error);
+      });
+    }
+    
+    // Function to track signup initiation
+    function trackSignupInitiation(email, name) {
+      console.log('Tracking signup initiation for:', email, 'with referral:', utmCampaign);
+      
+      // Store email for verification completion
+      localStorage.setItem('affiliate_signup_email', email);
+      localStorage.setItem('affiliate_signup_name', name);
+      
+      fetch('https://affiliate-marketing-tool.vercel.app/api/track-referral', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'signup_initiated',
+          referralCode: utmCampaign,
+          email: email,
+          userInfo: {
+            email: email,
+            name: name
+          }
+        })
+      }).then(response => {
+        console.log('Signup initiation tracked successfully for affiliate:', utmCampaign);
+        return response.json();
+      }).catch(error => {
+        console.log('Signup initiation tracking error:', error);
+      });
+    }
+    
+    // Monitor for ShareTribe signup events
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, setting up ShareTribe-specific tracking...');
+      
+      // Method 1: Monitor for ShareTribe SDK calls (intercept fetch/XHR)
+      const originalFetch = window.fetch;
+      window.fetch = function(...args) {
+        const url = args[0];
+        const options = args[1] || {};
+        
+        // Check if this is a ShareTribe user creation API call
+        if (typeof url === 'string' && url.includes('/api/current-user') && options.method === 'POST') {
+          console.log('ShareTribe user creation API call detected!');
+          
+          try {
+            const body = JSON.parse(options.body);
+            if (body.email) {
+              const name = (body.firstName || '') + ' ' + (body.lastName || '').trim();
+              console.log('ShareTribe signup detected - Email:', body.email, 'Name:', name);
+              trackSignupInitiation(body.email, name || 'New User');
+            }
+          } catch (e) {
+            console.log('Could not parse ShareTribe API body:', e);
+          }
+        }
+        
+        return originalFetch.apply(this, args);
+      };
+      
+      // Method 2: Monitor for ShareTribe form submissions - using exact selectors
+      const signupForm = document.querySelector('form.SignupForm_root__LcKFm');
+      
+      if (signupForm) {
+        console.log('ShareTribe signup form found and monitoring...');
+        
+        // Listen for submit events
+        signupForm.addEventListener('submit', function(e) {
+          console.log('ShareTribe form submission detected!');
+          
+          // Get email from ShareTribe form fields using exact selectors
+          const emailInput = document.querySelector('input#email');
+          const fnameInput = document.querySelector('input#fname');
+          const lnameInput = document.querySelector('input#lname');
+          
+          const email = emailInput ? emailInput.value : '';
+          const firstName = fnameInput ? fnameInput.value : '';
+          const lastName = lnameInput ? lnameInput.value : '';
+          const name = (firstName + ' ' + lastName).trim() || 'New User';
+          
+          console.log('ShareTribe form data - Email:', email, 'Name:', name);
+          
+          if (email) {
+            trackSignupInitiation(email, name);
+          }
+        });
+      } else {
+        console.log('ShareTribe signup form not found');
+      }
+      
+      // Method 3: Monitor for ShareTribe button clicks - using exact selector
+      document.addEventListener('click', function(e) {
+        if (e.target && (e.target.tagName === 'BUTTON' || e.target.closest('button'))) {
+          const button = e.target.tagName === 'BUTTON' ? e.target : e.target.closest('button');
+          const buttonText = button.textContent || button.innerText || '';
+          const buttonClass = button.className || '';
+          
+          console.log('Button clicked:', buttonText, 'Class:', buttonClass);
+          
+          // Check if this is the ShareTribe signup button
+          if (buttonClass.includes('Button_primaryButtonRoot__xQMAW') ||
+              buttonText.toLowerCase().includes('sign up') || 
+              buttonText.toLowerCase().includes('create account') ||
+              buttonText.toLowerCase().includes('join')) {
+            
+            console.log('ShareTribe signup button detected!');
+            
+            // Look for email input in the page using exact selectors
+            const emailInput = document.querySelector('input#email');
+            const fnameInput = document.querySelector('input#fname');
+            const lnameInput = document.querySelector('input#lname');
+            
+            const email = emailInput ? emailInput.value : '';
+            const firstName = fnameInput ? fnameInput.value : '';
+            const lastName = lnameInput ? lnameInput.value : '';
+            const name = (firstName + ' ' + lastName).trim() || 'New User';
+            
+            console.log('ShareTribe button data - Email:', email, 'Name:', name);
+            
+            if (email) {
+              trackSignupInitiation(email, name);
+            }
+          }
+        }
+      });
+      
+      // Method 4: Monitor for ShareTribe success messages
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'childList') {
+            // Look for ShareTribe verification email messages
+            const verificationMessages = document.querySelectorAll('*');
+            verificationMessages.forEach(function(element) {
+              if (element.textContent && (
+                element.textContent.includes('verification email') ||
+                element.textContent.includes('check your email') ||
+                element.textContent.includes('email sent') ||
+                element.textContent.includes('verify your email') ||
+                element.textContent.includes('confirmation email') ||
+                element.textContent.includes('EmailVerificationInfo') ||
+                element.textContent.includes('Please check your email')
+              )) {
+                console.log('ShareTribe verification message detected!');
+                const email = localStorage.getItem('affiliate_signup_email');
+                const name = localStorage.getItem('affiliate_signup_name');
+                
+                if (email) {
+                  trackSignupCompletion(email, name);
+                  
+                  // Clean up localStorage
+                  localStorage.removeItem('affiliate_referral_data');
+                  localStorage.removeItem('affiliate_signup_email');
+                  localStorage.removeItem('affiliate_signup_name');
+                }
+              }
+            });
+          }
+        });
+      });
+      
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    });
+    
+    // Also check for referral data on page load (for email verification pages)
+    if (localStorage.getItem('affiliate_referral_data')) {
+      const referralData = JSON.parse(localStorage.getItem('affiliate_referral_data'));
+      
+      // If we're on a verification page, track completion
+      if (window.location.href.includes('verify') || 
+          window.location.href.includes('confirm') || 
+          window.location.href.includes('activate') ||
+          window.location.search.includes('token')) {
+        
+        console.log('ShareTribe email verification page detected');
+        const email = localStorage.getItem('affiliate_signup_email');
+        const name = localStorage.getItem('affiliate_signup_name');
+        
+        if (email) {
+          trackSignupCompletion(email, name);
+          
+          // Clean up localStorage
+          localStorage.removeItem('affiliate_referral_data');
+          localStorage.removeItem('affiliate_signup_email');
+          localStorage.removeItem('affiliate_signup_name');
+        }
+      }
+    }
+  }
+})();
+</script>`;
+                    navigator.clipboard.writeText(scriptText).then(() => {
+                      alert('ShareTribe tracking script copied to clipboard!');
+                    }).catch(() => {
+                      alert('Failed to copy script. Please select and copy manually.');
+                    });
+                  }}
+                  className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
+                >
+                  📋 Copy Script
+                </button>
+              </div>
+              <pre className="text-xs text-green-400 overflow-x-auto whitespace-pre-wrap">
+{`<!-- Affiliate Referral Tracking Script for ShareTribe - Version 1.6 -->
+<script>
+(function() {
+  // Get referral parameters from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const utmSource = urlParams.get('utm_source');
+  const utmMedium = urlParams.get('utm_medium');
+  const utmCampaign = urlParams.get('utm_campaign');
+  
+  // Check if this is an affiliate referral
+  if (utmSource === 'affiliate' && utmMedium === 'referral' && utmCampaign) {
+    console.log('Affiliate referral detected:', utmCampaign);
+    
+    // Store referral data in localStorage
+    localStorage.setItem('affiliate_referral', JSON.stringify({
+      source: utmSource,
+      medium: utmMedium,
+      campaign: utmCampaign,
+      timestamp: new Date().toISOString(),
+      page: window.location.href
+    }));
+    
+    // Send initial page view tracking
+    fetch('https://affiliate-marketing-tool.vercel.app/api/track-referral', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'page_view',
+        referralCode: utmCampaign,
+        page: window.location.href
+      })
+    }).catch(error => {
+      console.log('Referral tracking error:', error);
+    });
+    
+    // Store referral data for later use
+    const referralData = {
+      referralCode: utmCampaign,
+      timestamp: new Date().toISOString(),
+      page: window.location.href
+    };
+    
+    // Store in localStorage for cross-page access
+    localStorage.setItem('affiliate_referral_data', JSON.stringify(referralData));
+    
+    // Function to track signup completion
+    function trackSignupCompletion(email, name) {
+      console.log('Tracking signup completion for:', email, 'with referral:', utmCampaign);
+      
+      fetch('https://affiliate-marketing-tool.vercel.app/api/track-referral', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'signup_complete',
+          referralCode: utmCampaign,
+          email: email,
+          userInfo: {
+            email: email,
+            name: name || 'New User'
+          }
+        })
+      }).then(response => {
+        console.log('Signup completion tracked successfully for affiliate:', utmCampaign);
+        return response.json();
+      }).catch(error => {
+        console.log('Signup completion tracking error:', error);
+      });
+    }
+    
+    // Function to track signup initiation
+    function trackSignupInitiation(email, name) {
+      console.log('Tracking signup initiation for:', email, 'with referral:', utmCampaign);
+      
+      // Store email for verification completion
+      localStorage.setItem('affiliate_signup_email', email);
+      localStorage.setItem('affiliate_signup_name', name);
+      
+      fetch('https://affiliate-marketing-tool.vercel.app/api/track-referral', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'signup_initiated',
+          referralCode: utmCampaign,
+          email: email,
+          userInfo: {
+            email: email,
+            name: name
+          }
+        })
+      }).then(response => {
+        console.log('Signup initiation tracked successfully for affiliate:', utmCampaign);
+        return response.json();
+      }).catch(error => {
+        console.log('Signup initiation tracking error:', error);
+      });
+    }
+    
+    // Monitor for ShareTribe signup events
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, setting up ShareTribe-specific tracking...');
+      
+      // Method 1: Monitor for ShareTribe SDK calls (intercept fetch/XHR)
+      const originalFetch = window.fetch;
+      window.fetch = function(...args) {
+        const url = args[0];
+        const options = args[1] || {};
+        
+        // Check if this is a ShareTribe user creation API call
+        if (typeof url === 'string' && url.includes('/api/current-user') && options.method === 'POST') {
+          console.log('ShareTribe user creation API call detected!');
+          
+          try {
+            const body = JSON.parse(options.body);
+            if (body.email) {
+              const name = (body.firstName || '') + ' ' + (body.lastName || '').trim();
+              console.log('ShareTribe signup detected - Email:', body.email, 'Name:', name);
+              trackSignupInitiation(body.email, name || 'New User');
+            }
+          } catch (e) {
+            console.log('Could not parse ShareTribe API body:', e);
+          }
+        }
+        
+        return originalFetch.apply(this, args);
+      };
+      
+      // Method 2: Monitor for ShareTribe form submissions - using exact selectors
+      const signupForm = document.querySelector('form.SignupForm_root__LcKFm');
+      
+      if (signupForm) {
+        console.log('ShareTribe signup form found and monitoring...');
+        
+        // Listen for submit events
+        signupForm.addEventListener('submit', function(e) {
+          console.log('ShareTribe form submission detected!');
+          
+          // Get email from ShareTribe form fields using exact selectors
+          const emailInput = document.querySelector('input#email');
+          const fnameInput = document.querySelector('input#fname');
+          const lnameInput = document.querySelector('input#lname');
+          
+          const email = emailInput ? emailInput.value : '';
+          const firstName = fnameInput ? fnameInput.value : '';
+          const lastName = lnameInput ? lnameInput.value : '';
+          const name = (firstName + ' ' + lastName).trim() || 'New User';
+          
+          console.log('ShareTribe form data - Email:', email, 'Name:', name);
+          
+          if (email) {
+            trackSignupInitiation(email, name);
+          }
+        });
+      } else {
+        console.log('ShareTribe signup form not found');
+      }
+      
+      // Method 3: Monitor for ShareTribe button clicks - using exact selector
+      document.addEventListener('click', function(e) {
+        if (e.target && (e.target.tagName === 'BUTTON' || e.target.closest('button'))) {
+          const button = e.target.tagName === 'BUTTON' ? e.target : e.target.closest('button');
+          const buttonText = button.textContent || button.innerText || '';
+          const buttonClass = button.className || '';
+          
+          console.log('Button clicked:', buttonText, 'Class:', buttonClass);
+          
+          // Check if this is the ShareTribe signup button
+          if (buttonClass.includes('Button_primaryButtonRoot__xQMAW') ||
+              buttonText.toLowerCase().includes('sign up') || 
+              buttonText.toLowerCase().includes('create account') ||
+              buttonText.toLowerCase().includes('join')) {
+            
+            console.log('ShareTribe signup button detected!');
+            
+            // Look for email input in the page using exact selectors
+            const emailInput = document.querySelector('input#email');
+            const fnameInput = document.querySelector('input#fname');
+            const lnameInput = document.querySelector('input#lname');
+            
+            const email = emailInput ? emailInput.value : '';
+            const firstName = fnameInput ? fnameInput.value : '';
+            const lastName = lnameInput ? lnameInput.value : '';
+            const name = (firstName + ' ' + lastName).trim() || 'New User';
+            
+            console.log('ShareTribe button data - Email:', email, 'Name:', name);
+            
+            if (email) {
+              trackSignupInitiation(email, name);
+            }
+          }
+        }
+      });
+      
+      // Method 4: Monitor for ShareTribe success messages
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'childList') {
+            // Look for ShareTribe verification email messages
+            const verificationMessages = document.querySelectorAll('*');
+            verificationMessages.forEach(function(element) {
+              if (element.textContent && (
+                element.textContent.includes('verification email') ||
+                element.textContent.includes('check your email') ||
+                element.textContent.includes('email sent') ||
+                element.textContent.includes('verify your email') ||
+                element.textContent.includes('confirmation email') ||
+                element.textContent.includes('EmailVerificationInfo') ||
+                element.textContent.includes('Please check your email')
+              )) {
+                console.log('ShareTribe verification message detected!');
+                const email = localStorage.getItem('affiliate_signup_email');
+                const name = localStorage.getItem('affiliate_signup_name');
+                
+                if (email) {
+                  trackSignupCompletion(email, name);
+                  
+                  // Clean up localStorage
+                  localStorage.removeItem('affiliate_referral_data');
+                  localStorage.removeItem('affiliate_signup_email');
+                  localStorage.removeItem('affiliate_signup_name');
+                }
+              }
+            });
+          }
+        });
+      });
+      
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    });
+    
+    // Also check for referral data on page load (for email verification pages)
+    if (localStorage.getItem('affiliate_referral_data')) {
+      const referralData = JSON.parse(localStorage.getItem('affiliate_referral_data'));
+      
+      // If we're on a verification page, track completion
+      if (window.location.href.includes('verify') || 
+          window.location.href.includes('confirm') || 
+          window.location.href.includes('activate') ||
+          window.location.search.includes('token')) {
+        
+        console.log('ShareTribe email verification page detected');
+        const email = localStorage.getItem('affiliate_signup_email');
+        const name = localStorage.getItem('affiliate_signup_name');
+        
+        if (email) {
+          trackSignupCompletion(email, name);
+          
+          // Clean up localStorage
+          localStorage.removeItem('affiliate_referral_data');
+          localStorage.removeItem('affiliate_signup_email');
+          localStorage.removeItem('affiliate_signup_name');
+        }
+      }
+    }
+  }
+})();
+</script>`}
+              </pre>
+            </div>
+
+            {/* Testing Instructions */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+              <h5 className="font-semibold text-yellow-900 mb-2">🧪 Test Your Integration:</h5>
+              <ol className="text-sm text-yellow-800 space-y-1 list-decimal list-inside">
+                <li>Visit an affiliate link (e.g., <code className="bg-yellow-100 px-1 rounded">yoursite.com/signup?utm_source=affiliate&utm_medium=referral&utm_campaign=TEST123</code>)</li>
+                <li>Check browser console for "Affiliate referral detected" message</li>
+                <li>Verify data appears in your affiliate dashboard</li>
+              </ol>
+            </div>
+          </div>
+
           {/* Setup Instructions */}
           <div className="bg-blue-50 p-4 rounded-md">
             <h4 className="text-sm font-medium text-blue-900 mb-2">Setup Instructions</h4>

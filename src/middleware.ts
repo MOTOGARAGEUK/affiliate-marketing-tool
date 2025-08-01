@@ -2,6 +2,18 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // Handle CORS preflight requests
+  if (request.method === 'OPTIONS') {
+    return new NextResponse(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -36,12 +48,30 @@ export async function middleware(request: NextRequest) {
     const requestHeaders = new Headers(request.headers)
     requestHeaders.set('authorization', `Bearer ${session.access_token}`)
     
-    return NextResponse.next({
+    const response = NextResponse.next({
       request: {
         ...request,
         headers: requestHeaders,
       },
     })
+    
+    // Add CORS headers to API responses
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      response.headers.set('Access-Control-Allow-Origin', '*')
+      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    }
+    
+    return response
+  }
+
+  // Add CORS headers to API responses
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    const response = NextResponse.next()
+    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    return response
   }
 
   return supabaseResponse

@@ -16,13 +16,21 @@ export interface Affiliate {
   email: string;
   phone?: string;
   status: 'active' | 'inactive' | 'pending';
-  programId: string; // Reference to the program this affiliate is assigned to
-  totalEarnings: number;
-  totalReferrals: number;
-  referralCode: string;
-  referralLink: string;
-  createdAt: string;
-  updatedAt: string;
+  program_id: string; // Reference to the program this affiliate is assigned to
+  total_earnings: number;
+  total_referrals: number;
+  referral_code: string;
+  referral_link: string;
+  created_at: string;
+  updated_at: string;
+  // Keep camelCase versions for backward compatibility
+  programId?: string;
+  totalEarnings?: number;
+  totalReferrals?: number;
+  referralCode?: string;
+  referralLink?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Referral {

@@ -530,39 +530,49 @@ export const dashboardAPI = {
     
     for (let i = 5; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
       months.push({
         month: date.toLocaleDateString('en-US', { month: 'short' }),
         startDate: date.toISOString(),
-        endDate: new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString()
+        endDate: endDate.toISOString()
       });
     }
 
     const chartData = await Promise.all(
       months.map(async (month) => {
-        const [referralsResult, earningsResult] = await Promise.all([
-          getSupabase()
-            .from('referrals')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId)
-            .gte('created_at', month.startDate)
-            .lt('created_at', month.endDate),
-          
-          getSupabase()
-            .from('referrals')
-            .select('commission_earned')
-            .eq('user_id', userId)
-            .gte('created_at', month.startDate)
-            .lt('created_at', month.endDate)
-        ]);
+        try {
+          const [referralsResult, earningsResult] = await Promise.all([
+            getSupabase()
+              .from('referrals')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', userId)
+              .gte('created_at', month.startDate)
+              .lt('created_at', month.endDate),
+            
+            getSupabase()
+              .from('referrals')
+              .select('commission_earned')
+              .eq('user_id', userId)
+              .gte('created_at', month.startDate)
+              .lt('created_at', month.endDate)
+          ]);
 
-        const referrals = referralsResult.count || 0;
-        const earnings = earningsResult.data?.reduce((sum, r) => sum + Number(r.commission_earned || 0), 0) || 0;
+          const referrals = referralsResult.count || 0;
+          const earnings = earningsResult.data?.reduce((sum, r) => sum + Number(r.commission_earned || 0), 0) || 0;
 
-        return {
-          month: month.month,
-          referrals,
-          earnings
-        };
+          return {
+            month: month.month,
+            referrals,
+            earnings
+          };
+        } catch (error) {
+          console.error(`Error fetching data for month ${month.month}:`, error);
+          return {
+            month: month.month,
+            referrals: 0,
+            earnings: 0
+          };
+        }
       })
     );
 

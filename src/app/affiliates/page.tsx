@@ -83,13 +83,31 @@ export default function Affiliates() {
       const affiliatesData = await affiliatesResponse.json();
       const programsData = await programsResponse.json();
       
+      console.log('=== FETCH DATA DEBUG ===');
+      console.log('Affiliates response:', affiliatesData);
+      console.log('Programs response:', programsData);
+      
       if (affiliatesData.success) {
+        console.log('Affiliates data:', affiliatesData.affiliates);
+        // Log each affiliate's referral link
+        affiliatesData.affiliates?.forEach((affiliate: any, index: number) => {
+          console.log(`Affiliate ${index + 1}:`, {
+            id: affiliate.id,
+            name: affiliate.name,
+            referral_link: affiliate.referral_link,
+            referralLink: affiliate.referralLink,
+            created_at: affiliate.created_at,
+            createdAt: affiliate.createdAt
+          });
+        });
         setAffiliates(affiliatesData.affiliates);
       }
       
       if (programsData.success) {
         setPrograms(programsData.programs);
       }
+      
+      console.log('=== END FETCH DATA DEBUG ===');
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -182,9 +200,11 @@ export default function Affiliates() {
       
       if (data.success) {
         console.log('✅ Affiliate deleted successfully');
-        // Refresh data from database instead of just updating local state
-        await fetchData();
+        // Remove the affiliate from local state immediately for better UX
+        setAffiliates(prevAffiliates => prevAffiliates.filter(aff => aff.id !== id));
         setDeletingAffiliate(null);
+        // Also refresh data from database to ensure consistency
+        await fetchData();
       } else {
         console.error('❌ Failed to delete affiliate:', data.message);
         alert(`Failed to delete affiliate: ${data.message}`);
@@ -276,27 +296,27 @@ export default function Affiliates() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-500 truncate max-w-16" title={affiliate.referralLink}>
-                        {affiliate.referralLink && affiliate.referralLink.length > 20 
-                          ? affiliate.referralLink.substring(0, 20) + '...' 
-                          : affiliate.referralLink || 'No link'
+                      <span className="text-xs text-gray-500 truncate max-w-16" title={affiliate.referral_link || ''}>
+                        {affiliate.referral_link && affiliate.referral_link.length > 20 
+                          ? affiliate.referral_link.substring(0, 20) + '...' 
+                          : affiliate.referral_link || 'No link'
                         }
                       </span>
                       <CopyButton
-                        text={affiliate.referralLink || ''}
+                        text={affiliate.referral_link || ''}
                         size="sm"
                         className="flex-shrink-0"
                       />
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{affiliate.totalReferrals || 0}</div>
+                    <div className="text-sm text-gray-900">{affiliate.total_referrals || 0}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{formatCurrency(affiliate.totalEarnings || 0, currency)}</div>
+                    <div className="text-sm text-gray-900">{formatCurrency(affiliate.total_earnings || 0, currency)}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{formatDate(affiliate.createdAt)}</div>
+                    <div className="text-sm text-gray-500">{formatDate(affiliate.created_at || new Date().toISOString())}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
@@ -404,7 +424,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
     email: affiliate?.email || '',
     phone: affiliate?.phone || '',
     status: (affiliate?.status || 'pending') as 'active' | 'inactive' | 'pending',
-    programId: affiliate?.programId || '',
+    programId: affiliate?.program_id || '',
   });
   const [marketplaceUrl, setMarketplaceUrl] = useState('https://marketplace.com');
   const [emailError, setEmailError] = useState('');
@@ -483,8 +503,12 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
   useEffect(() => {
     const fetchMarketplaceUrl = async () => {
       try {
+        console.log('=== MARKETPLACE URL DEBUG ===');
         const { data: { session } } = await supabase().auth.getSession();
         const token = session?.access_token;
+        
+        console.log('Session exists:', !!session);
+        console.log('Token exists:', !!token);
         
         if (token) {
           const response = await fetch('/api/test-settings', {
@@ -492,10 +516,17 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
           });
           const data = await response.json();
           
+          console.log('Test settings response:', data);
+          
           if (data.success && data.marketplace_url) {
+            console.log('✅ Using marketplace URL:', data.marketplace_url);
             setMarketplaceUrl(data.marketplace_url);
+          } else {
+            console.log('❌ No marketplace URL found in settings');
+            console.log('Available settings:', data);
           }
         }
+        console.log('=== END MARKETPLACE URL DEBUG ===');
       } catch (error) {
         console.error('Error fetching marketplace URL:', error);
       }
@@ -595,16 +626,17 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                   className="flex-1 text-sm bg-white border border-gray-300 rounded px-2 py-1 font-mono"
                   type="text"
                   value={(() => {
-                    if (affiliate?.referralLink) {
-                      return affiliate.referralLink;
+                    if (affiliate?.referral_link) {
+                      return affiliate.referral_link;
                     }
                     if (formData.name && formData.programId) {
                       const selectedProgram = programs.find(p => p.id === formData.programId);
                       const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
                       
                       if (selectedProgram?.type === 'signup') {
-                        // For signup programs, use UTM parameters for Google Analytics tracking
-                        return `https://test.moto-garage.co.uk/signup?utm_source=affiliate&utm_medium=referral&utm_campaign=${referralCode}`;
+                        // For signup programs, use the marketplace URL with signup path and UTM parameters
+                        const cleanUrl = marketplaceUrl.replace(/\/+$/, '');
+                        return `${cleanUrl}/signup?utm_source=affiliate&utm_medium=referral&utm_campaign=${referralCode}`;
                       } else {
                         // For purchase programs, use the marketplace URL with UTM parameters
                         const cleanUrl = marketplaceUrl.replace(/\/+$/, '');
@@ -616,16 +648,17 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                 />
                 <CopyButton
                   text={(() => {
-                    if (affiliate?.referralLink) {
-                      return affiliate.referralLink;
+                    if (affiliate?.referral_link) {
+                      return affiliate.referral_link;
                     }
                     if (formData.name && formData.programId) {
                       const selectedProgram = programs.find(p => p.id === formData.programId);
                       const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
                       
                       if (selectedProgram?.type === 'signup') {
-                        // For signup programs, use UTM parameters for Google Analytics tracking
-                        return `https://test.moto-garage.co.uk/signup?utm_source=affiliate&utm_medium=referral&utm_campaign=${referralCode}`;
+                        // For signup programs, use the marketplace URL with signup path and UTM parameters
+                        const cleanUrl = marketplaceUrl.replace(/\/+$/, '');
+                        return `${cleanUrl}/signup?utm_source=affiliate&utm_medium=referral&utm_campaign=${referralCode}`;
                       } else {
                         // For purchase programs, use the marketplace URL with UTM parameters
                         const cleanUrl = marketplaceUrl.replace(/\/+$/, '');
@@ -717,9 +750,9 @@ function ViewAffiliateModal({ affiliate, programs, onClose, currency = 'GBP' }: 
             <div>
               <label className="block text-sm font-medium text-gray-700">Referral Code</label>
               <div className="flex items-center space-x-2">
-                <p className="mt-1 text-sm text-gray-900 font-mono">{affiliate.referralCode}</p>
+                <p className="mt-1 text-sm text-gray-900 font-mono">{affiliate.referral_code}</p>
                 <CopyButton
-                  text={affiliate.referralCode}
+                  text={affiliate.referral_code}
                   size="sm"
                 />
               </div>
@@ -727,26 +760,26 @@ function ViewAffiliateModal({ affiliate, programs, onClose, currency = 'GBP' }: 
             <div>
               <label className="block text-sm font-medium text-gray-700">Referral Link</label>
               <div className="flex items-center space-x-2">
-                <p className="mt-1 text-sm text-gray-900 font-mono break-all">{affiliate.referralLink}</p>
+                <p className="mt-1 text-sm text-gray-900 font-mono break-all">{affiliate.referral_link}</p>
                 <CopyButton
-                  text={affiliate.referralLink}
+                  text={affiliate.referral_link}
                   size="sm"
                 />
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Total Referrals</label>
-              <p className="mt-1 text-sm text-gray-900">{affiliate.totalReferrals}</p>
+              <p className="mt-1 text-sm text-gray-900">{affiliate.total_referrals}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Total Earnings</label>
-              <p className="mt-1 text-sm text-gray-900">{formatCurrency(affiliate.totalEarnings, currency)}</p>
+              <p className="mt-1 text-sm text-gray-900">{formatCurrency(affiliate.total_earnings, currency)}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Program</label>
               <p className="mt-1 text-sm text-gray-900">
                 {(() => {
-                  const program = programs.find(p => p.id === affiliate.programId);
+                  const program = programs.find(p => p.id === affiliate.program_id);
                   return program ? program.name : 'N/A';
                 })()}
               </p>
@@ -755,14 +788,14 @@ function ViewAffiliateModal({ affiliate, programs, onClose, currency = 'GBP' }: 
               <label className="block text-sm font-medium text-gray-700">Commission</label>
               <p className="mt-1 text-sm text-gray-900">
                 {(() => {
-                  const program = programs.find(p => p.id === affiliate.programId);
+                  const program = programs.find(p => p.id === affiliate.program_id);
                   return program ? `${program.commission}${program.commissionType === 'percentage' ? '%' : '$'} per ${program.type === 'signup' ? 'signup' : 'purchase'}` : 'N/A';
                 })()}
               </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Joined</label>
-                              <p className="mt-1 text-sm text-gray-900">{formatDate(affiliate.createdAt)}</p>
+              <p className="mt-1 text-sm text-gray-900">{formatDate(affiliate.created_at)}</p>
             </div>
           </div>
           <div className="mt-6 flex justify-end">

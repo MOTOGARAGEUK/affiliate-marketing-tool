@@ -15,13 +15,17 @@ interface Referral {
   affiliate_email: string;
   customer_email: string;
   customer_name: string;
-  signup_date: string;
-  listings_count: number;
-  purchases_count: number;
-  total_revenue: number;
   status: 'pending' | 'approved' | 'rejected';
-  commission_earned: number;
+  commission: number;
+  referral_code: string;
   created_at: string;
+  // ShareTribe fields
+  sharetribe_user_id?: string;
+  sharetribe_created_at?: string;
+  listings_count?: number;
+  transactions_count?: number;
+  total_revenue?: number;
+  last_sync_at?: string;
 }
 
 export default function Referrals() {
@@ -97,11 +101,75 @@ export default function Referrals() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Referrals</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Track all referrals made by your affiliates
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Referrals</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Track all referrals made by your affiliates
+          </p>
+        </div>
+        <div className="flex space-x-2">
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                const response = await fetch('/api/debug-referrals', {
+                  headers: {
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  }
+                });
+                const data = await response.json();
+                if (data.success) {
+                  console.log('🔍 Debug Data:', data.debug);
+                  alert(`Debug Info:\nAffiliates: ${data.debug.affiliatesCount}\nUser Referrals: ${data.debug.userReferralsCount}\nTotal System Referrals: ${data.debug.totalReferralsInSystem}\n\nAffiliate Details:\n${data.debug.affiliates.map(a => `${a.name}: ${a.referral_code}`).join('\n')}`);
+                } else {
+                  alert('Debug failed: ' + data.message);
+                }
+              } catch (error) {
+                console.error('Debug error:', error);
+                alert('Debug error: ' + error);
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+          >
+            🔍 Debug
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                const response = await fetch('/api/test-referral-creation', {
+                  method: 'POST',
+                  headers: {
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  }
+                });
+                const data = await response.json();
+                if (data.success) {
+                  console.log('✅ Test referral created:', data.referral);
+                  alert(`Test referral created successfully!\n\nAffiliate: ${data.referral.affiliate_name}\nCustomer: ${data.referral.customer_name}\nEmail: ${data.referral.customer_email}\nCommission: $${data.referral.commission_earned}`);
+                  // Refresh the page to show the new referral
+                  window.location.reload();
+                } else {
+                  const errorDetails = data.error ? 
+                    `Error: ${data.message}\n\nDetails:\nCode: ${data.error.code}\nMessage: ${data.error.message}\nHint: ${data.error.hint || 'None'}` :
+                    `Error: ${data.message}`;
+                  alert('Test failed:\n\n' + errorDetails);
+                }
+              } catch (error) {
+                console.error('Test error:', error);
+                alert('Test error: ' + error);
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+          >
+            🧪 Test Create
+          </button>
+        </div>
       </div>
 
       {/* Referrals Table */}
@@ -123,22 +191,25 @@ export default function Referrals() {
                     Customer
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Signup Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Listings
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Purchases
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Revenue
+                    Referral Code
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Commission
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date Joined
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Listings
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Transactions
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Revenue
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -148,7 +219,7 @@ export default function Referrals() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {referrals.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
                       <div className="flex flex-col items-center">
                         <ArrowPathIcon className="h-12 w-12 text-gray-300 mb-4" />
                         <p className="text-lg font-medium text-gray-900 mb-2">No referrals yet</p>
@@ -183,25 +254,75 @@ export default function Referrals() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatDate(referral.signup_date)}
+                        <code className="bg-gray-100 px-2 py-1 rounded text-xs">{referral.referral_code}</code>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {referral.listings_count}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {referral.purchases_count}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {currency}{referral.total_revenue?.toFixed(2) || '0.00'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {currency}{referral.commission_earned?.toFixed(2) || '0.00'}
+                        {currency}{referral.commission?.toFixed(2) || '0.00'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(referral.status)}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {referral.sharetribe_created_at ? 
+                          formatDate(referral.sharetribe_created_at) : 
+                          <span className="text-gray-400">Not synced</span>
+                        }
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {referral.listings_count !== undefined ? 
+                          referral.listings_count : 
+                          <span className="text-gray-400">-</span>
+                        }
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {referral.transactions_count !== undefined ? 
+                          referral.transactions_count : 
+                          <span className="text-gray-400">-</span>
+                        }
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {referral.total_revenue !== undefined ? 
+                          `${currency}${referral.total_revenue.toFixed(2)}` : 
+                          <span className="text-gray-400">-</span>
+                        }
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                const { data: { session } } = await supabase().auth.getSession();
+                                const token = session?.access_token;
+                                
+                                const response = await fetch('/api/sync-sharetribe-stats', {
+                                  method: 'POST',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    ...(token && { 'Authorization': `Bearer ${token}` })
+                                  },
+                                  body: JSON.stringify({
+                                    referralId: referral.id,
+                                    userEmail: referral.customer_email
+                                  })
+                                });
+                                
+                                const data = await response.json();
+                                if (data.success) {
+                                  alert('ShareTribe stats synced successfully!');
+                                  fetchReferrals(); // Refresh the data
+                                } else {
+                                  alert('Sync failed: ' + data.message);
+                                }
+                              } catch (error) {
+                                console.error('Sync error:', error);
+                                alert('Sync error: ' + error);
+                              }
+                            }}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Sync ShareTribe Stats"
+                          >
+                            <ArrowPathIcon className="h-4 w-4" />
+                          </button>
                           <button
                             onClick={() => {/* TODO: View referral details */}}
                             className="text-indigo-600 hover:text-indigo-900"

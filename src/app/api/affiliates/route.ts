@@ -185,53 +185,55 @@ export async function POST(request: NextRequest) {
     
     let referralLink: string;
     
-    if (program.type === 'signup') {
-      // For signup programs, use UTM parameters for Google Analytics tracking
-      referralLink = `https://test.moto-garage.co.uk/signup?utm_source=affiliate&utm_medium=referral&utm_campaign=${referralCode}`;
-      console.log('✅ Generated signup referral link:', referralLink);
-    } else {
-      // For purchase programs, get ShareTribe marketplace URL from settings
-      let baseUrl = 'https://marketplace.com'; // fallback
-      try {
-        console.log('=== REFERRAL LINK DEBUG ===');
-        console.log('Fetching ShareTribe marketplace URL for user:', user.id);
+    // Get marketplace URL from settings for both signup and purchase programs
+    let baseUrl = 'https://marketplace.com'; // fallback
+    try {
+      console.log('=== REFERRAL LINK DEBUG ===');
+      console.log('Fetching ShareTribe marketplace URL for user:', user.id);
+      
+      // Get all ShareTribe settings for this user
+      const { data: sharetribeSettings, error: sharetribeError } = await authenticatedSupabase
+        .from('settings')
+        .select('setting_key, setting_value')
+        .eq('user_id', user.id)
+        .eq('setting_type', 'sharetribe');
+      
+      if (sharetribeError) {
+        console.log('Error fetching ShareTribe settings:', sharetribeError);
+      } else {
+        console.log('ShareTribe settings found:', sharetribeSettings);
         
-        // Get all ShareTribe settings for this user
-        const { data: sharetribeSettings, error: sharetribeError } = await authenticatedSupabase
-          .from('settings')
-          .select('setting_key, setting_value')
-          .eq('user_id', user.id)
-          .eq('setting_type', 'sharetribe');
+        // Look for marketplace URL in any of the ShareTribe settings
+        const marketplaceUrlSetting = sharetribeSettings?.find(s => 
+          s.setting_key === 'marketplaceUrl' || 
+          s.setting_key === 'marketplace_url' || 
+          s.setting_key === 'url'
+        );
         
-        if (sharetribeError) {
-          console.log('Error fetching ShareTribe settings:', sharetribeError);
+        if (marketplaceUrlSetting?.setting_value) {
+          baseUrl = marketplaceUrlSetting.setting_value;
+          console.log('✅ Using ShareTribe URL:', baseUrl);
         } else {
-          console.log('ShareTribe settings found:', sharetribeSettings);
-          
-          // Look for marketplace URL in any of the ShareTribe settings
-          const marketplaceUrlSetting = sharetribeSettings?.find(s => 
-            s.setting_key === 'marketplaceUrl' || 
-            s.setting_key === 'marketplace_url' || 
-            s.setting_key === 'url'
-          );
-          
-          if (marketplaceUrlSetting?.setting_value) {
-            baseUrl = marketplaceUrlSetting.setting_value;
-            console.log('✅ Using ShareTribe URL:', baseUrl);
-          } else {
-            console.log('❌ No marketplace URL found in ShareTribe settings');
-            console.log('Available ShareTribe keys:', sharetribeSettings?.map(s => s.setting_key));
-          }
+          console.log('❌ No marketplace URL found in ShareTribe settings');
+          console.log('Available ShareTribe keys:', sharetribeSettings?.map(s => s.setting_key));
         }
-        
-        console.log('=== END REFERRAL LINK DEBUG ===');
-      } catch (error) {
-        console.log('Error fetching ShareTribe marketplace URL:', error);
-        console.log('Using fallback URL:', baseUrl);
       }
       
-      // Generate referral link with proper URL normalization
-      referralLink = generateReferralLink(baseUrl, referralCode);
+      console.log('=== END REFERRAL LINK DEBUG ===');
+    } catch (error) {
+      console.log('Error fetching ShareTribe marketplace URL:', error);
+      console.log('Using fallback URL:', baseUrl);
+    }
+    
+    if (program.type === 'signup') {
+      // For signup programs, use the marketplace URL with signup path and UTM parameters
+      const cleanUrl = baseUrl.replace(/\/+$/, '');
+      referralLink = `${cleanUrl}/signup?utm_source=affiliate&utm_medium=referral&utm_campaign=${referralCode}`;
+      console.log('✅ Generated signup referral link:', referralLink);
+    } else {
+      // For purchase programs, use the marketplace URL with UTM parameters
+      const cleanUrl = baseUrl.replace(/\/+$/, '');
+      referralLink = `${cleanUrl}?utm_source=affiliate&utm_medium=referral&utm_campaign=${referralCode}`;
       console.log('✅ Generated purchase referral link:', referralLink);
     }
     

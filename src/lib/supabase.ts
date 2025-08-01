@@ -4,11 +4,21 @@ import { createBrowserClient } from '@supabase/ssr'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
+// Get the site URL from environment or default to production URL
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://affiliate-marketing-tool-j4ifxsm2a-scoopies-projects.vercel.app'
+
 // Browser client for client-side operations (singleton)
 let browserClient: ReturnType<typeof createBrowserClient> | null = null
 export const supabase = () => {
   if (!browserClient) {
-    browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey)
+    browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        flowType: 'pkce',
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        persistSession: true
+      }
+    })
   }
   return browserClient
 }
@@ -17,7 +27,13 @@ export const supabase = () => {
 let serverClient: ReturnType<typeof createClient> | null = null
 export const createServerClient = () => {
   if (!serverClient) {
-    serverClient = createClient(supabaseUrl, supabaseAnonKey)
+    serverClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false
+      }
+    })
   }
   return serverClient
 }
