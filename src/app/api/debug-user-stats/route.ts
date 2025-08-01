@@ -108,28 +108,42 @@ export async function POST(request: NextRequest) {
 
     // Step 4: Test full getUserStats
     console.log('Step 4: Testing full getUserStats...');
-    const stats = await sharetribeAPI.getUserStats(userId);
-    
-    if (!stats) {
+    try {
+      const stats = await sharetribeAPI.getUserStats(userId);
+      
+      if (!stats) {
+        console.log('❌ getUserStats returned null');
+        return NextResponse.json({
+          success: false,
+          message: 'getUserStats returned null',
+          step: 'getUserStats',
+          details: 'The method returned null, check the console logs for detailed error information'
+        }, { status: 500 });
+      }
+
+      console.log('✅ getUserStats successful:', stats);
+
+      return NextResponse.json({
+        success: true,
+        message: 'User stats debug completed successfully',
+        user: {
+          id: sharetribeUser.id,
+          email: sharetribeUser.email,
+          displayName: sharetribeUser.profile?.displayName
+        },
+        stats: stats
+      });
+
+    } catch (getUserStatsError) {
+      console.error('❌ getUserStats error:', getUserStatsError);
       return NextResponse.json({
         success: false,
-        message: 'getUserStats returned null',
-        step: 'getUserStats'
+        message: 'getUserStats threw an error',
+        step: 'getUserStats',
+        error: getUserStatsError instanceof Error ? getUserStatsError.message : 'Unknown error',
+        stack: getUserStatsError instanceof Error ? getUserStatsError.stack : undefined
       }, { status: 500 });
     }
-
-    console.log('✅ getUserStats successful:', stats);
-
-    return NextResponse.json({
-      success: true,
-      message: 'User stats debug completed successfully',
-      user: {
-        id: sharetribeUser.id,
-        email: sharetribeUser.email,
-        displayName: sharetribeUser.profile?.displayName
-      },
-      stats: stats
-    });
 
   } catch (error) {
     console.error('❌ Error in user stats debug:', error);
