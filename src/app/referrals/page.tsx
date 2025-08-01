@@ -185,7 +185,7 @@ export default function Referrals() {
                   console.log('✅ ShareTribe connection successful:', data);
                   alert(`ShareTribe connection successful!\n\nMarketplace: ${data.marketplace?.name || 'Unknown'}\nStatus: Connected\n\nYou can now sync referrals with ShareTribe data.`);
                 } else {
-                  alert('ShareTribe connection failed:\n\n' + data.message + '\n\n' + (data.instructions || ''));
+                  alert('ShareTribe connection failed:\n\n' + data.message + '\n\n' + (data.instructions || 'Please go to Settings → Integrations tab to configure ShareTribe.'));
                 }
               } catch (error) {
                 console.error('ShareTribe test error:', error);
