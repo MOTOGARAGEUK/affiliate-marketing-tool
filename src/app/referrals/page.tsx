@@ -255,6 +255,35 @@ export default function Referrals() {
           >
             🔍 Debug Raw API
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                const response = await fetch('/api/sync-all-referrals', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  }
+                });
+                const data = await response.json();
+                if (data.success) {
+                  alert(`Live sync completed!\n\nSynced: ${data.syncedCount}\nUpdated: ${data.updatedCount}\nErrors: ${data.errorCount || 0}`);
+                  fetchReferrals(); // Refresh the data
+                } else {
+                  alert('Live sync failed: ' + data.message);
+                }
+              } catch (error) {
+                console.error('Live sync error:', error);
+                alert('Live sync error: ' + error);
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          >
+            🔄 Live Sync All
+          </button>
         </div>
       </div>
 
@@ -408,6 +437,41 @@ export default function Referrals() {
                             title="Sync ShareTribe Stats"
                           >
                             <ArrowPathIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const { data: { session } } = await supabase().auth.getSession();
+                                const token = session?.access_token;
+                                
+                                const response = await fetch('/api/debug-sync-failure', {
+                                  method: 'POST',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    ...(token && { 'Authorization': `Bearer ${token}` })
+                                  },
+                                  body: JSON.stringify({
+                                    referralId: referral.id,
+                                    userEmail: referral.customer_email
+                                  })
+                                });
+                                
+                                const data = await response.json();
+                                if (data.success) {
+                                  alert('Debug sync completed successfully!\n\nCheck console for detailed logs.');
+                                  fetchReferrals(); // Refresh the data
+                                } else {
+                                  alert('Debug sync failed: ' + data.message + '\n\n' + JSON.stringify(data, null, 2));
+                                }
+                              } catch (error) {
+                                console.error('Debug sync error:', error);
+                                alert('Debug sync error: ' + error);
+                              }
+                            }}
+                            className="text-orange-600 hover:text-orange-900"
+                            title="Debug Sync Failure"
+                          >
+                            🔍
                           </button>
                           <button
                             onClick={() => {/* TODO: View referral details */}}
