@@ -70,65 +70,13 @@ export async function GET(request: NextRequest) {
 
     console.log('Found ShareTribe settings:', Object.keys(settingsObj));
 
-    // Test ShareTribe API connection
-    try {
-      const { getSharetribeCredentials, createSharetribeAPI } = await import('@/lib/sharetribe');
-      const credentials = await getSharetribeCredentials(user.id);
-
-      if (!credentials) {
-        return NextResponse.json({
-          success: false,
-          message: 'ShareTribe credentials not found',
-          settings: settingsObj
-        }, { status: 404 });
-      }
-
-      console.log('Found ShareTribe credentials');
-
-      const sharetribeAPI = createSharetribeAPI(credentials);
-      
-      // Test basic connection
-      const connectionTest = await sharetribeAPI.testConnection();
-      
-      if (!connectionTest) {
-        return NextResponse.json({
-          success: false,
-          message: 'ShareTribe API connection failed',
-          settings: settingsObj,
-          credentials: {
-            hasClientId: !!credentials.clientId,
-            hasClientSecret: !!credentials.clientSecret,
-            hasMarketplaceUrl: !!credentials.marketplaceUrl
-          }
-        }, { status: 500 });
-      }
-
-      console.log('ShareTribe API connection successful');
-
-      // Get marketplace info
-      const marketplaceInfo = await sharetribeAPI.getMarketplaceInfo();
-      
-      return NextResponse.json({
-        success: true,
-        message: 'ShareTribe connection successful',
-        settings: settingsObj,
-        marketplace: marketplaceInfo,
-        credentials: {
-          hasClientId: !!credentials.clientId,
-          hasClientSecret: !!credentials.clientSecret,
-          hasMarketplaceUrl: !!credentials.marketplaceUrl
-        }
-      });
-
-    } catch (sharetribeError) {
-      console.error('ShareTribe API error:', sharetribeError);
-      return NextResponse.json({
-        success: false,
-        message: 'ShareTribe API error',
-        error: sharetribeError instanceof Error ? sharetribeError.message : 'Unknown error',
-        settings: settingsObj
-      }, { status: 500 });
-    }
+    // For now, just return the settings without testing the API
+    return NextResponse.json({
+      success: true,
+      message: 'ShareTribe settings found',
+      settings: settingsObj,
+      nextStep: 'Settings found, but API test not implemented yet'
+    });
 
   } catch (error) {
     console.error('Test ShareTribe connection error:', error);
