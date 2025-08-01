@@ -3,117 +3,104 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    
-    // Create an authenticated client with the user's token
-    const authenticatedSupabase = createClient(
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      }
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-    
-    const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
-    
-    if (authError || !user) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
-    console.log('🔍 Debugging referrals for user:', user.id);
-
-    // Check affiliates first
-    const { data: affiliates, error: affiliatesError } = await authenticatedSupabase
-      .from('affiliates')
-      .select('*')
-      .eq('user_id', user.id);
-
-    if (affiliatesError) {
-      console.error('Error fetching affiliates:', affiliatesError);
-      return NextResponse.json(
-        { success: false, message: 'Error fetching affiliates' },
-        { status: 500 }
-      );
-    }
-
-    console.log('📊 Found affiliates:', affiliates?.length || 0);
-
-    // Check referrals
-    const { data: referrals, error: referralsError } = await authenticatedSupabase
+    // Test 1: Basic table access
+    const { data: basicData, error: basicError } = await supabase
       .from('referrals')
       .select('*')
-      .eq('user_id', user.id);
+      .limit(1);
 
-    if (referralsError) {
-      console.error('Error fetching referrals:', referralsError);
-      return NextResponse.json(
-        { success: false, message: 'Error fetching referrals' },
-        { status: 500 }
-      );
+    if (basicError) {
+      return NextResponse.json({
+        success: false,
+        test: 'basic_access',
+        error: basicError.message,
+        code: basicError.code
+      }, { status: 500 });
     }
 
-    console.log('📊 Found referrals:', referrals?.length || 0);
-
-    // Check all referrals in the system (for debugging)
-    const { data: allReferrals, error: allReferralsError } = await authenticatedSupabase
+    // Test 2: Check table structure
+    const { data: structureData, error: structureError } = await supabase
       .from('referrals')
-      .select('*');
+      .select('id, created_at, commission_earned, user_id')
+      .limit(0);
 
-    if (allReferralsError) {
-      console.error('Error fetching all referrals:', allReferralsError);
-    } else {
-      console.log('📊 Total referrals in system:', allReferrals?.length || 0);
+    if (structureError) {
+      return NextResponse.json({
+        success: false,
+        test: 'structure_check',
+        error: structureError.message,
+        code: structureError.code
+      }, { status: 500 });
     }
 
-    // Check recent track-referral API calls
-    const { data: apiLogs, error: apiLogsError } = await authenticatedSupabase
-      .from('api_logs')
-      .select('*')
-      .eq('endpoint', 'track-referral')
-      .order('created_at', { ascending: false })
-      .limit(10);
+    // Test 3: Date range query (the one causing 400 errors)
+    const now = new Date();
+    const startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
 
-    return NextResponse.json({ 
-      success: true, 
-      debug: {
-        userId: user.id,
-        userEmail: user.email,
-        affiliatesCount: affiliates?.length || 0,
-        userReferralsCount: referrals?.length || 0,
-        totalReferralsInSystem: allReferrals?.length || 0,
-        affiliates: affiliates?.map(a => ({
-          id: a.id,
-          name: a.name,
-          email: a.email,
-          referral_code: a.referral_code,
-          referral_link: a.referral_link,
-          status: a.status
-        })) || [],
-        userReferrals: referrals || [],
-        recentApiLogs: apiLogs || []
+    const { data: dateData, error: dateError } = await supabase
+      .from('referrals')
+      .select('id, created_at, commission_earned')
+      .gte('created_at', startDate.toISOString())
+      .lt('created_at', endDate.toISOString())
+      .limit(5);
+
+    if (dateError) {
+      return NextResponse.json({
+        success: false,
+        test: 'date_range_query',
+        error: dateError.message,
+        code: dateError.code,
+        query: {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        }
+      }, { status: 500 });
+    }
+
+    // Test 4: Count query
+    const { count: countData, error: countError } = await supabase
+      .from('referrals')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', startDate.toISOString())
+      .lt('created_at', endDate.toISOString());
+
+    if (countError) {
+      return NextResponse.json({
+        success: false,
+        test: 'count_query',
+        error: countError.message,
+        code: countError.code
+      }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      tests: {
+        basic_access: 'PASS',
+        structure_check: 'PASS',
+        date_range_query: 'PASS',
+        count_query: 'PASS'
+      },
+      sampleData: basicData,
+      dateQueryData: dateData,
+      countData: countData,
+      queryParams: {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
       }
     });
+
   } catch (error) {
-    console.error('Failed to debug referrals:', error);
-    return NextResponse.json(
-      { success: false, message: 'Failed to debug referrals' },
-      { status: 500 }
-    );
+    console.error('Debug referrals error:', error);
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 } 
