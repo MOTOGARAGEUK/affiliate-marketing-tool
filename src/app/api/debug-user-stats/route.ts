@@ -39,9 +39,9 @@ export async function POST(request: NextRequest) {
       }
     );
     
-    const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
+    const { data: { user: authUser }, error: authError } = await authenticatedSupabase.auth.getUser();
     
-    if (authError || !user) {
+    if (authError || !authUser) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // Get ShareTribe credentials from the authenticated user
     const { getSharetribeCredentials } = await import('@/lib/sharetribe');
-    const credentials = await getSharetribeCredentials(user.id);
+    const credentials = await getSharetribeCredentials(authUser.id);
 
     if (!credentials) {
       return NextResponse.json({
@@ -64,15 +64,15 @@ export async function POST(request: NextRequest) {
 
     // Step 1: Get user details
     console.log('Step 1: Getting user details...');
-    const user = await sharetribeAPI.getUserById(userId);
-    if (!user) {
+    const sharetribeUser = await sharetribeAPI.getUserById(userId);
+    if (!sharetribeUser) {
       return NextResponse.json({
         success: false,
         message: 'User not found',
         step: 'getUserById'
       }, { status: 404 });
     }
-    console.log('✅ User found:', user.id, user.email);
+    console.log('✅ User found:', sharetribeUser.id, sharetribeUser.email);
 
     // Step 2: Test listings query
     console.log('Step 2: Testing listings query...');
@@ -150,9 +150,9 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'User stats debug completed successfully',
       user: {
-        id: user.id,
-        email: user.email,
-        displayName: user.profile?.displayName
+        id: sharetribeUser.id,
+        email: sharetribeUser.email,
+        displayName: sharetribeUser.profile?.displayName
       },
       stats: stats
     });
