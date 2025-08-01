@@ -172,13 +172,22 @@ class SharetribeAPI {
       console.log('Fetching transactions for user:', userId);
       
       const sdk = await this.getSDK();
+      
+      // Get all transactions and filter by user later
       const response = await sdk.transactions.query({ 
-        user_id: userId,
         perPage: limit
       });
       
       if (response.data && response.data.data) {
-        return response.data.data.map((transaction: any) => ({
+        // Filter transactions by user (as buyer or seller)
+        const allTransactions = response.data.data;
+        const userTransactions = allTransactions.filter((transaction: any) => {
+          const provider = transaction.relationships?.provider?.data?.id;
+          const customer = transaction.relationships?.customer?.data?.id;
+          return provider === userId || customer === userId;
+        });
+        
+        return userTransactions.map((transaction: any) => ({
           id: transaction.id,
           type: 'transaction',
           lastTransition: transaction.attributes.lastTransition,
@@ -302,7 +311,7 @@ class SharetribeAPI {
       // Get user's transactions (both as buyer and seller)
       console.log('🔍 getUserStats: Getting transactions...');
       const transactionsResponse = await sdk.transactions.query({ 
-        user_id: userId,
+        // Try different parameters for transactions
         perPage: 1000
       });
       
