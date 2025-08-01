@@ -10,7 +10,27 @@ export function generateReferralLink(baseUrl: string, referralCode: string): str
   return `${baseUrl}/ref/${referralCode}`;
 }
 
-export function formatCurrency(amount: number): string {
+export function formatCurrency(amount: number, currency: string = 'GBP'): string {
+  const currencySymbols: { [key: string]: string } = {
+    'GBP': '£',
+    'USD': '$',
+    'EUR': '€',
+    'CAD': 'C$',
+    'AUD': 'A$'
+  };
+
+  const symbol = currencySymbols[currency] || '£';
+  
+  return new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+// Legacy function for backward compatibility
+export function formatCurrencyUSD(amount: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -64,4 +84,15 @@ export function getStatusColor(status: string): string {
     default:
       return 'text-gray-600 bg-gray-100';
   }
+}
+
+// Calculate percentage change between two values
+export function calculatePercentageChange(current: number, previous: number): string {
+  if (previous === 0) {
+    return current > 0 ? '+100%' : '0%';
+  }
+  
+  const change = ((current - previous) / previous) * 100;
+  const sign = change >= 0 ? '+' : '';
+  return `${sign}${change.toFixed(1)}%`;
 }

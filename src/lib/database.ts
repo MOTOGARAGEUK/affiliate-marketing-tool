@@ -435,7 +435,31 @@ export const payoutsAPI = {
 
 // Dashboard API
 export const dashboardAPI = {
-  async getStats(userId: string) {
+  async getStats(userId: string, fromDate?: Date) {
+    const baseQuery = fromDate ? 
+      getSupabase().from('affiliates').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', fromDate.toISOString()) :
+      getSupabase().from('affiliates').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+
+    const activeQuery = fromDate ?
+      getSupabase().from('affiliates').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'active').gte('created_at', fromDate.toISOString()) :
+      getSupabase().from('affiliates').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'active');
+
+    const referralsQuery = fromDate ?
+      getSupabase().from('referrals').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', fromDate.toISOString()) :
+      getSupabase().from('referrals').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+
+    const pendingReferralsQuery = fromDate ?
+      getSupabase().from('referrals').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'pending').gte('created_at', fromDate.toISOString()) :
+      getSupabase().from('referrals').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'pending');
+
+    const affiliatesQuery = fromDate ?
+      getSupabase().from('affiliates').select('total_earnings').eq('user_id', userId).gte('created_at', fromDate.toISOString()) :
+      getSupabase().from('affiliates').select('total_earnings').eq('user_id', userId);
+
+    const payoutsQuery = fromDate ?
+      getSupabase().from('payouts').select('amount').eq('user_id', userId).gte('created_at', fromDate.toISOString()) :
+      getSupabase().from('payouts').select('amount').eq('user_id', userId);
+
     const [
       { count: totalAffiliates },
       { count: activeAffiliates },
@@ -444,16 +468,16 @@ export const dashboardAPI = {
       { data: affiliates },
       { data: payouts }
     ] = await Promise.all([
-      getSupabase().from('affiliates').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-      getSupabase().from('affiliates').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'active'),
-      getSupabase().from('referrals').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-      getSupabase().from('referrals').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'pending'),
-      getSupabase().from('affiliates').select('total_earnings').eq('user_id', userId),
-      getSupabase().from('payouts').select('amount').eq('user_id', userId)
+      baseQuery,
+      activeQuery,
+      referralsQuery,
+      pendingReferralsQuery,
+      affiliatesQuery,
+      payoutsQuery
     ]);
 
-    const totalEarnings = affiliates?.reduce((sum, a) => sum + Number(a.total_earnings), 0) || 0;
-    const totalPayouts = payouts?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+    const totalEarnings = affiliates?.reduce((sum, a) => sum + Number(a.total_earnings || 0), 0) || 0;
+    const totalPayouts = payouts?.reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
 
     return {
       totalAffiliates: totalAffiliates || 0,
@@ -464,6 +488,52 @@ export const dashboardAPI = {
       totalPayouts,
       pendingPayouts: totalEarnings - totalPayouts
     };
+  },
+
+  async getChartData(userId: string) {
+    // Get data for the last 6 months
+    const months = [];
+    const now = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        month: date.toLocaleDateString('en-US', { month: 'short' }),
+        startDate: date.toISOString(),
+        endDate: new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString()
+      });
+    }
+
+    const chartData = await Promise.all(
+      months.map(async (month) => {
+        const [referralsResult, earningsResult] = await Promise.all([
+          getSupabase()
+            .from('referrals')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .gte('created_at', month.startDate)
+            .lt('created_at', month.endDate),
+          
+          getSupabase()
+            .from('referrals')
+            .select('commission_earned')
+            .eq('user_id', userId)
+            .gte('created_at', month.startDate)
+            .lt('created_at', month.endDate)
+        ]);
+
+        const referrals = referralsResult.count || 0;
+        const earnings = earningsResult.data?.reduce((sum, r) => sum + Number(r.commission_earned || 0), 0) || 0;
+
+        return {
+          month: month.month,
+          referrals,
+          earnings
+        };
+      })
+    );
+
+    return chartData;
   },
 
   async getRecentActivity(userId: string) {

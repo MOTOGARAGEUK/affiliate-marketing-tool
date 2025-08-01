@@ -17,7 +17,7 @@ export default function Affiliates() {
   const [selectedAffiliate, setSelectedAffiliate] = useState<Affiliate | null>(null);
   const [deletingAffiliate, setDeletingAffiliate] = useState<Affiliate | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currency, setCurrency] = useState('$'); // Default currency
+  const [currency, setCurrency] = useState('GBP'); // Default currency
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -56,15 +56,7 @@ export default function Affiliates() {
       const data = await response.json();
       if (data.success && data.settings?.general?.currency) {
         const currencyCode = data.settings.general.currency;
-        // Map currency codes to symbols
-        const currencySymbols: { [key: string]: string } = {
-          'USD': '$',
-          'GBP': '£',
-          'EUR': '€',
-          'CAD': 'C$',
-          'AUD': 'A$'
-        };
-        setCurrency(currencySymbols[currencyCode] || '$');
+        setCurrency(currencyCode);
       }
     } catch (error) {
       console.error('Failed to fetch currency settings:', error);
@@ -269,48 +261,28 @@ export default function Affiliates() {
                       {affiliate.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {affiliate.totalReferrals}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      <CopyButton 
+                        text={affiliate.referralLink} 
+                        className="text-indigo-600 hover:text-indigo-900"
+                      />
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      <CopyButton 
+                        text={affiliate.referralCode} 
+                        className="text-gray-500 hover:text-gray-700"
+                      />
+                    </div>
                   </td>
-                                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {affiliate.totalEarnings ? `${currency}${affiliate.totalEarnings}` : `${currency}0`}
-                    </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {(() => {
-                      const program = programs.find(p => p.id === affiliate.programId);
-                      if (!program) return 'N/A';
-                      
-                      return (
-                        <div>
-                          <div>{program.name}</div>
-                          <div className="text-gray-500">
-                            {program.commissionType === 'percentage' ? `${program.commission}%` : `${currency}${program.commission}`}
-                          </div>
-                        </div>
-                      );
-                    })()}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{affiliate.totalReferrals}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {affiliate.referral_link ? (
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs text-gray-500 truncate max-w-16" title={affiliate.referral_link}>
-                          {affiliate.referral_link.length > 20 
-                            ? affiliate.referral_link.substring(0, 20) + '...' 
-                            : affiliate.referral_link
-                          }
-                        </span>
-                        <CopyButton
-                          text={affiliate.referral_link}
-                          size="sm"
-                          className="flex-shrink-0"
-                        />
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 text-xs">No link</span>
-                    )}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{formatCurrency(affiliate.totalEarnings, currency)}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(affiliate.created_at)}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">{formatDate(affiliate.createdAt)}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
@@ -363,6 +335,7 @@ export default function Affiliates() {
           affiliate={selectedAffiliate}
           programs={programs}
           onClose={() => setSelectedAffiliate(null)}
+          currency={currency}
         />
       )}
 
@@ -608,8 +581,8 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                   className="flex-1 text-sm bg-white border border-gray-300 rounded px-2 py-1 font-mono"
                   type="text"
                   value={(() => {
-                    if (affiliate?.referral_link) {
-                      return affiliate.referral_link;
+                    if (affiliate?.referralLink) {
+                      return affiliate.referralLink;
                     }
                     if (formData.name && formData.programId) {
                       const selectedProgram = programs.find(p => p.id === formData.programId);
@@ -629,8 +602,8 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                 />
                 <CopyButton
                   text={(() => {
-                    if (affiliate?.referral_link) {
-                      return affiliate.referral_link;
+                    if (affiliate?.referralLink) {
+                      return affiliate.referralLink;
                     }
                     if (formData.name && formData.programId) {
                       const selectedProgram = programs.find(p => p.id === formData.programId);
@@ -682,7 +655,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
               </button>
               <button
                 type="submit"
-                disabled={isLoading || emailError || isValidatingEmail}
+                disabled={isLoading || !!emailError || isValidatingEmail}
                 className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 {isLoading && (
@@ -702,9 +675,10 @@ interface ViewAffiliateModalProps {
   affiliate: Affiliate;
   programs: any[];
   onClose: () => void;
+  currency?: string;
 }
 
-function ViewAffiliateModal({ affiliate, programs, onClose }: ViewAffiliateModalProps) {
+function ViewAffiliateModal({ affiliate, programs, onClose, currency = 'GBP' }: ViewAffiliateModalProps) {
 
   return (
     <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
@@ -752,7 +726,7 @@ function ViewAffiliateModal({ affiliate, programs, onClose }: ViewAffiliateModal
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Total Earnings</label>
-              <p className="mt-1 text-sm text-gray-900">{formatCurrency(affiliate.totalEarnings)}</p>
+              <p className="mt-1 text-sm text-gray-900">{formatCurrency(affiliate.totalEarnings, currency)}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Program</label>

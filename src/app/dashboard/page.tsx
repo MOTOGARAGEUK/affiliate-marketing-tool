@@ -8,15 +8,18 @@ import {
   CreditCardIcon,
 } from '@heroicons/react/24/outline';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { dashboardAPI } from '@/lib/database';
+import { settingsAPI } from '@/lib/settings-database';
+import { formatCurrency, calculatePercentageChange } from '@/lib/utils';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function Dashboard() {
   const [stats, setStats] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currency, setCurrency] = useState('GBP');
   const { user } = useAuth();
 
   useEffect(() => {
@@ -24,51 +27,99 @@ export default function Dashboard() {
       if (!user) return;
       
       try {
-        const [statsData, activityData] = await Promise.all([
-          dashboardAPI.getStats(user.id),
-          dashboardAPI.getRecentActivity(user.id)
-        ]);
+        // Fetch user settings for currency
+        const settings = await settingsAPI.getByType(user.id, 'general');
+        const currencySetting = settings.find(s => s.setting_key === 'currency');
+        const userCurrency = (currencySetting?.setting_value as string) || 'GBP';
+        setCurrency(userCurrency);
+
+        // Fetch current stats
+        const currentStats = await dashboardAPI.getStats(user.id);
+        
+        // Fetch previous month stats for comparison
+        const previousMonth = new Date();
+        previousMonth.setMonth(previousMonth.getMonth() - 1);
+        
+        const previousStats = await dashboardAPI.getStats(user.id, previousMonth);
+        
+        // Calculate percentage changes
+        const affiliateChange = calculatePercentageChange(
+          currentStats.totalAffiliates, 
+          previousStats.totalAffiliates
+        );
+        
+        const activeAffiliateChange = calculatePercentageChange(
+          currentStats.activeAffiliates, 
+          previousStats.activeAffiliates
+        );
+        
+        const referralChange = calculatePercentageChange(
+          currentStats.totalReferrals, 
+          previousStats.totalReferrals
+        );
+        
+        const earningsChange = calculatePercentageChange(
+          currentStats.totalEarnings, 
+          previousStats.totalEarnings
+        );
+        
+        const payoutChange = calculatePercentageChange(
+          currentStats.pendingPayouts, 
+          previousStats.pendingPayouts
+        );
+
+        // Fetch recent activity
+        const activityData = await dashboardAPI.getRecentActivity(user.id);
+        
+        // Fetch chart data (last 6 months)
+        const chartData = await dashboardAPI.getChartData(user.id);
         
         const dashboardStats = [
           {
             name: 'Total Affiliates',
-            value: statsData.totalAffiliates,
+            value: currentStats.totalAffiliates,
             icon: UsersIcon,
-            change: '+12%',
-            changeType: 'positive',
+            change: affiliateChange,
+            changeType: affiliateChange.startsWith('+') ? 'positive' : 
+                       affiliateChange.startsWith('-') ? 'negative' : 'neutral',
           },
           {
             name: 'Active Affiliates',
-            value: statsData.activeAffiliates,
+            value: currentStats.activeAffiliates,
             icon: UsersIcon,
-            change: '+8%',
-            changeType: 'positive',
+            change: activeAffiliateChange,
+            changeType: activeAffiliateChange.startsWith('+') ? 'positive' : 
+                       activeAffiliateChange.startsWith('-') ? 'negative' : 'neutral',
           },
           {
             name: 'Total Referrals',
-            value: statsData.totalReferrals,
+            value: currentStats.totalReferrals,
             icon: ChartBarIcon,
-            change: '+15%',
-            changeType: 'positive',
+            change: referralChange,
+            changeType: referralChange.startsWith('+') ? 'positive' : 
+                       referralChange.startsWith('-') ? 'negative' : 'neutral',
           },
           {
             name: 'Total Earnings',
-            value: formatCurrency(statsData.totalEarnings),
+            value: formatCurrency(currentStats.totalEarnings, userCurrency as string),
             icon: CurrencyDollarIcon,
-            change: '+23%',
-            changeType: 'positive',
+            change: earningsChange,
+            changeType: earningsChange.startsWith('+') ? 'positive' : 
+                       earningsChange.startsWith('-') ? 'negative' : 'neutral',
           },
           {
             name: 'Pending Payouts',
-            value: formatCurrency(statsData.pendingPayouts),
+            value: formatCurrency(currentStats.pendingPayouts, userCurrency as string),
             icon: CreditCardIcon,
-            change: '+5%',
-            changeType: 'neutral',
+            change: payoutChange,
+            changeType: payoutChange.startsWith('+') ? 'positive' : 
+                       payoutChange.startsWith('-') ? 'negative' : 'neutral',
           },
         ];
         
         setStats(dashboardStats);
         setRecentActivity(activityData || []);
+        setChartData(chartData || []);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
@@ -78,15 +129,6 @@ export default function Dashboard() {
 
     fetchDashboardData();
   }, [user]);
-
-  const chartData = [
-    { month: 'Jan', referrals: 45, earnings: 1200 },
-    { month: 'Feb', referrals: 52, earnings: 1400 },
-    { month: 'Mar', referrals: 48, earnings: 1300 },
-    { month: 'Apr', referrals: 61, earnings: 1800 },
-    { month: 'May', referrals: 55, earnings: 1600 },
-    { month: 'Jun', referrals: 67, earnings: 2100 },
-  ];
 
   if (loading) {
     return (
@@ -121,7 +163,7 @@ export default function Dashboard() {
           {stats.map((item) => (
             <div
               key={item.name}
-              className="relative overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:px-6"
+              className="relative overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:px-6 dashboard-card"
             >
               <dt>
                 <div className="absolute rounded-md bg-indigo-500 p-3">
@@ -149,21 +191,26 @@ export default function Dashboard() {
 
         {/* Charts */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="rounded-lg bg-white p-6 shadow">
+          <div className="rounded-lg bg-white p-6 shadow dashboard-card">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Referrals & Earnings</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip />
+                <Tooltip 
+                  formatter={(value: any, name: string) => [
+                    name === 'referrals' ? value : formatCurrency(value, currency as string),
+                    name === 'referrals' ? 'Referrals' : 'Earnings'
+                  ]}
+                />
                 <Line type="monotone" dataKey="referrals" stroke="#3B82F6" strokeWidth={2} />
                 <Line type="monotone" dataKey="earnings" stroke="#10B981" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="rounded-lg bg-white p-6 shadow">
+          <div className="rounded-lg bg-white p-6 shadow dashboard-card">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Activity</h3>
             <div className="space-y-4">
               {recentActivity.length > 0 ? (
@@ -176,10 +223,10 @@ export default function Dashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900">
-                        {activity.affiliates?.name} earned commission
+                        {activity.affiliates?.name || 'Unknown Affiliate'} earned commission
                       </p>
                       <p className="text-sm text-gray-500">
-                        ${activity.commission} from {activity.programs?.name}
+                        {formatCurrency(activity.commission_earned || 0, currency as string)} from {activity.programs?.name || 'Unknown Program'}
                       </p>
                     </div>
                     <div className="text-sm text-gray-500">
