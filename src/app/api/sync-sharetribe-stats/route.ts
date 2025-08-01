@@ -56,9 +56,14 @@ export async function POST(request: NextRequest) {
     const sharetribeAPI = createSharetribeAPI(credentials);
 
     // Get user by email
+    console.log('🔍 Looking for user by email in ShareTribe:', userEmail);
     const user = await sharetribeAPI.getUserByEmail(userEmail);
     if (!user) {
       console.log('❌ User not found in ShareTribe:', userEmail);
+      console.log('🔍 This could mean:');
+      console.log('   - The email address does not exist in your dev environment');
+      console.log('   - The user exists but the API call failed');
+      console.log('   - There are no users in your dev environment yet');
       return NextResponse.json(
         { success: false, message: 'User not found in ShareTribe' },
         { status: 404 }

@@ -67,7 +67,13 @@ export async function GET(request: NextRequest) {
 
     console.log('ShareTribe connection successful, fetching users...');
     
+    // First, let's get marketplace info to confirm we're connected to the right place
+    console.log('🔍 Getting marketplace info...');
+    const marketplaceInfo = await sharetribeAPI.getMarketplaceInfo();
+    console.log('✅ Marketplace info:', marketplaceInfo);
+    
     // Get users from ShareTribe (limit to 10 for testing)
+    console.log('🔍 Fetching users from ShareTribe...');
     const users = await sharetribeAPI.getUsers(10, 0);
     console.log('Users API response:', users);
     
@@ -83,6 +89,7 @@ export async function GET(request: NextRequest) {
         success: true,
         message: 'No users found in ShareTribe marketplace',
         users: [],
+        marketplace: marketplaceInfo,
         instructions: 'Your ShareTribe marketplace appears to be empty. You may need to create some test users first.'
       });
     }
@@ -100,6 +107,7 @@ export async function GET(request: NextRequest) {
       success: true,
       message: `Found ${users.length} users in ShareTribe marketplace`,
       users: userList,
+      marketplace: marketplaceInfo,
       instructions: 'Use one of these email addresses to test the sync functionality'
     });
 
