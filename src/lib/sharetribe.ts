@@ -212,9 +212,9 @@ class SharetribeAPI {
         perPage: allListingsResponse.data?.meta?.perPage
       });
       
-      // Now get user-specific listings
+      // Now get user-specific listings - try different parameter names
       const response = await sdk.listings.query({ 
-        user_id: userId,
+        author_id: userId, // Try author_id instead of user_id
         perPage: limit
       });
       
@@ -263,7 +263,7 @@ class SharetribeAPI {
       
       // Get user-specific listings with total count
       const listingsResponse = await sdk.listings.query({ 
-        user_id: userId,
+        author_id: userId, // Use author_id instead of user_id
         perPage: 1000 // Get a large number to ensure we get all listings
       });
       

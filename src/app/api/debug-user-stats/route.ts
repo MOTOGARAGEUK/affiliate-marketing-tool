@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     try {
       const sdk = await sharetribeAPI['getSDK']();
       const listingsResponse = await sdk.listings.query({ 
-        user_id: userId,
+        author_id: userId, // Use author_id instead of user_id
         perPage: 1000
       });
       
