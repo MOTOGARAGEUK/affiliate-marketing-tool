@@ -247,27 +247,30 @@ class SharetribeAPI {
   // Get comprehensive user stats (listings, transactions, revenue)
   async getUserStats(userId: string): Promise<SharetribeUserStats | null> {
     try {
-      console.log('Fetching comprehensive stats for user:', userId);
+      console.log('🔍 getUserStats: Starting for user:', userId);
       
       // Get user details
+      console.log('🔍 getUserStats: Getting user details...');
       const user = await this.getUserById(userId);
       if (!user) {
-        console.log('User not found:', userId);
+        console.log('❌ getUserStats: User not found:', userId);
         return null;
       }
 
-      console.log('User found:', user);
+      console.log('✅ getUserStats: User found:', user.id, user.email);
 
       // Get user's listings with detailed logging
+      console.log('🔍 getUserStats: Getting listings...');
       const sdk = await this.getSDK();
       
       // Get user-specific listings with total count
+      console.log('🔍 getUserStats: Querying listings with author_id:', userId);
       const listingsResponse = await sdk.listings.query({ 
         author_id: userId, // Use author_id instead of user_id
         perPage: 1000 // Get a large number to ensure we get all listings
       });
       
-      console.log('Listings API response:', {
+      console.log('🔍 getUserStats: Listings API response:', {
         totalItems: listingsResponse.data?.meta?.totalItems,
         currentPage: listingsResponse.data?.meta?.page,
         perPage: listingsResponse.data?.meta?.perPage,
@@ -284,25 +287,26 @@ class SharetribeAPI {
         }));
       }
       
-      console.log('Total listings found:', listings.length);
-      console.log('Listing states:', listings.map(l => l.attributes.state));
+      console.log('✅ getUserStats: Total listings found:', listings.length);
+      console.log('🔍 getUserStats: Listing states:', listings.map(l => l.attributes.state));
       
       const activeListings = listings.filter(listing => {
         const state = listing.attributes?.state || listing.state;
         const isActive = state === 'published' || state === 'active';
-        console.log(`Listing ${listing.id}: state=${state}, active=${isActive}`);
+        console.log(`🔍 getUserStats: Listing ${listing.id}: state=${state}, active=${isActive}`);
         return isActive;
       });
 
-      console.log('Active listings count:', activeListings.length);
+      console.log('✅ getUserStats: Active listings count:', activeListings.length);
 
       // Get user's transactions (both as buyer and seller)
+      console.log('🔍 getUserStats: Getting transactions...');
       const transactionsResponse = await sdk.transactions.query({ 
         user_id: userId,
         perPage: 1000
       });
       
-      console.log('Transactions API response:', {
+      console.log('🔍 getUserStats: Transactions API response:', {
         totalItems: transactionsResponse.data?.meta?.totalItems,
         currentPage: transactionsResponse.data?.meta?.page,
         perPage: transactionsResponse.data?.meta?.perPage,
@@ -320,16 +324,16 @@ class SharetribeAPI {
         }));
       }
       
-      console.log('Total transactions found:', transactions.length);
+      console.log('✅ getUserStats: Total transactions found:', transactions.length);
       
       const completedTransactions = transactions.filter(transaction => {
         const lastTransition = transaction.attributes?.lastTransition || transaction.lastTransition;
         const isCompleted = lastTransition === 'confirmed' || lastTransition === 'completed';
-        console.log(`Transaction ${transaction.id}: transition=${lastTransition}, completed=${isCompleted}`);
+        console.log(`🔍 getUserStats: Transaction ${transaction.id}: transition=${lastTransition}, completed=${isCompleted}`);
         return isCompleted;
       });
 
-      console.log('Completed transactions count:', completedTransactions.length);
+      console.log('✅ getUserStats: Completed transactions count:', completedTransactions.length);
 
       // Calculate total revenue from completed transactions
       let totalRevenue = 0;
@@ -340,7 +344,7 @@ class SharetribeAPI {
         if (totalPrice && totalPrice.amount) {
           totalRevenue += totalPrice.amount;
           currency = totalPrice.currency || currency;
-          console.log(`Transaction ${transaction.id}: revenue=${totalPrice.amount} ${totalPrice.currency}`);
+          console.log(`🔍 getUserStats: Transaction ${transaction.id}: revenue=${totalPrice.amount} ${totalPrice.currency}`);
         }
       });
 
@@ -356,10 +360,11 @@ class SharetribeAPI {
         currency: currency
       };
 
-      console.log('Final user stats calculated:', stats);
+      console.log('✅ getUserStats: Final stats calculated:', stats);
       return stats;
     } catch (error) {
-      console.error('Error fetching user stats:', error);
+      console.error('❌ getUserStats: Error in getUserStats:', error);
+      console.error('❌ getUserStats: Error stack:', error instanceof Error ? error.stack : 'No stack');
       return null;
     }
   }
