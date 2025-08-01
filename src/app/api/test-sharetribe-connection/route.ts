@@ -1,107 +1,135 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const email = searchParams.get('email');
-    const userId = searchParams.get('userId');
-
-    if (!email) {
+    // Get the authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
       return NextResponse.json(
-        { success: false, message: 'Email parameter required' },
-        { status: 400 }
+        { success: false, message: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
-    if (!userId) {
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Create an authenticated client with the user's token
+    const authenticatedSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    );
+    
+    const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
+    
+    if (authError || !user) {
       return NextResponse.json(
-        { success: false, message: 'userId parameter required' },
-        { status: 400 }
+        { success: false, message: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
-    console.log('Testing ShareTribe connection for email:', email, 'user:', userId);
+    console.log('🔍 Testing ShareTribe connection for user:', user.id);
 
-    // Get ShareTribe credentials from database
-    const { getSharetribeCredentials } = await import('@/lib/sharetribe');
-    const credentials = await getSharetribeCredentials(userId);
+    // Check if user has ShareTribe integration configured
+    const { data: integrations, error: integrationsError } = await authenticatedSupabase
+      .from('integrations')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('type', 'sharetribe');
 
-    if (!credentials) {
-      console.error('No ShareTribe credentials found for user:', userId);
-      return NextResponse.json(
-        { success: false, message: 'ShareTribe integration not configured for this user' },
-        { status: 400 }
-      );
-    }
-
-    console.log('✅ Found ShareTribe credentials for user:', userId);
-
-    const { createSharetribeAPI } = await import('@/lib/sharetribe');
-    const sharetribeAPI = createSharetribeAPI(credentials);
-
-    // Test 1: Check API connection
-    console.log('Testing API connection...');
-    const connectionTest = await sharetribeAPI.testConnection();
-    console.log('Connection test result:', connectionTest);
-
-    // Test 2: Get user by email
-    console.log('Looking up user by email:', email);
-    const user = await sharetribeAPI.getUserByEmail(email);
-    console.log('User lookup result:', user);
-
-    if (!user) {
+    if (integrationsError) {
+      console.error('Error fetching integrations:', integrationsError);
       return NextResponse.json({
         success: false,
-        message: 'User not found in ShareTribe',
-        connectionTest,
-        email
-      });
+        message: 'Error fetching integrations',
+        error: integrationsError.message
+      }, { status: 500 });
     }
 
-    // Test 3: Get user stats
-    console.log('Getting user stats for user ID:', user.id);
-    const stats = await sharetribeAPI.getUserStats(user.id);
-    console.log('User stats result:', stats);
+    if (!integrations || integrations.length === 0) {
+      return NextResponse.json({
+        success: false,
+        message: 'No ShareTribe integration found',
+        instructions: 'Please configure ShareTribe integration in the Integrations page'
+      }, { status: 404 });
+    }
 
-    // Test 4: Get user listings directly
-    console.log('Getting user listings for user ID:', user.id);
-    const listings = await sharetribeAPI.getUserListings(user.id, 50);
-    console.log('User listings result:', listings);
+    const sharetribeIntegration = integrations[0];
+    console.log('✅ Found ShareTribe integration:', sharetribeIntegration.id);
 
-    // Test 5: Get user transactions directly
-    console.log('Getting user transactions for user ID:', user.id);
-    const transactions = await sharetribeAPI.getUserTransactions(user.id, 50);
-    console.log('User transactions result:', transactions);
+    // Test ShareTribe API connection
+    try {
+      const { getSharetribeCredentials, createSharetribeAPI } = await import('@/lib/sharetribe');
+      const credentials = await getSharetribeCredentials(user.id);
 
-    return NextResponse.json({
-      success: true,
-      connectionTest,
-      user: {
-        id: user.id,
-        email: user.email,
-        createdAt: user.createdAt,
-        profile: user.profile
-      },
-      stats,
-      listings: {
-        count: listings.length,
-        items: listings.slice(0, 5) // Show first 5 listings
-      },
-      transactions: {
-        count: transactions.length,
-        items: transactions.slice(0, 5) // Show first 5 transactions
+      if (!credentials) {
+        return NextResponse.json({
+          success: false,
+          message: 'ShareTribe credentials not found',
+          integration: sharetribeIntegration
+        }, { status: 404 });
       }
-    });
+
+      console.log('✅ Found ShareTribe credentials');
+
+      const sharetribeAPI = createSharetribeAPI(credentials);
+      
+      // Test basic connection
+      const connectionTest = await sharetribeAPI.testConnection();
+      
+      if (!connectionTest) {
+        return NextResponse.json({
+          success: false,
+          message: 'ShareTribe API connection failed',
+          integration: sharetribeIntegration,
+          credentials: {
+            hasClientId: !!credentials.clientId,
+            hasClientSecret: !!credentials.clientSecret,
+            hasMarketplaceUrl: !!credentials.marketplaceUrl
+          }
+        }, { status: 500 });
+      }
+
+      console.log('✅ ShareTribe API connection successful');
+
+      // Get marketplace info
+      const marketplaceInfo = await sharetribeAPI.getMarketplaceInfo();
+      
+      return NextResponse.json({
+        success: true,
+        message: 'ShareTribe connection successful',
+        integration: sharetribeIntegration,
+        marketplace: marketplaceInfo,
+        credentials: {
+          hasClientId: !!credentials.clientId,
+          hasClientSecret: !!credentials.clientSecret,
+          hasMarketplaceUrl: !!credentials.marketplaceUrl
+        }
+      });
+
+    } catch (sharetribeError) {
+      console.error('ShareTribe API error:', sharetribeError);
+      return NextResponse.json({
+        success: false,
+        message: 'ShareTribe API error',
+        error: sharetribeError instanceof Error ? sharetribeError.message : 'Unknown error',
+        integration: sharetribeIntegration
+      }, { status: 500 });
+    }
 
   } catch (error) {
-    console.error('ShareTribe connection test failed:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: 'ShareTribe connection test failed',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    console.error('Test ShareTribe connection error:', error);
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 } 
