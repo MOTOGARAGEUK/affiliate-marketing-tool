@@ -15,14 +15,47 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Debugging getUserStats for user:', userId);
 
-    // Get ShareTribe credentials (using a test user ID)
+    // Get the authorization header to get the actual user
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Create an authenticated client with the user's token
+    const authenticatedSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    );
+    
+    const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get ShareTribe credentials from the authenticated user
     const { getSharetribeCredentials } = await import('@/lib/sharetribe');
-    const credentials = await getSharetribeCredentials('test-user-id'); // We'll get credentials from any user
+    const credentials = await getSharetribeCredentials(user.id);
 
     if (!credentials) {
       return NextResponse.json({
         success: false,
-        message: 'ShareTribe credentials not found'
+        message: 'ShareTribe credentials not found for authenticated user'
       }, { status: 404 });
     }
 
