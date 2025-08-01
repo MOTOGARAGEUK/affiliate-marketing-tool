@@ -96,18 +96,8 @@ class SharetribeAPI {
     // Get new access token
     console.log('Requesting access token from Sharetribe...');
     
-    // Determine the correct auth URL based on marketplace URL
-    let authUrl = 'https://auth.sharetribe.com/oauth/token'; // Default to production
-    
-    if (this.config.marketplaceUrl) {
-      if (this.config.marketplaceUrl.includes('dev.sharetribe.com')) {
-        authUrl = 'https://auth.dev.sharetribe.com/oauth/token';
-      } else if (this.config.marketplaceUrl.includes('test.sharetribe.com')) {
-        authUrl = 'https://auth.test.sharetribe.com/oauth/token';
-      } else if (this.config.marketplaceUrl.includes('sharetribe.com')) {
-        authUrl = 'https://auth.sharetribe.com/oauth/token';
-      }
-    }
+    // Use the correct auth URL as per ShareTribe documentation
+    const authUrl = 'https://auth.sharetribe.com/oauth/token';
     
     console.log('Using auth URL:', authUrl);
     console.log('Marketplace URL:', this.config.marketplaceUrl);
@@ -144,19 +134,8 @@ class SharetribeAPI {
   private async makeRequest(endpoint: string, options: RequestInit = {}) {
     const token = await this.getAccessToken();
     
-    // Determine the correct API base URL based on marketplace URL
-    let baseUrl = 'https://api.sharetribe.com/v1'; // Default to production
-    
-    if (this.config.marketplaceUrl) {
-      if (this.config.marketplaceUrl.includes('dev.sharetribe.com')) {
-        baseUrl = 'https://api.dev.sharetribe.com/v1';
-      } else if (this.config.marketplaceUrl.includes('test.sharetribe.com')) {
-        baseUrl = 'https://api.test.sharetribe.com/v1';
-      } else if (this.config.marketplaceUrl.includes('sharetribe.com')) {
-        baseUrl = 'https://api.sharetribe.com/v1';
-      }
-    }
-    
+    // Use the Integration API base URL as per ShareTribe documentation
+    const baseUrl = 'https://flex-integ-api.sharetribe.com/v1';
     const url = `${baseUrl}${endpoint}`;
     
     console.log('Making ShareTribe API request to:', url);
@@ -184,7 +163,7 @@ class SharetribeAPI {
   // Get user by email
   async getUserByEmail(email: string): Promise<SharetribeUser | null> {
     try {
-      const response = await this.makeRequest(`/users?email=${encodeURIComponent(email)}`);
+      const response = await this.makeRequest(`/integration_api/users/query?email=${encodeURIComponent(email)}`);
       
       if (response.data && response.data.length > 0) {
         return response.data[0];
@@ -200,7 +179,7 @@ class SharetribeAPI {
   // Get user by ID
   async getUserById(userId: string): Promise<SharetribeUser | null> {
     try {
-      const response = await this.makeRequest(`/users/${userId}`);
+      const response = await this.makeRequest(`/integration_api/users/${userId}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching user by ID:', error);
@@ -211,7 +190,7 @@ class SharetribeAPI {
   // Get transactions for a user
   async getUserTransactions(userId: string, limit: number = 50): Promise<SharetribeTransaction[]> {
     try {
-      const response = await this.makeRequest(`/transactions?user_id=${userId}&limit=${limit}`);
+      const response = await this.makeRequest(`/integration_api/transactions/query?user_id=${userId}&limit=${limit}`);
       return response.data || [];
     } catch (error) {
       console.error('Error fetching user transactions:', error);
@@ -222,7 +201,7 @@ class SharetribeAPI {
   // Get listings for a user
   async getUserListings(userId: string, limit: number = 50): Promise<SharetribeListing[]> {
     try {
-      const response = await this.makeRequest(`/listings?author_id=${userId}&limit=${limit}`);
+      const response = await this.makeRequest(`/integration_api/listings/query?user_id=${userId}&limit=${limit}`);
       return response.data || [];
     } catch (error) {
       console.error('Error fetching user listings:', error);
@@ -283,10 +262,10 @@ class SharetribeAPI {
     }
   }
 
-  // Get all users (for tracking new signups)
+  // Get all users
   async getUsers(limit: number = 100, offset: number = 0): Promise<SharetribeUser[]> {
     try {
-      const response = await this.makeRequest(`/users?limit=${limit}&offset=${offset}`);
+      const response = await this.makeRequest(`/integration_api/users/query?limit=${limit}&offset=${offset}`);
       return response.data || [];
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -294,18 +273,13 @@ class SharetribeAPI {
     }
   }
 
-  // Test API connection
+  // Test connection
   async testConnection(): Promise<boolean> {
     try {
-      console.log('Testing Sharetribe API connection...');
-      console.log('Client ID:', this.config.clientId ? 'Set' : 'Not set');
-      console.log('Client Secret:', this.config.clientSecret ? 'Set' : 'Not set');
-      
-      const response = await this.makeRequest('/users?limit=1');
-      console.log('API connection successful:', response);
+      await this.makeRequest('/integration_api/marketplace/show');
       return true;
     } catch (error) {
-      console.error('Sharetribe API connection test failed:', error);
+      console.error('Connection test failed:', error);
       return false;
     }
   }
@@ -313,7 +287,7 @@ class SharetribeAPI {
   // Get marketplace info
   async getMarketplaceInfo(): Promise<any> {
     try {
-      const response = await this.makeRequest('');
+      const response = await this.makeRequest('/integration_api/marketplace/show');
       return response.data;
     } catch (error) {
       console.error('Error fetching marketplace info:', error);
