@@ -169,6 +169,33 @@ export default function Referrals() {
           >
             🧪 Test Create
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                const response = await fetch('/api/test-sharetribe-connection', {
+                  headers: {
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  }
+                });
+                const data = await response.json();
+                if (data.success) {
+                  console.log('✅ ShareTribe connection successful:', data);
+                  alert(`ShareTribe connection successful!\n\nMarketplace: ${data.marketplace?.name || 'Unknown'}\nStatus: Connected\n\nYou can now sync referrals with ShareTribe data.`);
+                } else {
+                  alert('ShareTribe connection failed:\n\n' + data.message + '\n\n' + (data.instructions || ''));
+                }
+              } catch (error) {
+                console.error('ShareTribe test error:', error);
+                alert('ShareTribe test error: ' + error);
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
+          >
+            🔗 Test ShareTribe
+          </button>
         </div>
       </div>
 
