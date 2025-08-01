@@ -49,16 +49,42 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
 
+    console.log('ShareTribe credentials found, creating API instance');
+
     const sharetribeAPI = createSharetribeAPI(credentials);
+    
+    // Test connection first
+    console.log('Testing ShareTribe connection...');
+    const connectionTest = await sharetribeAPI.testConnection();
+    console.log('Connection test result:', connectionTest);
+    
+    if (!connectionTest) {
+      return NextResponse.json({
+        success: false,
+        message: 'ShareTribe API connection failed'
+      }, { status: 500 });
+    }
+
+    console.log('ShareTribe connection successful, fetching users...');
     
     // Get users from ShareTribe (limit to 10 for testing)
     const users = await sharetribeAPI.getUsers(10, 0);
+    console.log('Users API response:', users);
     
-    if (!users || users.length === 0) {
+    if (!users) {
       return NextResponse.json({
         success: false,
-        message: 'No users found in ShareTribe marketplace'
-      }, { status: 404 });
+        message: 'Failed to fetch users from ShareTribe API'
+      }, { status: 500 });
+    }
+
+    if (users.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'No users found in ShareTribe marketplace',
+        users: [],
+        instructions: 'Your ShareTribe marketplace appears to be empty. You may need to create some test users first.'
+      });
     }
 
     // Format user data for display
@@ -81,7 +107,8 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching ShareTribe users:', error);
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
     }, { status: 500 });
   }
 } 
