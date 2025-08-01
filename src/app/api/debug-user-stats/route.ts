@@ -77,20 +77,7 @@ export async function POST(request: NextRequest) {
     // Step 2: Test listings query
     console.log('Step 2: Testing listings query...');
     try {
-      const sdk = await sharetribeAPI['getSDK']();
-      const listingsResponse = await sdk.listings.query({ 
-        author_id: userId, // Use author_id instead of user_id
-        perPage: 1000
-      });
-      
-      console.log('Listings API response:', {
-        totalItems: listingsResponse.data?.meta?.totalItems,
-        currentPage: listingsResponse.data?.meta?.page,
-        perPage: listingsResponse.data?.meta?.perPage,
-        dataLength: listingsResponse.data?.data?.length
-      });
-      
-      const listings = listingsResponse.data?.data || [];
+      const listings = await sharetribeAPI.getUserListings(userId, 1000);
       console.log('✅ Listings query successful, found:', listings.length);
       
     } catch (listingsError) {
@@ -106,20 +93,7 @@ export async function POST(request: NextRequest) {
     // Step 3: Test transactions query
     console.log('Step 3: Testing transactions query...');
     try {
-      const sdk = await sharetribeAPI['getSDK']();
-      const transactionsResponse = await sdk.transactions.query({ 
-        user_id: userId,
-        perPage: 1000
-      });
-      
-      console.log('Transactions API response:', {
-        totalItems: transactionsResponse.data?.meta?.totalItems,
-        currentPage: transactionsResponse.data?.meta?.page,
-        perPage: transactionsResponse.data?.meta?.perPage,
-        dataLength: transactionsResponse.data?.data?.length
-      });
-      
-      const transactions = transactionsResponse.data?.data || [];
+      const transactions = await sharetribeAPI.getUserTransactions(userId, 1000);
       console.log('✅ Transactions query successful, found:', transactions.length);
       
     } catch (transactionsError) {
