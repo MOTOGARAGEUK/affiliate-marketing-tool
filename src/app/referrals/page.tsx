@@ -270,7 +270,7 @@ export default function Referrals() {
                 });
                 const data = await response.json();
                 if (data.success) {
-                  alert(`Live sync completed!\n\nSynced: ${data.syncedCount}\nUpdated: ${data.updatedCount}\nErrors: ${data.errorCount || 0}`);
+                  alert(`Live sync completed!\n\nSynced: ${data.syncedCount}\nUpdated: ${data.updatedCount}\nErrors: ${data.errorCount || 0}\n\nDetails: ${JSON.stringify(data.details, null, 2)}`);
                   fetchReferrals(); // Refresh the data
                 } else {
                   alert('Live sync failed: ' + data.message);
@@ -283,6 +283,33 @@ export default function Referrals() {
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
           >
             🔄 Live Sync All
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                const response = await fetch('/api/test-sharetribe-basic', {
+                  headers: {
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  }
+                });
+                const data = await response.json();
+                if (data.success) {
+                  alert('Basic ShareTribe test successful!\n\nCheck console for details.');
+                  console.log('Basic ShareTribe test result:', data);
+                } else {
+                  alert('Basic ShareTribe test failed: ' + data.message + '\n\n' + JSON.stringify(data, null, 2));
+                }
+              } catch (error) {
+                console.error('Basic test error:', error);
+                alert('Basic test error: ' + error);
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+          >
+            🧪 Test Basic
           </button>
         </div>
       </div>

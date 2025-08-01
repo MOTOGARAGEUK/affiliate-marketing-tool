@@ -145,7 +145,12 @@ export async function POST(request: NextRequest) {
       syncedCount,
       updatedCount,
       errorCount: errors.length,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
+      details: {
+        totalReferrals: referrals.length,
+        processedUsers: Object.keys(referralsByUser).length,
+        errors: errors
+      }
     });
 
   } catch (error) {
