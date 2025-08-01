@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Test 1: Basic table access
+    // Test 1: Basic table access to see what columns exist
     const { data: basicData, error: basicError } = await supabase
       .from('referrals')
       .select('*')
@@ -23,10 +23,10 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Test 2: Check table structure
+    // Test 2: Check table structure with only basic columns
     const { data: structureData, error: structureError } = await supabase
       .from('referrals')
-      .select('id, created_at, commission_earned, user_id')
+      .select('id, created_at, user_id')
       .limit(0);
 
     if (structureError) {
@@ -38,14 +38,14 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Test 3: Date range query (the one causing 400 errors)
+    // Test 3: Date range query without commission_earned
     const now = new Date();
     const startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
 
     const { data: dateData, error: dateError } = await supabase
       .from('referrals')
-      .select('id, created_at, commission_earned')
+      .select('id, created_at')
       .gte('created_at', startDate.toISOString())
       .lt('created_at', endDate.toISOString())
       .limit(5);
@@ -79,6 +79,9 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
+    // Test 5: Try to get all column names from sample data
+    const availableColumns = basicData && basicData.length > 0 ? Object.keys(basicData[0]) : [];
+
     return NextResponse.json({
       success: true,
       tests: {
@@ -90,6 +93,7 @@ export async function GET(request: NextRequest) {
       sampleData: basicData,
       dateQueryData: dateData,
       countData: countData,
+      availableColumns: availableColumns,
       queryParams: {
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString()
