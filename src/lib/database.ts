@@ -168,21 +168,54 @@ export const affiliatesAPI = {
     console.log('Deleting affiliate ID:', id);
     console.log('User ID:', userId);
     
-    const { data, error } = await getSupabase()
-      .from('affiliates')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', userId)
-      .select();
+    try {
+      // First, delete related records to avoid foreign key constraint issues
+      console.log('Deleting related referrals...');
+      const { error: referralsError } = await getSupabase()
+        .from('referrals')
+        .delete()
+        .eq('affiliate_id', id)
+        .eq('user_id', userId);
 
-    if (error) {
-      console.error('❌ Database delete error:', error);
+      if (referralsError) {
+        console.error('❌ Error deleting referrals:', referralsError);
+        throw referralsError;
+      }
+
+      console.log('Deleting related payouts...');
+      const { error: payoutsError } = await getSupabase()
+        .from('payouts')
+        .delete()
+        .eq('affiliate_id', id)
+        .eq('user_id', userId);
+
+      if (payoutsError) {
+        console.error('❌ Error deleting payouts:', payoutsError);
+        throw payoutsError;
+      }
+
+      // Now delete the affiliate
+      console.log('Deleting affiliate...');
+      const { data, error } = await getSupabase()
+        .from('affiliates')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId)
+        .select();
+
+      if (error) {
+        console.error('❌ Database delete error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Database delete successful, rows affected:', data?.length || 0);
+      console.log('=== END DATABASE DELETE DEBUG ===');
+      return true;
+    } catch (error) {
+      console.error('❌ Error in delete operation:', error);
+      console.log('=== END DATABASE DELETE DEBUG ===');
       throw error;
     }
-    
-    console.log('✅ Database delete successful, rows affected:', data?.length || 0);
-    console.log('=== END DATABASE DELETE DEBUG ===');
-    return true;
   }
 };
 

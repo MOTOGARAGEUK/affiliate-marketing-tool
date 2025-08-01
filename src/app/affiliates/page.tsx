@@ -156,29 +156,45 @@ export default function Affiliates() {
 
   const handleDeleteAffiliate = async (id: string) => {
     try {
+      console.log('=== DELETE AFFILIATE DEBUG ===');
+      console.log('Deleting affiliate ID:', id);
+      
       setIsDeleting(true);
       const { data: { session } } = await supabase().auth.getSession();
       const token = session?.access_token;
       
+      console.log('Session exists:', !!session);
+      console.log('Token exists:', !!token);
+      
       const response = await fetch(`/api/affiliates/${id}`, {
         method: 'DELETE',
         headers: {
+          'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` })
         }
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
       const data = await response.json();
+      console.log('Response data:', data);
+      
       if (data.success) {
+        console.log('✅ Affiliate deleted successfully');
         // Refresh data from database instead of just updating local state
         await fetchData();
         setDeletingAffiliate(null);
       } else {
-        console.error('Failed to delete affiliate:', data.message);
+        console.error('❌ Failed to delete affiliate:', data.message);
+        alert(`Failed to delete affiliate: ${data.message}`);
       }
     } catch (error) {
-      console.error('Failed to delete affiliate:', error);
+      console.error('❌ Error deleting affiliate:', error);
+      alert(`Error deleting affiliate: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsDeleting(false);
+      console.log('=== END DELETE AFFILIATE DEBUG ===');
     }
   };
 
