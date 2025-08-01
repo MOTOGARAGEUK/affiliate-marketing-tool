@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
 
     console.log('ShareTribe connection successful, fetching users...');
     
-    // First, let's get marketplace info to confirm we're connected to the right place
+    // Get marketplace info
     console.log('🔍 Getting marketplace info...');
     const marketplaceInfo = await sharetribeAPI.getMarketplaceInfo();
     console.log('✅ Marketplace info:', marketplaceInfo);
@@ -94,14 +94,26 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Format user data for display
-    const userList = users.map(user => ({
-      id: user.id,
-      email: user.email,
-      displayName: user.profile?.displayName || user.attributes?.profile?.displayName || 'No name',
-      createdAt: user.createdAt,
-      hasReferralCode: !!(user.attributes?.referralCode || user.attributes?.affiliateCode)
-    }));
+    // Format user data for display - handle both possible data structures
+    const userList = users.map(user => {
+      // Handle different possible user data structures
+      const email = user.email || user.attributes?.email || 'No email';
+      const displayName = user.profile?.displayName || 
+                         user.attributes?.profile?.displayName || 
+                         'No name';
+      const createdAt = user.createdAt || user.attributes?.createdAt || 'Unknown';
+      
+      return {
+        id: user.id,
+        email: email,
+        displayName: displayName,
+        createdAt: createdAt,
+        hasReferralCode: !!(user.profile?.referralCode || 
+                           user.attributes?.profile?.referralCode ||
+                           user.profile?.affiliateCode || 
+                           user.attributes?.profile?.affiliateCode)
+      };
+    });
 
     return NextResponse.json({
       success: true,

@@ -35,6 +35,11 @@ export interface SharetribeUser {
 export interface SharetribeTransaction {
   id: string;
   type: 'transaction';
+  lastTransition?: string; // Add direct lastTransition property
+  totalPrice?: { // Add direct totalPrice property
+    amount: number;
+    currency: string;
+  };
   attributes: {
     lastTransition: string;
     lastTransitionedAt: string;
@@ -55,6 +60,7 @@ export interface SharetribeTransaction {
 export interface SharetribeListing {
   id: string;
   type: 'listing';
+  state?: string; // Add direct state property
   attributes: {
     title: string;
     description: string;
@@ -221,33 +227,44 @@ class SharetribeAPI {
         return null;
       }
 
+      console.log('User found:', user);
+
       // Get user's listings
       const listings = await this.getUserListings(userId, 100);
-      const activeListings = listings.filter(listing => 
-        listing.attributes.state === 'published' || listing.attributes.state === 'active'
-      );
+      console.log('Listings found:', listings.length);
+      
+      const activeListings = listings.filter(listing => {
+        const state = listing.attributes?.state || listing.state;
+        return state === 'published' || state === 'active';
+      });
 
       // Get user's transactions (both as buyer and seller)
       const transactions = await this.getUserTransactions(userId, 100);
-      const completedTransactions = transactions.filter(transaction => 
-        transaction.attributes.lastTransition === 'confirmed' || 
-        transaction.attributes.lastTransition === 'completed'
-      );
+      console.log('Transactions found:', transactions.length);
+      
+      const completedTransactions = transactions.filter(transaction => {
+        const lastTransition = transaction.attributes?.lastTransition || transaction.lastTransition;
+        return lastTransition === 'confirmed' || lastTransition === 'completed';
+      });
 
       // Calculate total revenue from completed transactions
       let totalRevenue = 0;
       let currency = 'USD';
       
       completedTransactions.forEach(transaction => {
-        if (transaction.attributes.totalPrice) {
-          totalRevenue += transaction.attributes.totalPrice.amount;
-          currency = transaction.attributes.totalPrice.currency;
+        const totalPrice = transaction.attributes?.totalPrice || transaction.totalPrice;
+        if (totalPrice && totalPrice.amount) {
+          totalRevenue += totalPrice.amount;
+          currency = totalPrice.currency || currency;
         }
       });
 
+      // Get user creation date
+      const createdAt = user.createdAt || user.attributes?.createdAt || new Date().toISOString();
+
       const stats: SharetribeUserStats = {
         userId: userId,
-        createdAt: user.createdAt,
+        createdAt: createdAt,
         listingsCount: activeListings.length,
         transactionsCount: completedTransactions.length,
         totalRevenue: totalRevenue,
