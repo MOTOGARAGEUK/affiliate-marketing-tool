@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-// @ts-ignore
-import sharetribeIntegrationSdk from 'sharetribe-flex-integration-sdk';
 
 export async function GET(request: NextRequest) {
   try {
@@ -57,12 +55,63 @@ export async function GET(request: NextRequest) {
       marketplaceUrl: credentials.marketplaceUrl || 'Not set'
     });
 
+    // Try to import the SDK dynamically
+    console.log('Attempting to import ShareTribe SDK...');
+    let sharetribeIntegrationSdk;
+    try {
+      sharetribeIntegrationSdk = await import('sharetribe-flex-integration-sdk');
+      console.log('SDK imported successfully');
+    } catch (importError) {
+      console.error('Failed to import ShareTribe SDK:', importError);
+      return NextResponse.json({
+        success: false,
+        message: 'Failed to import ShareTribe SDK',
+        error: importError instanceof Error ? importError.message : 'Unknown import error',
+        credentials: {
+          clientId: credentials.clientId ? 'Set' : 'Not set',
+          clientSecret: credentials.clientSecret ? 'Set' : 'Not set',
+          marketplaceUrl: credentials.marketplaceUrl || 'Not set'
+        }
+      }, { status: 500 });
+    }
+
+    // Check if createInstance exists
+    if (!sharetribeIntegrationSdk || !sharetribeIntegrationSdk.createInstance) {
+      console.error('ShareTribe SDK createInstance not found:', sharetribeIntegrationSdk);
+      return NextResponse.json({
+        success: false,
+        message: 'ShareTribe SDK createInstance method not found',
+        sdkKeys: sharetribeIntegrationSdk ? Object.keys(sharetribeIntegrationSdk) : 'No SDK object',
+        credentials: {
+          clientId: credentials.clientId ? 'Set' : 'Not set',
+          clientSecret: credentials.clientSecret ? 'Set' : 'Not set',
+          marketplaceUrl: credentials.marketplaceUrl || 'Not set'
+        }
+      }, { status: 500 });
+    }
+
     // Create SDK instance
     console.log('Creating ShareTribe SDK instance...');
-    const sdk = sharetribeIntegrationSdk.createInstance({
-      clientId: credentials.clientId,
-      clientSecret: credentials.clientSecret
-    });
+    let sdk;
+    try {
+      sdk = sharetribeIntegrationSdk.createInstance({
+        clientId: credentials.clientId,
+        clientSecret: credentials.clientSecret
+      });
+      console.log('SDK instance created successfully');
+    } catch (sdkError) {
+      console.error('Failed to create SDK instance:', sdkError);
+      return NextResponse.json({
+        success: false,
+        message: 'Failed to create ShareTribe SDK instance',
+        error: sdkError instanceof Error ? sdkError.message : 'Unknown SDK error',
+        credentials: {
+          clientId: credentials.clientId ? 'Set' : 'Not set',
+          clientSecret: credentials.clientSecret ? 'Set' : 'Not set',
+          marketplaceUrl: credentials.marketplaceUrl || 'Not set'
+        }
+      }, { status: 500 });
+    }
 
     // Step 1: Test marketplace endpoint
     console.log('Step 1: Testing marketplace endpoint...');

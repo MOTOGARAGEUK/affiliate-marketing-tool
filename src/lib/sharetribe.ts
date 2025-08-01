@@ -1,6 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-// @ts-ignore
-import sharetribeIntegrationSdk from 'sharetribe-flex-integration-sdk';
 
 export interface SharetribeConfig {
   clientId: string;
@@ -92,14 +90,23 @@ class SharetribeAPI {
 
   constructor(config: SharetribeConfig) {
     this.config = config;
-    
-    // Create SDK instance with the official ShareTribe SDK
-    this.sdk = sharetribeIntegrationSdk.createInstance({
-      clientId: config.clientId,
-      clientSecret: config.clientSecret
-    });
-    
-    console.log('ShareTribe SDK instance created with client ID:', config.clientId ? 'Set' : 'Not set');
+  }
+
+  private async getSDK() {
+    if (!this.sdk) {
+      try {
+        const sharetribeIntegrationSdk = await import('sharetribe-flex-integration-sdk');
+        this.sdk = sharetribeIntegrationSdk.createInstance({
+          clientId: this.config.clientId,
+          clientSecret: this.config.clientSecret
+        });
+        console.log('ShareTribe SDK instance created with client ID:', this.config.clientId ? 'Set' : 'Not set');
+      } catch (error) {
+        console.error('Failed to create ShareTribe SDK instance:', error);
+        throw error;
+      }
+    }
+    return this.sdk;
   }
 
   // Get user by email
@@ -107,7 +114,8 @@ class SharetribeAPI {
     try {
       console.log('Searching for user by email:', email);
       
-      const response = await this.sdk.users.query({ email });
+      const sdk = await this.getSDK();
+      const response = await sdk.users.query({ email });
       
       if (response.data && response.data.data && response.data.data.length > 0) {
         const userData = response.data.data[0];
@@ -135,7 +143,8 @@ class SharetribeAPI {
     try {
       console.log('Fetching user by ID:', userId);
       
-      const response = await this.sdk.users.show({ id: userId });
+      const sdk = await this.getSDK();
+      const response = await sdk.users.show({ id: userId });
       
       if (response.data && response.data.data) {
         const userData = response.data.data;
@@ -162,7 +171,8 @@ class SharetribeAPI {
     try {
       console.log('Fetching transactions for user:', userId);
       
-      const response = await this.sdk.transactions.query({ 
+      const sdk = await this.getSDK();
+      const response = await sdk.transactions.query({ 
         user_id: userId,
         perPage: limit
       });
@@ -189,7 +199,8 @@ class SharetribeAPI {
     try {
       console.log('Fetching listings for user:', userId);
       
-      const response = await this.sdk.listings.query({ 
+      const sdk = await this.getSDK();
+      const response = await sdk.listings.query({ 
         user_id: userId,
         perPage: limit
       });
@@ -279,7 +290,8 @@ class SharetribeAPI {
     try {
       console.log('Fetching users with limit:', limit, 'offset:', offset);
       
-      const response = await this.sdk.users.query({ 
+      const sdk = await this.getSDK();
+      const response = await sdk.users.query({ 
         perPage: limit,
         page: Math.floor(offset / limit) + 1
       });
@@ -306,7 +318,8 @@ class SharetribeAPI {
     try {
       console.log('Testing ShareTribe SDK connection...');
       
-      const response = await this.sdk.marketplace.show();
+      const sdk = await this.getSDK();
+      const response = await sdk.marketplace.show();
       
       if (response.data && response.data.data) {
         console.log('Connection successful, marketplace:', response.data.data.attributes.name);
@@ -325,7 +338,8 @@ class SharetribeAPI {
     try {
       console.log('Fetching marketplace info...');
       
-      const response = await this.sdk.marketplace.show();
+      const sdk = await this.getSDK();
+      const response = await sdk.marketplace.show();
       
       if (response.data && response.data.data) {
         return response.data.data;
@@ -344,7 +358,8 @@ class SharetribeAPI {
       console.log('Updating user metadata for user:', userId);
       console.log('Metadata to update:', metadata);
       
-      const response = await this.sdk.users.update({
+      const sdk = await this.getSDK();
+      const response = await sdk.users.update({
         id: userId,
         profile: metadata
       });
