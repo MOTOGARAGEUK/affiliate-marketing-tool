@@ -109,7 +109,10 @@ export async function POST(request: NextRequest) {
     // Step 4: Test full getUserStats
     console.log('Step 4: Testing full getUserStats...');
     try {
+      console.log('Step 4a: About to call getUserStats with userId:', userId);
       const stats = await sharetribeAPI.getUserStats(userId);
+      
+      console.log('Step 4b: getUserStats returned:', stats);
       
       if (!stats) {
         console.log('❌ getUserStats returned null');
@@ -136,6 +139,7 @@ export async function POST(request: NextRequest) {
 
     } catch (getUserStatsError) {
       console.error('❌ getUserStats error:', getUserStatsError);
+      console.error('❌ getUserStats error stack:', getUserStatsError instanceof Error ? getUserStatsError.stack : 'No stack');
       return NextResponse.json({
         success: false,
         message: 'getUserStats threw an error',

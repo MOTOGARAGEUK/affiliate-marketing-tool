@@ -1,115 +1,115 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createSharetribeAPI, getSharetribeCredentials } from '@/lib/sharetribe';
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    // Get the authorization header
+    // Get authenticated user
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, message: 'No authorization header' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
+    const { createClient } = await import('@supabase/supabase-js');
     
-    // Create an authenticated client with the user's token
-    const authenticatedSupabase = createClient(
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      }
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-    
-    const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
-    
-    if (authError || !user) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
-    console.log('Testing basic ShareTribe connection for user:', user.id);
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !authUser) {
+      return NextResponse.json({ success: false, message: 'Authentication failed' }, { status: 401 });
+    }
 
     // Get ShareTribe credentials
-    const { getSharetribeCredentials } = await import('@/lib/sharetribe');
-    const credentials = await getSharetribeCredentials(user.id);
-
+    const credentials = await getSharetribeCredentials(authUser.id);
     if (!credentials) {
-      return NextResponse.json({
-        success: false,
-        message: 'ShareTribe credentials not found',
-        details: 'No ShareTribe settings found in database'
-      }, { status: 404 });
+      return NextResponse.json({ success: false, message: 'No ShareTribe credentials found' }, { status: 400 });
     }
 
-    console.log('ShareTribe credentials found:', {
-      clientId: credentials.clientId ? 'Set' : 'Not set',
-      clientSecret: credentials.clientSecret ? 'Set' : 'Not set',
-      marketplaceUrl: credentials.marketplaceUrl || 'Not set'
-    });
-
-    // Test basic connection
-    const { createSharetribeAPI } = await import('@/lib/sharetribe');
     const sharetribeAPI = createSharetribeAPI(credentials);
 
-    console.log('Testing ShareTribe connection...');
+    // Test connection
+    console.log('🔍 Testing ShareTribe connection...');
     const connectionTest = await sharetribeAPI.testConnection();
-    
-    if (!connectionTest) {
-      return NextResponse.json({
-        success: false,
-        message: 'ShareTribe connection failed',
-        details: 'Could not connect to ShareTribe API'
-      }, { status: 500 });
-    }
-
-    console.log('ShareTribe connection successful');
+    console.log('✅ Connection test result:', connectionTest);
 
     // Get marketplace info
-    const marketplaceInfo = await sharetribeAPI.getMarketplaceInfo();
-    
-    if (!marketplaceInfo) {
+    console.log('🔍 Getting marketplace info...');
+    const marketplace = await sharetribeAPI.getMarketplaceInfo();
+    console.log('✅ Marketplace info:', marketplace);
+
+    // Get sample users
+    console.log('🔍 Getting sample users...');
+    const users = await sharetribeAPI.getUsers(5);
+    console.log('✅ Sample users found:', users.length);
+
+    if (users.length === 0) {
       return NextResponse.json({
         success: false,
-        message: 'Could not fetch marketplace info',
-        details: 'Marketplace info request failed'
-      }, { status: 500 });
+        message: 'No users found in ShareTribe marketplace'
+      });
     }
 
-    // Get a few users to test user fetching
-    const users = await sharetribeAPI.getUsers(5, 0);
-    
+    // Test with first user
+    const testUser = users[0];
+    console.log('🔍 Testing with user:', testUser.email);
+
+    // Test individual components
+    console.log('🔍 Testing getUserById...');
+    const userById = await sharetribeAPI.getUserById(testUser.id);
+    console.log('✅ getUserById result:', userById ? 'Success' : 'Failed');
+
+    console.log('🔍 Testing getUserListings...');
+    const listings = await sharetribeAPI.getUserListings(testUser.id);
+    console.log('✅ getUserListings result:', listings.length, 'listings');
+
+    console.log('🔍 Testing getUserTransactions...');
+    const transactions = await sharetribeAPI.getUserTransactions(testUser.id);
+    console.log('✅ getUserTransactions result:', transactions.length, 'transactions');
+
+    // Test getUserStats step by step
+    console.log('🔍 Testing getUserStats step by step...');
+    try {
+      const stats = await sharetribeAPI.getUserStats(testUser.id);
+      console.log('✅ getUserStats result:', stats);
+    } catch (statsError) {
+      console.error('❌ getUserStats error:', statsError);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Basic ShareTribe test successful',
       credentials: {
         clientId: credentials.clientId ? 'Set' : 'Not set',
         clientSecret: credentials.clientSecret ? 'Set' : 'Not set',
-        marketplaceUrl: credentials.marketplaceUrl || 'Not set'
+        marketplaceUrl: credentials.marketplaceUrl
       },
-      marketplace: marketplaceInfo,
-      usersFound: users.length,
-      sampleUsers: users.slice(0, 3).map(u => ({
-        id: u.id,
-        email: u.email,
-        displayName: u.profile?.displayName || 'No name'
-      }))
+      marketplace: {
+        id: marketplace?.id,
+        name: marketplace?.attributes?.name,
+        description: marketplace?.attributes?.description
+      },
+      sampleUsers: users.slice(0, 3).map(user => ({
+        id: user.id,
+        email: user.email,
+        displayName: user.profile?.displayName
+      })),
+      testResults: {
+        userById: userById ? 'Success' : 'Failed',
+        listings: listings.length,
+        transactions: transactions.length,
+        getUserStats: 'See console for details'
+      }
     });
 
   } catch (error) {
-    console.error('Basic ShareTribe test error:', error);
+    console.error('Error in basic ShareTribe test:', error);
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
+      message: 'Basic ShareTribe test failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 } 
