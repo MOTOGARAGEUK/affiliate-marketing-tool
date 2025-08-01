@@ -1,4 +1,6 @@
-// Sharetribe API utilities for marketplace integration
+import { createClient } from '@supabase/supabase-js';
+// @ts-ignore
+import sharetribeIntegrationSdk from 'sharetribe-flex-integration-sdk';
 
 export interface SharetribeConfig {
   clientId: string;
@@ -35,8 +37,8 @@ export interface SharetribeUser {
 export interface SharetribeTransaction {
   id: string;
   type: 'transaction';
-  lastTransition?: string; // Add direct lastTransition property
-  totalPrice?: { // Add direct totalPrice property
+  lastTransition?: string;
+  totalPrice?: {
     amount: number;
     currency: string;
   };
@@ -60,7 +62,7 @@ export interface SharetribeTransaction {
 export interface SharetribeListing {
   id: string;
   type: 'listing';
-  state?: string; // Add direct state property
+  state?: string;
   attributes: {
     title: string;
     description: string;
@@ -85,117 +87,42 @@ export interface SharetribeUserStats {
 }
 
 class SharetribeAPI {
+  private sdk: any;
   private config: SharetribeConfig;
-  private accessToken: string | null = null;
-  private tokenExpiry: number = 0;
 
   constructor(config: SharetribeConfig) {
     this.config = config;
-  }
-
-  private async getAccessToken(): Promise<string> {
-    // Check if we have a valid token
-    if (this.accessToken && Date.now() < this.tokenExpiry) {
-      return this.accessToken;
-    }
-
-    // Get new access token
-    console.log('Requesting access token from Sharetribe...');
     
-    // Determine the correct auth URL based on marketplace URL
-    let authUrl = 'https://auth.dev.sharetribe.com/oauth/token'; // Default to dev
-    
-    if (this.config.marketplaceUrl) {
-      if (this.config.marketplaceUrl.includes('dev.sharetribe.com')) {
-        authUrl = 'https://auth.dev.sharetribe.com/oauth/token';
-      } else if (this.config.marketplaceUrl.includes('test.sharetribe.com')) {
-        authUrl = 'https://auth.test.sharetribe.com/oauth/token';
-      } else if (this.config.marketplaceUrl.includes('sharetribe.com')) {
-        authUrl = 'https://auth.sharetribe.com/oauth/token';
-      }
-    }
-    
-    console.log('Using auth URL:', authUrl);
-    console.log('Marketplace URL:', this.config.marketplaceUrl);
-    
-    const response = await fetch(authUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: this.config.clientId,
-        client_secret: this.config.clientSecret,
-      }),
+    // Create SDK instance with the official ShareTribe SDK
+    this.sdk = sharetribeIntegrationSdk.createInstance({
+      clientId: config.clientId,
+      clientSecret: config.clientSecret
     });
-
-    console.log('Token response status:', response.status, response.statusText);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Token request failed:', errorText);
-      throw new Error(`Failed to get access token: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log('Token response data:', { access_token: data.access_token ? 'Received' : 'Missing', expires_in: data.expires_in });
     
-    this.accessToken = data.access_token;
-    this.tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000; // Expire 1 minute early
-
-    return this.accessToken || '';
-  }
-
-  private async makeRequest(endpoint: string, options: RequestInit = {}) {
-    const token = await this.getAccessToken();
-    
-    // Determine the correct API base URL based on marketplace URL
-    let baseUrl = 'https://api.dev.sharetribe.com/v1'; // Default to dev
-    
-    if (this.config.marketplaceUrl) {
-      if (this.config.marketplaceUrl.includes('dev.sharetribe.com')) {
-        baseUrl = 'https://api.dev.sharetribe.com/v1';
-      } else if (this.config.marketplaceUrl.includes('test.sharetribe.com')) {
-        baseUrl = 'https://api.test.sharetribe.com/v1';
-      } else if (this.config.marketplaceUrl.includes('sharetribe.com')) {
-        baseUrl = 'https://flex-integ-api.sharetribe.com/v1';
-      }
-    }
-    
-    const url = `${baseUrl}${endpoint}`;
-    
-    console.log('Making ShareTribe API request to:', url);
-    console.log('Marketplace URL:', this.config.marketplaceUrl);
-    console.log('Using API base URL:', baseUrl);
-    
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('ShareTribe API error:', response.status, response.statusText, errorText);
-      throw new Error(`Sharetribe API error: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-
-    return response.json();
+    console.log('ShareTribe SDK instance created with client ID:', config.clientId ? 'Set' : 'Not set');
   }
 
   // Get user by email
   async getUserByEmail(email: string): Promise<SharetribeUser | null> {
     try {
-      const response = await this.makeRequest(`/integration_api/users/query?email=${encodeURIComponent(email)}`);
+      console.log('Searching for user by email:', email);
       
-      if (response.data && response.data.length > 0) {
-        return response.data[0];
+      const response = await this.sdk.users.query({ email });
+      
+      if (response.data && response.data.data && response.data.data.length > 0) {
+        const userData = response.data.data[0];
+        console.log('User found:', userData.id);
+        
+        return {
+          id: userData.id,
+          email: userData.attributes.email,
+          profile: userData.attributes.profile || {},
+          attributes: userData.attributes,
+          createdAt: userData.attributes.createdAt
+        };
       }
       
+      console.log('No user found with email:', email);
       return null;
     } catch (error) {
       console.error('Error fetching user by email:', error);
@@ -206,8 +133,24 @@ class SharetribeAPI {
   // Get user by ID
   async getUserById(userId: string): Promise<SharetribeUser | null> {
     try {
-      const response = await this.makeRequest(`/integration_api/users/${userId}`);
-      return response.data;
+      console.log('Fetching user by ID:', userId);
+      
+      const response = await this.sdk.users.show({ id: userId });
+      
+      if (response.data && response.data.data) {
+        const userData = response.data.data;
+        console.log('User found:', userData.id);
+        
+        return {
+          id: userData.id,
+          email: userData.attributes.email,
+          profile: userData.attributes.profile || {},
+          attributes: userData.attributes,
+          createdAt: userData.attributes.createdAt
+        };
+      }
+      
+      return null;
     } catch (error) {
       console.error('Error fetching user by ID:', error);
       return null;
@@ -217,8 +160,24 @@ class SharetribeAPI {
   // Get transactions for a user
   async getUserTransactions(userId: string, limit: number = 50): Promise<SharetribeTransaction[]> {
     try {
-      const response = await this.makeRequest(`/integration_api/transactions/query?user_id=${userId}&limit=${limit}`);
-      return response.data || [];
+      console.log('Fetching transactions for user:', userId);
+      
+      const response = await this.sdk.transactions.query({ 
+        user_id: userId,
+        perPage: limit
+      });
+      
+      if (response.data && response.data.data) {
+        return response.data.data.map((transaction: any) => ({
+          id: transaction.id,
+          type: 'transaction',
+          lastTransition: transaction.attributes.lastTransition,
+          totalPrice: transaction.attributes.totalPrice,
+          attributes: transaction.attributes
+        }));
+      }
+      
+      return [];
     } catch (error) {
       console.error('Error fetching user transactions:', error);
       return [];
@@ -228,8 +187,23 @@ class SharetribeAPI {
   // Get listings for a user
   async getUserListings(userId: string, limit: number = 50): Promise<SharetribeListing[]> {
     try {
-      const response = await this.makeRequest(`/integration_api/listings/query?user_id=${userId}&limit=${limit}`);
-      return response.data || [];
+      console.log('Fetching listings for user:', userId);
+      
+      const response = await this.sdk.listings.query({ 
+        user_id: userId,
+        perPage: limit
+      });
+      
+      if (response.data && response.data.data) {
+        return response.data.data.map((listing: any) => ({
+          id: listing.id,
+          type: 'listing',
+          state: listing.attributes.state,
+          attributes: listing.attributes
+        }));
+      }
+      
+      return [];
     } catch (error) {
       console.error('Error fetching user listings:', error);
       return [];
@@ -303,8 +277,24 @@ class SharetribeAPI {
   // Get all users
   async getUsers(limit: number = 100, offset: number = 0): Promise<SharetribeUser[]> {
     try {
-      const response = await this.makeRequest(`/integration_api/users/query?limit=${limit}&offset=${offset}`);
-      return response.data || [];
+      console.log('Fetching users with limit:', limit, 'offset:', offset);
+      
+      const response = await this.sdk.users.query({ 
+        perPage: limit,
+        page: Math.floor(offset / limit) + 1
+      });
+      
+      if (response.data && response.data.data) {
+        return response.data.data.map((user: any) => ({
+          id: user.id,
+          email: user.attributes.email,
+          profile: user.attributes.profile || {},
+          attributes: user.attributes,
+          createdAt: user.attributes.createdAt
+        }));
+      }
+      
+      return [];
     } catch (error) {
       console.error('Error fetching users:', error);
       return [];
@@ -314,8 +304,16 @@ class SharetribeAPI {
   // Test connection
   async testConnection(): Promise<boolean> {
     try {
-      await this.makeRequest('/integration_api/marketplace/show');
-      return true;
+      console.log('Testing ShareTribe SDK connection...');
+      
+      const response = await this.sdk.marketplace.show();
+      
+      if (response.data && response.data.data) {
+        console.log('Connection successful, marketplace:', response.data.data.attributes.name);
+        return true;
+      }
+      
+      return false;
     } catch (error) {
       console.error('Connection test failed:', error);
       return false;
@@ -325,8 +323,15 @@ class SharetribeAPI {
   // Get marketplace info
   async getMarketplaceInfo(): Promise<any> {
     try {
-      const response = await this.makeRequest('/integration_api/marketplace/show');
-      return response.data;
+      console.log('Fetching marketplace info...');
+      
+      const response = await this.sdk.marketplace.show();
+      
+      if (response.data && response.data.data) {
+        return response.data.data;
+      }
+      
+      return null;
     } catch (error) {
       console.error('Error fetching marketplace info:', error);
       return null;
@@ -339,21 +344,17 @@ class SharetribeAPI {
       console.log('Updating user metadata for user:', userId);
       console.log('Metadata to update:', metadata);
       
-      const response = await this.makeRequest(`/users/${userId}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          data: {
-            type: 'user',
-            id: userId,
-            attributes: {
-              publicData: metadata
-            }
-          }
-        })
+      const response = await this.sdk.users.update({
+        id: userId,
+        profile: metadata
       });
       
-      console.log('User metadata updated successfully:', response);
-      return true;
+      if (response.data && response.data.data) {
+        console.log('User metadata updated successfully');
+        return true;
+      }
+      
+      return false;
     } catch (error) {
       console.error('Error updating user metadata:', error);
       return false;
@@ -361,17 +362,12 @@ class SharetribeAPI {
   }
 }
 
-export default SharetribeAPI;
-
-// Utility function to create Sharetribe API instance
 export function createSharetribeAPI(config: SharetribeConfig): SharetribeAPI {
   return new SharetribeAPI(config);
 }
 
-// Utility function to get ShareTribe credentials from database
 export async function getSharetribeCredentials(userId: string): Promise<SharetribeConfig | null> {
   try {
-    const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -384,7 +380,12 @@ export async function getSharetribeCredentials(userId: string): Promise<Sharetri
       .eq('user_id', userId)
       .eq('setting_type', 'sharetribe');
 
-    if (error || !settings || settings.length === 0) {
+    if (error) {
+      console.error('Error fetching ShareTribe settings:', error);
+      return null;
+    }
+
+    if (!settings || settings.length === 0) {
       console.log('No ShareTribe settings found for user:', userId);
       return null;
     }
@@ -395,59 +396,48 @@ export async function getSharetribeCredentials(userId: string): Promise<Sharetri
       settingsObj[setting.setting_key] = setting.setting_value;
     });
 
-    console.log('Found ShareTribe settings:', Object.keys(settingsObj));
-
-    // Check if marketplace API credentials are available
-    if (settingsObj.marketplaceClientId && settingsObj.marketplaceClientSecret && settingsObj.marketplaceUrl) {
-      return {
-        clientId: settingsObj.marketplaceClientId,
-        clientSecret: settingsObj.marketplaceClientSecret,
-        marketplaceUrl: settingsObj.marketplaceUrl
-      };
-    }
-    
-    // Check if integration API credentials are available
-    if (settingsObj.integrationClientId && settingsObj.integrationClientSecret && settingsObj.marketplaceUrl) {
-      return {
-        clientId: settingsObj.integrationClientId,
-        clientSecret: settingsObj.integrationClientSecret,
-        marketplaceUrl: settingsObj.marketplaceUrl
-      };
+    // Check if we have the required credentials
+    if (!settingsObj.integrationClientId || !settingsObj.integrationClientSecret) {
+      console.log('Missing required ShareTribe credentials');
+      return null;
     }
 
-    console.log('No valid ShareTribe credentials found in settings:', settingsObj);
-    return null;
-
+    return {
+      clientId: settingsObj.integrationClientId,
+      clientSecret: settingsObj.integrationClientSecret,
+      marketplaceUrl: settingsObj.marketplaceUrl
+    };
   } catch (error) {
-    console.error('Error fetching ShareTribe credentials:', error);
+    console.error('Error getting ShareTribe credentials:', error);
     return null;
   }
 }
 
-// Utility function to extract referral code from user attributes
 export function extractReferralCode(user: SharetribeUser): string | null {
-  // Check various possible locations for referral code
-  const possibleLocations = [
-    user.attributes?.referralCode,
-    user.attributes?.affiliateCode,
-    user.attributes?.refCode,
-    user.attributes?.profile?.referralCode,
-    user.attributes?.profile?.affiliateCode,
-  ];
-
-  for (const code of possibleLocations) {
-    if (code && typeof code === 'string') {
-      return code;
-    }
+  // Check for referral code in profile
+  if (user.profile?.referralCode) {
+    return user.profile.referralCode;
   }
-
+  
+  // Check for affiliate code in profile
+  if (user.profile?.affiliateCode) {
+    return user.profile.affiliateCode;
+  }
+  
+  // Check in attributes
+  if (user.attributes?.profile?.referralCode) {
+    return user.attributes.profile.referralCode;
+  }
+  
+  if (user.attributes?.profile?.affiliateCode) {
+    return user.attributes.profile.affiliateCode;
+  }
+  
   return null;
 }
 
-// Utility function to check if user was created recently (within last 24 hours)
 export function isRecentSignup(user: SharetribeUser, hours: number = 24): boolean {
   const createdAt = new Date(user.createdAt);
-  const now = new Date();
-  const hoursDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-  return hoursDiff <= hours;
+  const cutoffTime = new Date(Date.now() - (hours * 60 * 60 * 1000));
+  return createdAt > cutoffTime;
 } 
