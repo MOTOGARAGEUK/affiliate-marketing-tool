@@ -200,18 +200,41 @@ class SharetribeAPI {
       console.log('Fetching listings for user:', userId);
       
       const sdk = await this.getSDK();
+      
+      // First, try to get all listings without user_id filter to see total count
+      const allListingsResponse = await sdk.listings.query({ 
+        perPage: 1000 // Get a large number to see all listings
+      });
+      
+      console.log('All listings response:', {
+        totalCount: allListingsResponse.data?.meta?.totalItems,
+        currentPage: allListingsResponse.data?.meta?.page,
+        perPage: allListingsResponse.data?.meta?.perPage
+      });
+      
+      // Now get user-specific listings
       const response = await sdk.listings.query({ 
         user_id: userId,
         perPage: limit
       });
       
+      console.log('User listings response:', {
+        totalCount: response.data?.meta?.totalItems,
+        currentPage: response.data?.meta?.page,
+        perPage: response.data?.meta?.perPage,
+        dataLength: response.data?.data?.length
+      });
+      
       if (response.data && response.data.data) {
-        return response.data.data.map((listing: any) => ({
+        const listings = response.data.data.map((listing: any) => ({
           id: listing.id,
           type: 'listing',
           state: listing.attributes.state,
           attributes: listing.attributes
         }));
+        
+        console.log('Processed listings:', listings.map((l: SharetribeListing) => ({ id: l.id, state: l.attributes.state, title: l.attributes.title })));
+        return listings;
       }
       
       return [];
@@ -235,23 +258,78 @@ class SharetribeAPI {
 
       console.log('User found:', user);
 
-      // Get user's listings
-      const listings = await this.getUserListings(userId, 100);
-      console.log('Listings found:', listings.length);
+      // Get user's listings with detailed logging
+      const sdk = await this.getSDK();
+      
+      // Get user-specific listings with total count
+      const listingsResponse = await sdk.listings.query({ 
+        user_id: userId,
+        perPage: 1000 // Get a large number to ensure we get all listings
+      });
+      
+      console.log('Listings API response:', {
+        totalItems: listingsResponse.data?.meta?.totalItems,
+        currentPage: listingsResponse.data?.meta?.page,
+        perPage: listingsResponse.data?.meta?.perPage,
+        dataLength: listingsResponse.data?.data?.length
+      });
+      
+      let listings: SharetribeListing[] = [];
+      if (listingsResponse.data && listingsResponse.data.data) {
+        listings = listingsResponse.data.data.map((listing: any) => ({
+          id: listing.id,
+          type: 'listing',
+          state: listing.attributes.state,
+          attributes: listing.attributes
+        }));
+      }
+      
+      console.log('Total listings found:', listings.length);
+      console.log('Listing states:', listings.map(l => l.attributes.state));
       
       const activeListings = listings.filter(listing => {
         const state = listing.attributes?.state || listing.state;
-        return state === 'published' || state === 'active';
+        const isActive = state === 'published' || state === 'active';
+        console.log(`Listing ${listing.id}: state=${state}, active=${isActive}`);
+        return isActive;
       });
 
+      console.log('Active listings count:', activeListings.length);
+
       // Get user's transactions (both as buyer and seller)
-      const transactions = await this.getUserTransactions(userId, 100);
-      console.log('Transactions found:', transactions.length);
+      const transactionsResponse = await sdk.transactions.query({ 
+        user_id: userId,
+        perPage: 1000
+      });
+      
+      console.log('Transactions API response:', {
+        totalItems: transactionsResponse.data?.meta?.totalItems,
+        currentPage: transactionsResponse.data?.meta?.page,
+        perPage: transactionsResponse.data?.meta?.perPage,
+        dataLength: transactionsResponse.data?.data?.length
+      });
+      
+      let transactions: SharetribeTransaction[] = [];
+      if (transactionsResponse.data && transactionsResponse.data.data) {
+        transactions = transactionsResponse.data.data.map((transaction: any) => ({
+          id: transaction.id,
+          type: 'transaction',
+          lastTransition: transaction.attributes.lastTransition,
+          totalPrice: transaction.attributes.totalPrice,
+          attributes: transaction.attributes
+        }));
+      }
+      
+      console.log('Total transactions found:', transactions.length);
       
       const completedTransactions = transactions.filter(transaction => {
         const lastTransition = transaction.attributes?.lastTransition || transaction.lastTransition;
-        return lastTransition === 'confirmed' || lastTransition === 'completed';
+        const isCompleted = lastTransition === 'confirmed' || lastTransition === 'completed';
+        console.log(`Transaction ${transaction.id}: transition=${lastTransition}, completed=${isCompleted}`);
+        return isCompleted;
       });
+
+      console.log('Completed transactions count:', completedTransactions.length);
 
       // Calculate total revenue from completed transactions
       let totalRevenue = 0;
@@ -262,6 +340,7 @@ class SharetribeAPI {
         if (totalPrice && totalPrice.amount) {
           totalRevenue += totalPrice.amount;
           currency = totalPrice.currency || currency;
+          console.log(`Transaction ${transaction.id}: revenue=${totalPrice.amount} ${totalPrice.currency}`);
         }
       });
 
@@ -277,7 +356,7 @@ class SharetribeAPI {
         currency: currency
       };
 
-      console.log('User stats calculated:', stats);
+      console.log('Final user stats calculated:', stats);
       return stats;
     } catch (error) {
       console.error('Error fetching user stats:', error);

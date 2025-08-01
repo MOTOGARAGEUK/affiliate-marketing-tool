@@ -260,6 +260,21 @@ export async function POST(request: NextRequest) {
       action: action,
       commission: commissionEarned
     });
+
+    // Automatically sync ShareTribe stats for the new referral
+    console.log('🔄 Starting automatic ShareTribe sync for new referral...');
+    try {
+      const syncResult = await updateSharetribeUserStats(customerEmail, referral.id);
+      if (syncResult) {
+        console.log('✅ Automatic ShareTribe sync completed successfully');
+      } else {
+        console.log('⚠️ Automatic ShareTribe sync failed, but referral was created');
+      }
+    } catch (syncError) {
+      console.error('❌ Error during automatic ShareTribe sync:', syncError);
+      // Don't fail the referral creation if sync fails
+    }
+
     console.log('=== END REFERRAL TRACKING DEBUG ===');
 
     return NextResponse.json({
