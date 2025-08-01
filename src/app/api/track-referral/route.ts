@@ -10,12 +10,67 @@ export async function POST(request: NextRequest) {
     console.log('Request body:', body);
     
     let { 
+      action, // 'page_view', 'form_submit', 'signup_click', 'signup_complete'
       referralCode, 
+      email,
+      userInfo,
+      page,
+      timestamp
+    } = body;
+
+    // Handle different tracking actions
+    if (action === 'page_view') {
+      console.log('📄 Page view tracked:', { referralCode, page });
+      return NextResponse.json({ success: true, message: 'Page view tracked' });
+    }
+    
+    if (action === 'signup_click') {
+      console.log('🖱️ Signup click tracked:', { referralCode });
+      return NextResponse.json({ success: true, message: 'Signup click tracked' });
+    }
+    
+    if (action === 'form_submit') {
+      console.log('📝 Form submission tracked:', { referralCode, email });
+      return NextResponse.json({ success: true, message: 'Form submission tracked' });
+    }
+    
+    // Handle signup completion
+    if (action === 'signup_complete') {
+      console.log('✅ Signup completion tracked:', { referralCode, userInfo });
+      
+      const customerEmail = userInfo?.email || email;
+      const customerName = userInfo?.name || 'Unknown User';
+      
+      if (!customerEmail) {
+        console.log('❌ No email provided for signup completion');
+        return NextResponse.json(
+          { success: false, message: 'No email provided' },
+          { status: 400 }
+        );
+      }
+      
+      // Process the signup completion
+      const result = await processSignupCompletion(referralCode, customerEmail, customerName);
+      
+      // Also try to update Sharetribe user metadata
+      if (result.success) {
+        try {
+          await updateSharetribeUserMetadata(customerEmail, referralCode);
+        } catch (metadataError) {
+          console.error('❌ Error updating Sharetribe metadata:', metadataError);
+          // Don't fail the whole request if metadata update fails
+        }
+      }
+      
+      return result;
+    }
+
+    // Legacy support for old format
+    let { 
       customerEmail, 
       customerName, 
-      action, // 'signup' or 'purchase'
-      amount = 0, // for purchases
-      listingsCount = 0 // for signups
+      amount = 0,
+      listingsCount = 0
     } = body;
 
     // If no referral code provided in body, try to get it from cookies
@@ -40,7 +95,7 @@ export async function POST(request: NextRequest) {
       console.log('Referral code provided in body:', referralCode);
     }
 
-    if (!customerEmail || !customerName || !action) {
+    if (!customerEmail || !customerName) {
       return NextResponse.json(
         { success: false, message: 'Missing required fields' },
         { status: 400 }
@@ -57,6 +112,231 @@ export async function POST(request: NextRequest) {
         referral: null
       });
     }
+
+    // Process legacy signup action
+    return await processSignupCompletion(referralCode, customerEmail, customerName);
+  } catch (error) {
+    console.error('Failed to track referral:', error);
+    return NextResponse.json(
+      { success: false, message: 'Failed to track referral' },
+      { status: 500 }
+    );
+  }
+}
+
+// Helper function to process signup completion
+async function processSignupCompletion(referralCode: string, customerEmail: string, customerName: string) {
+  console.log('✅ Using referral code:', referralCode);
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  // Find the affiliate by referral code
+  const { data: affiliate, error: affiliateError } = await supabase
+    .from('affiliates')
+    .select(`
+      id,
+      user_id,
+      name as affiliate_name,
+      email as affiliate_email,
+      programs (
+        id,
+        name,
+        commission,
+        commission_type,
+        type
+      )
+    `)
+    .eq('referral_code', referralCode)
+    .single();
+
+  if (affiliateError || !affiliate) {
+    console.log('❌ Referral code not found in database:', referralCode);
+    console.log('Affiliate error:', affiliateError);
+    console.log('=== END REFERRAL TRACKING DEBUG ===');
+    return NextResponse.json(
+      { success: false, message: 'Invalid referral code' },
+      { status: 404 }
+    );
+  }
+
+  console.log('✅ Found affiliate:', affiliate.affiliate_name);
+
+  // Check if this customer has already been tracked for this affiliate
+  const { data: existingReferral, error: checkError } = await supabase
+    .from('referrals')
+    .select('id')
+    .eq('affiliate_id', affiliate.id)
+    .eq('customer_email', customerEmail.toLowerCase().trim())
+    .maybeSingle();
+
+  if (checkError) {
+    console.error('Error checking existing referral:', checkError);
+    return NextResponse.json(
+      { success: false, message: 'Error checking referral' },
+      { status: 500 }
+    );
+  }
+
+  if (existingReferral) {
+    console.log('Customer already tracked for this affiliate');
+    return NextResponse.json(
+      { success: false, message: 'Customer already tracked' },
+      { status: 409 }
+    );
+  }
+
+  // Calculate commission based on program type
+  const program = affiliate.programs;
+  let commissionEarned = 0;
+  let status = 'pending';
+
+  if (program.type === 'signup') {
+    if (program.commission_type === 'percentage') {
+      commissionEarned = (0 * program.commission) / 100; // No amount for signups
+    } else {
+      commissionEarned = program.commission;
+    }
+    status = 'approved'; // Signups are typically auto-approved
+  }
+
+  // Create the referral record
+  const { data: referral, error: referralError } = await supabase
+    .from('referrals')
+    .insert({
+      user_id: affiliate.user_id,
+      affiliate_id: affiliate.id,
+      customer_email: customerEmail.toLowerCase().trim(),
+      customer_name: customerName,
+      signup_date: new Date().toISOString(),
+      listings_count: 1,
+      purchases_count: 0,
+      total_revenue: 0,
+      status: status,
+      commission_earned: commissionEarned
+    })
+    .select()
+    .single();
+
+  if (referralError) {
+    console.error('Error creating referral:', referralError);
+    return NextResponse.json(
+      { success: false, message: 'Error creating referral' },
+      { status: 500 }
+    );
+  }
+
+  console.log('✅ Referral tracked successfully:', {
+    affiliate: affiliate.affiliate_name,
+    customer: customerName,
+    commission: commissionEarned
+  });
+  console.log('=== END REFERRAL TRACKING DEBUG ===');
+
+  // Send notification to affiliate
+  try {
+    const notificationResponse = await fetch(`${process.env.VERCEL_URL || 'http://localhost:3000'}/api/notify-affiliate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        affiliateId: affiliate.id,
+        referralId: referral.id,
+        customerEmail: customerEmail,
+        customerName: customerName,
+        notificationType: 'new_referral'
+      })
+    });
+    
+    if (notificationResponse.ok) {
+      console.log('✅ Affiliate notification sent');
+    } else {
+      console.log('⚠️ Affiliate notification failed');
+    }
+  } catch (notificationError) {
+    console.error('❌ Error sending affiliate notification:', notificationError);
+  }
+
+  return NextResponse.json({
+    success: true,
+    referral: {
+      id: referral.id,
+      affiliate_name: affiliate.affiliate_name,
+      customer_name: customerName,
+      commission_earned: commissionEarned,
+      status: status
+    }
+  });
+}
+
+// Helper function to update Sharetribe user metadata
+async function updateSharetribeUserMetadata(userEmail: string, referralCode: string) {
+  console.log('🔄 Updating Sharetribe user metadata:', { userEmail, referralCode });
+  
+  try {
+    // Initialize Sharetribe API
+    const { createSharetribeAPI } = await import('@/lib/sharetribe');
+    const sharetribeAPI = createSharetribeAPI({
+      clientId: process.env.SHARETRIBE_CLIENT_ID!,
+      clientSecret: process.env.SHARETRIBE_CLIENT_SECRET!
+    });
+    
+    // Find the user by email
+    const user = await sharetribeAPI.getUserByEmail(userEmail);
+    
+    if (!user) {
+      console.log('❌ User not found in Sharetribe:', userEmail);
+      return false;
+    }
+    
+    console.log('✅ Found user in Sharetribe:', user.id);
+    
+    // Update user metadata with referral code
+    const metadata = {
+      referralCode: referralCode,
+      referredAt: new Date().toISOString(),
+      source: 'affiliate_tracking'
+    };
+    
+    console.log('📝 Updating user metadata with:', metadata);
+    
+    // Update the user's metadata in Sharetribe
+    const updateSuccess = await sharetribeAPI.updateUserMetadata(user.id, metadata);
+    
+    if (updateSuccess) {
+      console.log('✅ User metadata updated successfully in Sharetribe');
+    } else {
+      console.log('⚠️ Failed to update user metadata in Sharetribe');
+    }
+    
+    // Store the metadata in our database for reference
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    
+    await supabase
+      .from('user_metadata')
+      .upsert({
+        sharetribe_user_id: user.id,
+        user_email: userEmail,
+        referral_code: referralCode,
+        metadata: metadata,
+        updated_at: new Date().toISOString()
+      });
+    
+    console.log('✅ Metadata stored in database for user:', user.id);
+    
+    return true;
+    
+  } catch (error) {
+    console.error('❌ Error updating Sharetribe user metadata:', error);
+    return false;
+  }
+}
 
     console.log('✅ Using referral code:', referralCode);
 

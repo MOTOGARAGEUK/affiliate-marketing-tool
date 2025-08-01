@@ -534,7 +534,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
+                className="mt-1 block w-full form-input"
                 required
                 disabled={isLoading}
               />
@@ -545,8 +545,8 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                 type="email"
                 value={formData.email}
                 onChange={handleEmailChange}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-4 py-3 text-gray-900 bg-white ${
-                  emailError ? 'border-red-300' : 'border-gray-300'
+                className={`mt-1 block w-full form-input ${
+                  emailError ? 'border-red-300' : ''
                 }`}
                 required
                 disabled={isLoading}
@@ -586,7 +586,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
               <select
                 value={formData.programId}
                 onChange={(e) => setFormData({ ...formData, programId: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
+                className="mt-1 block w-full form-select"
                 required
                 disabled={isLoading}
               >

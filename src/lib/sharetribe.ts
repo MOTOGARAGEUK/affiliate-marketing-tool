@@ -196,6 +196,33 @@ class SharetribeAPI {
       return null;
     }
   }
+
+  // Update user metadata
+  async updateUserMetadata(userId: string, metadata: any): Promise<boolean> {
+    try {
+      console.log('Updating user metadata for user:', userId);
+      console.log('Metadata to update:', metadata);
+      
+      const response = await this.makeRequest(`/users/${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          data: {
+            type: 'user',
+            id: userId,
+            attributes: {
+              publicData: metadata
+            }
+          }
+        })
+      });
+      
+      console.log('User metadata updated successfully:', response);
+      return true;
+    } catch (error) {
+      console.error('Error updating user metadata:', error);
+      return false;
+    }
+  }
 }
 
 export default SharetribeAPI;

@@ -353,7 +353,7 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-1 block w-full form-input disabled:opacity-50 disabled:cursor-not-allowed"
                 required
                 disabled={isLoading}
               />
@@ -363,7 +363,7 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
               <select
                 value={formData.type}
                 onChange={(e) => handleTypeChange(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
+                className="mt-1 block w-full form-select"
                 disabled={isLoading}
               >
                 <option value="signup">Sign Up Referrals</option>
@@ -379,7 +379,7 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
                   type="number"
                   value={formData.commission}
                   onChange={(e) => setFormData({ ...formData, commission: parseFloat(e.target.value) })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
+                  className="mt-1 block w-full form-input"
                   required
                   min="0"
                   step={formData.commissionType === 'percentage' ? '0.1' : '0.01'}
@@ -392,7 +392,7 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
                 <select
                   value={formData.commissionType}
                   onChange={(e) => setFormData({ ...formData, commissionType: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3 text-gray-900 bg-white"
+                  className="mt-1 block w-full form-select"
                   disabled={formData.type === 'signup' || isLoading}
                 >
                   <option value="fixed">Fixed ({currency})</option>

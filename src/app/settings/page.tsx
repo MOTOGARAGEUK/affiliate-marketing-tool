@@ -81,7 +81,7 @@ export default function Settings() {
         </p>
       </div>
 
-      <div className="bg-white shadow rounded-lg">
+      <div className="bg-white shadow rounded-lg settings-card">
         {/* Tab Navigation */}
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8 px-6">
@@ -207,7 +207,7 @@ function GeneralSettings({ settings: initialSettings, onSettingsUpdate }: Genera
               type="text"
               value={settings.companyName}
               onChange={(e) => setSettings({ ...settings, companyName: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="mt-1 block w-full form-input"
             />
           </div>
           <div>
@@ -216,7 +216,7 @@ function GeneralSettings({ settings: initialSettings, onSettingsUpdate }: Genera
               type="number"
               value={settings.defaultCommission}
               onChange={(e) => setSettings({ ...settings, defaultCommission: parseFloat(e.target.value) })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="mt-1 block w-full form-input"
               min="0"
               max="100"
             />
@@ -226,7 +226,7 @@ function GeneralSettings({ settings: initialSettings, onSettingsUpdate }: Genera
             <select
               value={settings.currency}
               onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="mt-1 block w-full form-select"
             >
               <option value="USD">USD</option>
               <option value="EUR">EUR</option>
@@ -238,7 +238,7 @@ function GeneralSettings({ settings: initialSettings, onSettingsUpdate }: Genera
             <select
               value={settings.timezone}
               onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="mt-1 block w-full form-select"
             >
               <option value="UTC">UTC</option>
               <option value="EST">EST</option>
@@ -251,7 +251,7 @@ function GeneralSettings({ settings: initialSettings, onSettingsUpdate }: Genera
               type="number"
               value={settings.minimumPayout}
               onChange={(e) => setSettings({ ...settings, minimumPayout: parseFloat(e.target.value) })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="mt-1 block w-full form-input"
               min="0"
             />
           </div>
@@ -279,7 +279,7 @@ function GeneralSettings({ settings: initialSettings, onSettingsUpdate }: Genera
         <button
           type="submit"
           disabled={isSaving}
-          className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Saving...' : 'Save Settings'}
         </button>
@@ -489,7 +489,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                   type="text"
                   value={sharetribeConfig.marketplaceClientId}
                   onChange={(e) => setSharetribeConfig({ ...sharetribeConfig, marketplaceClientId: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className="mt-1 block w-full form-input"
                   placeholder="e.g., 2af9ca56-b055-4568-96e8-bf356a5085e1"
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -502,7 +502,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                   type="password"
                   value={sharetribeConfig.marketplaceClientSecret}
                   onChange={(e) => setSharetribeConfig({ ...sharetribeConfig, marketplaceClientSecret: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className="mt-1 block w-full form-input"
                   placeholder="e.g., 5bafb1946783560ae9d93760550194467fcbf61e"
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -524,7 +524,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                   type="text"
                   value={sharetribeConfig.integrationClientId}
                   onChange={(e) => setSharetribeConfig({ ...sharetribeConfig, integrationClientId: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className="mt-1 block w-full form-input"
                   placeholder="e.g., 3bf8db67-c166-4569-97f9-cf467b5085e2"
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -537,7 +537,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                   type="password"
                   value={sharetribeConfig.integrationClientSecret}
                   onChange={(e) => setSharetribeConfig({ ...sharetribeConfig, integrationClientSecret: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className="mt-1 block w-full form-input"
                   placeholder="e.g., 6cafc2957894671bf0e04871660295578gdcf72f"
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -553,7 +553,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
               type="url"
               value={sharetribeConfig.marketplaceUrl}
               onChange={(e) => setSharetribeConfig({ ...sharetribeConfig, marketplaceUrl: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="mt-1 block w-full form-input"
               placeholder="https://your-marketplace.sharetribe.com"
             />
             <p className="mt-1 text-xs text-gray-500">
@@ -569,17 +569,17 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
             </p>
             
             <div className="flex items-center space-x-4">
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('Final test button clicked!');
-                  finalTest();
-                }}
-                disabled={isTesting || (!sharetribeConfig.marketplaceClientId || !sharetribeConfig.marketplaceClientSecret)}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isTesting ? 'Testing...' : 'Test Sharetribe Connection'}
-              </button>
+                          <button
+              type="button"
+              onClick={() => {
+                console.log('Final test button clicked!');
+                finalTest();
+              }}
+              disabled={isTesting || (!sharetribeConfig.marketplaceClientId || !sharetribeConfig.marketplaceClientSecret)}
+              className="btn-primary bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isTesting ? 'Testing...' : 'Test Sharetribe Connection'}
+            </button>
               
               {testResult && (
                 <div className={`text-sm ${testResult.success ? 'text-green-600' : 'text-red-600'}`}>
@@ -601,7 +601,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                 type="button"
                 onClick={testReferralFlow}
                 disabled={isTestingReferralFlow}
-                className="px-4 py-2 text-sm font-medium text-white bg-yellow-600 border border-transparent rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isTestingReferralFlow ? 'Testing...' : 'Test Referral Flow'}
               </button>
@@ -626,7 +626,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                 type="button"
                 onClick={syncUsers}
                 disabled={isSyncing || (!sharetribeConfig.marketplaceClientId || !sharetribeConfig.marketplaceClientSecret)}
-                className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSyncing ? 'Syncing...' : 'Sync Recent Users'}
               </button>
@@ -672,14 +672,14 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
               type="button"
               onClick={finalTest}
               disabled={isTesting || (!sharetribeConfig.marketplaceClientId || !sharetribeConfig.marketplaceClientSecret)}
-              className="px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-300 rounded-md hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Test Connection
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSaving ? 'Saving...' : 'Save Integration'}
             </button>
@@ -796,7 +796,7 @@ function ProfileSettings() {
               type="text"
               value={profile.fullName}
               onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="mt-1 block w-full form-input"
               placeholder="Enter your full name"
             />
           </div>
@@ -806,7 +806,7 @@ function ProfileSettings() {
               type="email"
               value={profile.email}
               disabled
-              className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm text-gray-500"
+              className="mt-1 block w-full form-input bg-gray-50 text-gray-500"
             />
             <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
           </div>
@@ -816,7 +816,7 @@ function ProfileSettings() {
         <button
           type="submit"
           disabled={isSaving}
-          className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Saving...' : 'Update Profile'}
         </button>
@@ -909,7 +909,7 @@ function NotificationSettings() {
       <div className="flex justify-end">
         <button
           type="submit"
-          className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
+          className="btn-primary"
         >
           Save Preferences
         </button>
@@ -941,7 +941,7 @@ function SecuritySettings() {
               type="password"
               value={passwords.currentPassword}
               onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="mt-1 block w-full form-input"
             />
           </div>
           <div>
@@ -950,7 +950,7 @@ function SecuritySettings() {
               type="password"
               value={passwords.newPassword}
               onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="mt-1 block w-full form-input"
             />
           </div>
           <div>
@@ -959,7 +959,7 @@ function SecuritySettings() {
               type="password"
               value={passwords.confirmPassword}
               onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="mt-1 block w-full form-input"
             />
           </div>
         </div>
@@ -967,7 +967,7 @@ function SecuritySettings() {
       <div className="flex justify-end">
         <button
           type="submit"
-          className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
+          className="btn-primary"
         >
           Change Password
         </button>

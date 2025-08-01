@@ -1,396 +1,173 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-
-// Sharetribe API client - supports both Integration and Marketplace APIs
-class SharetribeAPI {
-  private baseUrl: string;
-  private accessToken: string;
-  private clientId: string;
-  private clientSecret: string;
-  private useIntegrationAPI: boolean;
-
-  constructor() {
-    // Check if we have Integration API credentials
-    this.baseUrl = process.env.SHARETRIBE_API_URL || 'https://flex-api.sharetribe.com/v1';
-    this.accessToken = process.env.SHARETRIBE_ACCESS_TOKEN || '';
-    this.clientId = process.env.SHARETRIBE_CLIENT_ID || '';
-    this.clientSecret = process.env.SHARETRIBE_CLIENT_SECRET || '';
-    
-    // Use Integration API if we have access token, otherwise use Marketplace API
-    this.useIntegrationAPI = !!this.accessToken;
-    
-    console.log('Sharetribe API Mode:', this.useIntegrationAPI ? 'Integration API' : 'Marketplace API');
-  }
-
-  private async getAuthHeaders() {
-    if (this.useIntegrationAPI) {
-      return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.accessToken}`
-      };
-    } else {
-      // For Marketplace API, we need to get an access token first
-      const tokenResponse = await fetch('https://flex-api.sharetribe.com/v1/auth/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          client_id: this.clientId,
-          client_secret: this.clientSecret,
-          grant_type: 'client_credentials'
-        })
-      });
-
-      if (!tokenResponse.ok) {
-        throw new Error(`Failed to get access token: ${tokenResponse.statusText}`);
-      }
-
-      const tokenData = await tokenResponse.json();
-      return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${tokenData.access_token}`
-      };
-    }
-  }
-
-  async queryUsers(filters: any = {}) {
-    const headers = await this.getAuthHeaders();
-    
-    const response = await fetch(`${this.baseUrl}/users/query`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        filters,
-        include: ['profile'],
-        fields: {
-          user: ['id', 'profile', 'createdAt', 'publicData'],
-          profile: ['displayName', 'abbreviatedName', 'bio']
-        }
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Sharetribe API error: ${response.status} ${response.statusText}`);
-    }
-
-    return response.json();
-  }
-
-  async queryTransactions(filters: any = {}) {
-    const headers = await this.getAuthHeaders();
-    
-    const response = await fetch(`${this.baseUrl}/transactions/query`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        filters,
-        include: ['listing', 'customer', 'provider'],
-        fields: {
-          transaction: ['id', 'createdAt', 'lastTransitionedAt', 'totalPrice', 'state'],
-          listing: ['id', 'title', 'price'],
-          customer: ['id', 'profile'],
-          provider: ['id', 'profile']
-        }
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Sharetribe API error: ${response.status} ${response.statusText}`);
-    }
-
-    return response.json();
-  }
-}
+import { createSharetribeAPI } from '@/lib/sharetribe';
 
 export async function POST(request: NextRequest) {
   try {
     console.log('=== SHARETRIBE REFERRAL SYNC ===');
     
     const body = await request.json();
-    const { syncType = 'all', userId } = body; // 'users', 'transactions', or 'all'
+    const { syncType = 'recent' } = body;
     
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
     
-    const sharetribeAPI = new SharetribeAPI();
+    // Initialize Sharetribe API
+    const sharetribeAPI = createSharetribeAPI({
+      clientId: process.env.SHARETRIBE_CLIENT_ID!,
+      clientSecret: process.env.SHARETRIBE_CLIENT_SECRET!
+    });
     
-    let results: {
-      usersProcessed: number;
-      transactionsProcessed: number;
-      referralsCreated: number;
-      errors: string[];
-    } = {
-      usersProcessed: 0,
-      transactionsProcessed: 0,
-      referralsCreated: 0,
-      errors: []
-    };
-
-    // Sync new users (signups)
-    if (syncType === 'all' || syncType === 'users') {
-      console.log('🔄 Syncing users...');
-      
+    console.log('Testing Sharetribe API connection...');
+    const connectionTest = await sharetribeAPI.testConnection();
+    
+    if (!connectionTest) {
+      console.log('❌ Sharetribe API connection failed');
+      return NextResponse.json(
+        { success: false, message: 'Sharetribe API connection failed' },
+        { status: 500 }
+      );
+    }
+    
+    console.log('✅ Sharetribe API connection successful');
+    
+    // Get recent users from Sharetribe
+    const hoursToCheck = syncType === 'all' ? 168 : 24; // 7 days or 1 day
+    const users = await sharetribeAPI.getUsers(100, 0);
+    
+    console.log(`Found ${users.length} users in Sharetribe`);
+    
+    let matchedCount = 0;
+    let newReferralsCount = 0;
+    
+    for (const user of users) {
       try {
-        // Get users created in the last 24 hours
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
+        console.log(`Processing user: ${user.attributes.email}`);
         
-        const usersResponse = await sharetribeAPI.queryUsers({
-          createdAt: {
-            $gte: yesterday.toISOString()
-          }
-        });
-
-        console.log(`Found ${usersResponse.data?.length || 0} recent users`);
-
-        for (const user of usersResponse.data || []) {
-          try {
-            // First, try to find UTM data for this user
-            const { data: utmData, error: utmError } = await supabase
-              .from('utm_tracking')
-              .select('*')
-              .eq('sharetribe_user_id', user.id)
-              .eq('processed', false)
-              .order('created_at', { ascending: false })
-              .limit(1);
-
-            if (utmError) {
-              console.error('Error querying UTM data:', utmError);
+        // Check if user was created recently
+        const createdAt = new Date(user.createdAt);
+        const now = new Date();
+        const hoursDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+        
+        if (hoursDiff > hoursToCheck) {
+          console.log(`User too old (${hoursDiff.toFixed(1)} hours), skipping`);
+          continue;
+        }
+        
+        // Check if we already have a referral for this user
+        const { data: existingReferral, error: checkError } = await supabase
+          .from('referrals')
+          .select('id')
+          .eq('sharetribe_user_id', user.id)
+          .maybeSingle();
+        
+        if (existingReferral) {
+          console.log(`User ${user.attributes.email} already has referral, skipping`);
+          continue;
+        }
+        
+        // Look for pending referral clicks that might match this user
+        // Check by IP address and recent clicks
+        const { data: pendingClicks, error: clicksError } = await supabase
+          .from('referral_clicks')
+          .select('*')
+          .eq('status', 'pending_match')
+          .gte('clicked_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()) // Last 24 hours
+          .order('clicked_at', { ascending: false });
+        
+        if (clicksError) {
+          console.error('Error fetching pending clicks:', clicksError);
+          continue;
+        }
+        
+        console.log(`Found ${pendingClicks.length} pending referral clicks`);
+        
+        // Try to match user with a referral click
+        let matched = false;
+        
+        for (const click of pendingClicks) {
+          // Simple matching logic - could be enhanced with more sophisticated algorithms
+          // For now, we'll match based on timing and referral code availability
+          
+          // Check if this click is within a reasonable time window
+          const clickTime = new Date(click.clicked_at);
+          const userTime = new Date(user.createdAt);
+          const timeDiff = Math.abs(userTime.getTime() - clickTime.getTime()) / (1000 * 60); // minutes
+          
+          if (timeDiff <= 60) { // Within 1 hour
+            console.log(`Potential match found: click ${click.id} within ${timeDiff.toFixed(1)} minutes of signup`);
+            
+            // Call the match endpoint
+            const matchResponse = await fetch(`${process.env.VERCEL_URL || 'http://localhost:3000'}/api/match-referral-user`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                userEmail: user.attributes.email,
+                userName: user.attributes.profile?.displayName || user.attributes.profile?.firstName || 'Unknown',
+                sharetribeUserId: user.id,
+                referralCode: click.referral_code
+              })
+            });
+            
+            const matchResult = await matchResponse.json();
+            
+            if (matchResult.success) {
+              console.log(`✅ Successfully matched user ${user.attributes.email} with referral click ${click.id}`);
+              matched = true;
+              matchedCount++;
+              newReferralsCount++;
+              break;
+            } else {
+              console.log(`❌ Failed to match user ${user.attributes.email}: ${matchResult.message}`);
             }
-
-            // Check if user has referral data in publicData (fallback)
-            const referralCode = user.attributes?.publicData?.referralCode || utmData?.[0]?.utm_campaign;
-            const utmSource = user.attributes?.publicData?.utmSource || utmData?.[0]?.utm_source;
-            const utmCampaign = user.attributes?.publicData?.utmCampaign || utmData?.[0]?.utm_campaign;
-            
-            console.log(`Processing user ${user.id}:`, { referralCode, utmSource, utmCampaign });
-            
-            // Only process if this is an affiliate referral
-            if (utmSource === 'affiliate' && utmCampaign) {
-              // Find the affiliate by referral code
-              const { data: affiliate, error: affiliateError } = await supabase
-                .from('affiliates')
-                .select(`
-                  id,
-                  user_id,
-                  name,
-                  email,
-                  programs (
-                    id,
-                    name,
-                    commission,
-                    commission_type,
-                    type
-                  )
-                `)
-                .eq('referral_code', utmCampaign)
-                .single();
-
-              if (affiliateError || !affiliate) {
-                console.log(`❌ Affiliate not found for referral code: ${utmCampaign}`);
-                results.errors.push(`Affiliate not found for code: ${utmCampaign}`);
-                continue;
-              }
-
-              // Check if this customer has already been tracked
-              const { data: existingReferral } = await supabase
-                .from('referrals')
-                .select('id')
-                .eq('affiliate_id', affiliate.id)
-                .eq('customer_email', user.attributes?.profile?.email || '')
-                .maybeSingle();
-
-              if (existingReferral) {
-                console.log(`Customer already tracked for affiliate: ${affiliate.name}`);
-                continue;
-              }
-
-              // Create referral record
-              const { error: referralError } = await supabase
-                .from('referrals')
-                .insert({
-                  user_id: affiliate.user_id,
-                  affiliate_id: affiliate.id,
-                  customer_email: user.attributes?.profile?.email || '',
-                  customer_name: user.attributes?.profile?.displayName || 'Unknown',
-                  signup_date: user.attributes?.createdAt,
-                  listings_count: 1,
-                  purchases_count: 0,
-                  total_revenue: 0,
-                  status: 'pending',
-                  commission_earned: 0
-                });
-
-              if (referralError) {
-                console.error('❌ Error creating referral:', referralError);
-                results.errors.push(`Error creating referral: ${referralError.message}`);
-              } else {
-                console.log(`✅ Referral created for user: ${user.id}`);
-                results.referralsCreated++;
-                
-                // Mark UTM data as processed
-                if (utmData?.[0]) {
-                  await supabase
-                    .from('utm_tracking')
-                    .update({ processed: true, sharetribe_user_id: user.id })
-                    .eq('id', utmData[0].id);
-                }
-              }
-            }
-            
-            results.usersProcessed++;
-          } catch (userError) {
-            console.error(`❌ Error processing user ${user.id}:`, userError);
-            results.errors.push(`User ${user.id}: ${userError instanceof Error ? userError.message : 'Unknown error'}`);
           }
         }
-      } catch (usersError) {
-        console.error('❌ Error querying users:', usersError);
-        results.errors.push(`Users query error: ${usersError instanceof Error ? usersError.message : 'Unknown error'}`);
-      }
-    }
-
-    // Sync transactions (purchases)
-    if (syncType === 'all' || syncType === 'transactions') {
-      console.log('🔄 Syncing transactions...');
-      
-      try {
-        // Get transactions from the last 24 hours
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
         
-        const transactionsResponse = await sharetribeAPI.queryTransactions({
-          createdAt: {
-            $gte: yesterday.toISOString()
-          },
-          state: 'confirmed' // Only confirmed transactions
-        });
-
-        console.log(`Found ${transactionsResponse.data?.length || 0} recent transactions`);
-
-        for (const transaction of transactionsResponse.data || []) {
-          try {
-            // Check if transaction has referral data
-            const referralCode = transaction.attributes?.publicData?.referralCode;
-            const utmSource = transaction.attributes?.publicData?.utmSource;
-            const utmCampaign = transaction.attributes?.publicData?.utmCampaign;
-            
-            console.log(`Processing transaction ${transaction.id}:`, { referralCode, utmSource, utmCampaign });
-            
-            // Only process if this is an affiliate referral
-            if (utmSource === 'affiliate' && utmCampaign) {
-              // Find the affiliate by referral code
-              const { data: affiliate, error: affiliateError } = await supabase
-                .from('affiliates')
-                .select(`
-                  id,
-                  user_id,
-                  name,
-                  email,
-                  programs (
-                    id,
-                    name,
-                    commission,
-                    commission_type,
-                    type
-                  )
-                `)
-                .eq('referral_code', utmCampaign)
-                .single();
-
-              if (affiliateError || !affiliate) {
-                console.log(`❌ Affiliate not found for referral code: ${utmCampaign}`);
-                results.errors.push(`Affiliate not found for code: ${utmCampaign}`);
-                continue;
-              }
-
-              // Find existing referral for this customer
-              const { data: existingReferral, error: referralError } = await supabase
-                .from('referrals')
-                .select('*')
-                .eq('affiliate_id', affiliate.id)
-                .eq('customer_email', transaction.relationships?.customer?.data?.id || '')
-                .maybeSingle();
-
-              if (referralError) {
-                console.error('❌ Error finding referral:', referralError);
-                results.errors.push(`Error finding referral: ${referralError.message}`);
-                continue;
-              }
-
-              if (!existingReferral) {
-                console.log(`No existing referral found for transaction: ${transaction.id}`);
-                results.errors.push(`No referral found for transaction: ${transaction.id}`);
-                continue;
-              }
-
-              // Calculate commission based on program type
-              const program = affiliate.programs[0];
-              const transactionValue = transaction.attributes?.totalPrice?.amount || 0;
-              let commissionEarned = 0;
-              
-              if (program.commission_type === 'percentage') {
-                commissionEarned = (transactionValue * program.commission) / 100;
-              } else {
-                commissionEarned = program.commission;
-              }
-
-              // Update referral with purchase information
-              const { error: updateError } = await supabase
-                .from('referrals')
-                .update({
-                  purchases_count: existingReferral.purchases_count + 1,
-                  total_revenue: existingReferral.total_revenue + transactionValue,
-                  commission_earned: existingReferral.commission_earned + commissionEarned,
-                  status: 'approved'
-                })
-                .eq('id', existingReferral.id);
-
-              if (updateError) {
-                console.error('❌ Error updating referral:', updateError);
-                results.errors.push(`Error updating referral: ${updateError.message}`);
-              } else {
-                console.log(`✅ Purchase referral updated for transaction: ${transaction.id}`);
-                results.referralsCreated++;
-              }
-            }
-            
-            results.transactionsProcessed++;
-          } catch (transactionError) {
-            console.error(`❌ Error processing transaction ${transaction.id}:`, transactionError);
-            results.errors.push(`Transaction ${transaction.id}: ${transactionError instanceof Error ? transactionError.message : 'Unknown error'}`);
-          }
+        if (!matched) {
+          console.log(`No match found for user ${user.attributes.email}`);
         }
-      } catch (transactionsError) {
-        console.error('❌ Error querying transactions:', transactionsError);
-        results.errors.push(`Transactions query error: ${transactionsError instanceof Error ? transactionsError.message : 'Unknown error'}`);
+        
+      } catch (error) {
+        console.error(`Error processing user ${user.attributes.email}:`, error);
       }
     }
-
-    console.log('=== SYNC RESULTS ===');
-    console.log('Users processed:', results.usersProcessed);
-    console.log('Transactions processed:', results.transactionsProcessed);
-    console.log('Referrals created/updated:', results.referralsCreated);
-    console.log('Errors:', results.errors);
-    console.log('=== END SHARETRIBE REFERRAL SYNC ===');
-
+    
+    // Clean up expired referral clicks (older than 24 hours)
+    const { error: cleanupError } = await supabase
+      .from('referral_clicks')
+      .update({ status: 'expired' })
+      .eq('status', 'pending_match')
+      .lt('clicked_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+    
+    if (cleanupError) {
+      console.error('Error cleaning up expired clicks:', cleanupError);
+    } else {
+      console.log('✅ Cleaned up expired referral clicks');
+    }
+    
+    console.log(`=== SYNC COMPLETE ===`);
+    console.log(`Processed ${users.length} users`);
+    console.log(`Matched ${matchedCount} users with referral clicks`);
+    console.log(`Created ${newReferralsCount} new referrals`);
+    
     return NextResponse.json({
       success: true,
-      message: 'Sharetribe referral sync completed',
-      results
+      message: 'Sync completed successfully',
+      stats: {
+        usersProcessed: users.length,
+        usersMatched: matchedCount,
+        newReferrals: newReferralsCount
+      }
     });
-
+    
   } catch (error) {
     console.error('❌ Sharetribe referral sync error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: 'Failed to sync referrals',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { success: false, message: 'Sync failed', error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
