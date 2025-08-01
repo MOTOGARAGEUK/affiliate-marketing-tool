@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
         
         if (!user) {
           console.log(`❌ User not found in ShareTribe: ${referral.customer_email}`);
+          console.log(`❌ This email does not exist in the ShareTribe marketplace`);
           errors.push(`User not found in ShareTribe: ${referral.customer_email}`);
           results.push({
             referralId: referral.id,
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
         }
 
         console.log(`✅ Found user in ShareTribe: ${user.id} (${user.email})`);
+        console.log(`✅ User details: ${user.profile?.displayName || 'No display name'}`);
 
         // Step 2: Get user's listings using documented endpoint
         console.log(`📋 Getting listings for user: ${user.id}`);
@@ -199,12 +201,25 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔄 Comprehensive sync completed. Synced: ${syncedCount}, Updated: ${updatedCount}, Errors: ${errors.length}`);
 
+    // Determine overall success based on whether we found any users
+    const foundUsers = results.filter(r => r.status === 'Success').length;
+    const notFoundUsers = results.filter(r => r.status === 'User not found').length;
+    const errorUsers = results.filter(r => r.status === 'Error').length;
+
+    const overallSuccess = foundUsers > 0; // Success if we found at least one user
+
     return NextResponse.json({
-      success: true,
-      message: 'Comprehensive sync completed',
+      success: overallSuccess,
+      message: overallSuccess ? 'Comprehensive sync completed successfully' : 'Sync completed but no users found in ShareTribe',
       syncedCount,
       updatedCount,
       errorCount: errors.length,
+      summary: {
+        totalReferrals: referrals.length,
+        usersFound: foundUsers,
+        usersNotFound: notFoundUsers,
+        errors: errorUsers
+      },
       errors: errors.length > 0 ? errors : undefined,
       details: {
         totalReferrals: referrals.length,
