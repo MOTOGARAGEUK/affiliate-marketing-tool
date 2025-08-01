@@ -38,32 +38,37 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Testing ShareTribe connection for user:', user.id);
 
-    // Check if user has ShareTribe integration configured
-    const { data: integrations, error: integrationsError } = await authenticatedSupabase
-      .from('integrations')
-      .select('*')
+    // Check if user has ShareTribe settings configured
+    const { data: settings, error: settingsError } = await authenticatedSupabase
+      .from('settings')
+      .select('setting_key, setting_value')
       .eq('user_id', user.id)
-      .eq('type', 'sharetribe');
+      .eq('setting_type', 'sharetribe');
 
-    if (integrationsError) {
-      console.error('Error fetching integrations:', integrationsError);
+    if (settingsError) {
+      console.error('Error fetching settings:', settingsError);
       return NextResponse.json({
         success: false,
-        message: 'Error fetching integrations',
-        error: integrationsError.message
+        message: 'Error fetching settings',
+        error: settingsError.message
       }, { status: 500 });
     }
 
-    if (!integrations || integrations.length === 0) {
+    if (!settings || settings.length === 0) {
       return NextResponse.json({
         success: false,
-        message: 'No ShareTribe integration found',
-        instructions: 'Please configure ShareTribe integration in the Integrations page'
+        message: 'No ShareTribe settings found',
+        instructions: 'Please configure ShareTribe integration in the Settings page'
       }, { status: 404 });
     }
 
-    const sharetribeIntegration = integrations[0];
-    console.log('✅ Found ShareTribe integration:', sharetribeIntegration.id);
+    // Convert settings array to object
+    const settingsObj: any = {};
+    settings.forEach(setting => {
+      settingsObj[setting.setting_key] = setting.setting_value;
+    });
+
+    console.log('✅ Found ShareTribe settings:', Object.keys(settingsObj));
 
     // Test ShareTribe API connection
     try {
@@ -74,7 +79,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           success: false,
           message: 'ShareTribe credentials not found',
-          integration: sharetribeIntegration
+          settings: settingsObj
         }, { status: 404 });
       }
 
@@ -89,7 +94,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           success: false,
           message: 'ShareTribe API connection failed',
-          integration: sharetribeIntegration,
+          settings: settingsObj,
           credentials: {
             hasClientId: !!credentials.clientId,
             hasClientSecret: !!credentials.clientSecret,
@@ -106,7 +111,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'ShareTribe connection successful',
-        integration: sharetribeIntegration,
+        settings: settingsObj,
         marketplace: marketplaceInfo,
         credentials: {
           hasClientId: !!credentials.clientId,
@@ -121,7 +126,7 @@ export async function GET(request: NextRequest) {
         success: false,
         message: 'ShareTribe API error',
         error: sharetribeError instanceof Error ? sharetribeError.message : 'Unknown error',
-        integration: sharetribeIntegration
+        settings: settingsObj
       }, { status: 500 });
     }
 
