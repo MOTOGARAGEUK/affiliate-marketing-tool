@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
       ? ((currentMonthReferrals - previousMonthReferrals) / previousMonthReferrals * 100).toFixed(1)
       : currentMonthReferrals > 0 ? '100' : '0';
 
-    // Calculate payouts owed to affiliates - only verified referrals
+    // Calculate payouts owed to affiliates - only verified referrals (using same logic as payouts API)
     let totalPayoutsOwed = 0;
     let totalPayoutsPaid = 0;
     
@@ -169,30 +169,56 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching payouts:', payoutsError);
     }
 
-    // Calculate total earnings from verified referrals
-    let totalEarningsFromReferrals = 0;
-    if (verifiedReferrals && programs) {
+    // Calculate payouts per affiliate (same logic as payouts API)
+    const affiliatePayouts = affiliates?.map(affiliate => {
+      const affiliateReferrals = referrals?.filter(r => r.affiliate_id === affiliate.id) || [];
+      const approvedReferrals = affiliateReferrals.filter(r => r.status === 'approved') || [];
+      const verifiedReferrals = approvedReferrals.filter(r => r.sharetribe_validation_status === 'green') || [];
+      
+      let totalEarnings = 0;
+      
+      // Calculate earnings based on verified referrals and program commission rates
       verifiedReferrals.forEach(referral => {
         const program = referral.programs;
         if (program) {
           if (program.commission_type === 'fixed') {
-            totalEarningsFromReferrals += program.commission;
+            totalEarnings += program.commission;
           } else if (program.commission_type === 'percentage') {
             // For percentage, we need a base amount - using a default of 100 for now
             // In a real scenario, this would be the actual transaction amount
-            totalEarningsFromReferrals += (program.commission / 100) * 100; // Default base amount
+            totalEarnings += (program.commission / 100) * 100; // Default base amount
           }
         }
       });
-    }
 
-    // Calculate total paid out
-    if (existingPayouts) {
-      totalPayoutsPaid = existingPayouts.reduce((sum, payout) => sum + Number(payout.amount || 0), 0);
-    }
+      // Calculate total paid to this affiliate
+      const affiliatePayouts = existingPayouts?.filter(p => p.affiliate_id === affiliate.id) || [];
+      const totalPaid = affiliatePayouts.reduce((sum, payout) => sum + Number(payout.amount || 0), 0);
+      
+      // Calculate outstanding amount
+      const outstandingAmount = Math.max(0, totalEarnings - totalPaid);
 
-    // Calculate outstanding amount (what's still owed)
-    totalPayoutsOwed = Math.max(0, totalEarningsFromReferrals - totalPayoutsPaid);
+      return {
+        totalEarnings: Math.round(totalEarnings * 100) / 100,
+        totalPaid: Math.round(totalPaid * 100) / 100,
+        outstandingAmount: Math.round(outstandingAmount * 100) / 100
+      };
+    }) || [];
+
+    // Calculate totals (same as payouts API)
+    const affiliatesWithEarnings = affiliatePayouts.filter(payout => payout.totalEarnings > 0);
+    totalPayoutsOwed = affiliatesWithEarnings.reduce((sum, payout) => sum + payout.outstandingAmount, 0);
+    totalPayoutsPaid = affiliatesWithEarnings.reduce((sum, payout) => sum + payout.totalPaid, 0);
+    
+    // Debug logging
+    console.log('Dashboard API Debug:', {
+      totalPayoutsOwed,
+      totalPayoutsPaid,
+      verifiedReferralsCount: verifiedReferrals.length,
+      existingPayoutsCount: existingPayouts?.length || 0,
+      affiliatesWithEarningsCount: affiliatesWithEarnings.length,
+      affiliatePayouts: affiliatePayouts.map(p => ({ totalEarnings: p.totalEarnings, totalPaid: p.totalPaid, outstandingAmount: p.outstandingAmount }))
+    });
 
     // Generate chart data for the last 6 months
     const months = [];
