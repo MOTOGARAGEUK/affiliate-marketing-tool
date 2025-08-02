@@ -346,6 +346,44 @@ class SharetribeAPI {
     }
   }
 
+  // Test raw users API call
+  async testRawUsersAPI(): Promise<any> {
+    try {
+      console.log('🔍 Testing raw users API call...');
+      
+      const sdk = await this.getSDK();
+      const response = await sdk.users.query({ perPage: 1000 });
+      
+      console.log('📊 Raw API response:', {
+        hasData: !!response.data,
+        hasDataData: !!response.data?.data,
+        totalItems: response.data?.meta?.totalItems,
+        currentPage: response.data?.meta?.page,
+        perPage: response.data?.meta?.perPage,
+        dataLength: response.data?.data?.length
+      });
+      
+      return {
+        hasData: !!response.data,
+        hasDataData: !!response.data?.data,
+        totalItems: response.data?.meta?.totalItems,
+        currentPage: response.data?.meta?.page,
+        perPage: response.data?.meta?.perPage,
+        dataLength: response.data?.data?.length,
+        rawData: response.data?.data ? response.data.data.map((u: any) => ({
+          id: u.id,
+          email: u.attributes.email,
+          displayName: u.attributes.profile?.displayName
+        })) : []
+      };
+    } catch (error) {
+      console.error('❌ Error in raw users API test:', error);
+      return {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
   // Get all users
   async getUsers(limit: number = 100, offset: number = 0): Promise<SharetribeUser[]> {
     try {

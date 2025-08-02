@@ -70,6 +70,10 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Testing raw users query...');
     const allUsers = await sharetribeAPI.getUsers(1000);
     
+    // Let's also test the raw API call to see what's happening
+    console.log('🔍 Testing raw API call...');
+    const rawApiResponse = await sharetribeAPI.testRawUsersAPI();
+    
     const userEmails = allUsers.map((u: any) => u.email);
     const jacobEmailIndex = userEmails.findIndex((email: string) => 
       email.toLowerCase() === user.email.toLowerCase()
@@ -97,7 +101,8 @@ export async function GET(request: NextRequest) {
         allUserEmails: userEmails,
         jacobEmailFound: jacobEmailIndex !== -1,
         jacobEmailIndex: jacobEmailIndex,
-        jacobEmailInList: jacobEmailIndex !== -1 ? userEmails[jacobEmailIndex] : null
+        jacobEmailInList: jacobEmailIndex !== -1 ? userEmails[jacobEmailIndex] : null,
+        rawApiResponse: rawApiResponse
       },
       listings: listings.length,
       transactions: transactions.length
