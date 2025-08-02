@@ -5,6 +5,7 @@ import { PlusIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import CopyButton from '@/components/CopyButton';
 
 export default function Payouts() {
   const { user } = useAuth();
@@ -316,6 +317,7 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [bankReference, setBankReference] = useState('');
   const [affiliateBankDetails, setAffiliateBankDetails] = useState<any>(null);
+  const [isEditingReference, setIsEditingReference] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -477,37 +479,55 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
                       {affiliateBankDetails.bank_name && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700">Bank Name</label>
-                          <p className="mt-1 text-sm text-gray-900">{affiliateBankDetails.bank_name}</p>
+                          <div className="mt-1 flex items-center space-x-2">
+                            <p className="text-sm text-gray-900 flex-1">{affiliateBankDetails.bank_name}</p>
+                            <CopyButton text={affiliateBankDetails.bank_name} size="sm" />
+                          </div>
                         </div>
                       )}
                       {affiliateBankDetails.bank_account_name && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700">Account Holder Name</label>
-                          <p className="mt-1 text-sm text-gray-900">{affiliateBankDetails.bank_account_name}</p>
+                          <div className="mt-1 flex items-center space-x-2">
+                            <p className="text-sm text-gray-900 flex-1">{affiliateBankDetails.bank_account_name}</p>
+                            <CopyButton text={affiliateBankDetails.bank_account_name} size="sm" />
+                          </div>
                         </div>
                       )}
                       {affiliateBankDetails.bank_account_number && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700">Account Number</label>
-                          <p className="mt-1 text-sm text-gray-900">****{affiliateBankDetails.bank_account_number.slice(-4)}</p>
+                          <div className="mt-1 flex items-center space-x-2">
+                            <p className="text-sm text-gray-900 flex-1">****{affiliateBankDetails.bank_account_number.slice(-4)}</p>
+                            <CopyButton text={affiliateBankDetails.bank_account_number} size="sm" />
+                          </div>
                         </div>
                       )}
                       {affiliateBankDetails.bank_sort_code && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700">Sort Code</label>
-                          <p className="mt-1 text-sm text-gray-900">{affiliateBankDetails.bank_sort_code}</p>
+                          <div className="mt-1 flex items-center space-x-2">
+                            <p className="text-sm text-gray-900 flex-1">{affiliateBankDetails.bank_sort_code}</p>
+                            <CopyButton text={affiliateBankDetails.bank_sort_code} size="sm" />
+                          </div>
                         </div>
                       )}
                       {affiliateBankDetails.bank_iban && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700">IBAN</label>
-                          <p className="mt-1 text-sm text-gray-900">{affiliateBankDetails.bank_iban}</p>
+                          <div className="mt-1 flex items-center space-x-2">
+                            <p className="text-sm text-gray-900 flex-1">{affiliateBankDetails.bank_iban}</p>
+                            <CopyButton text={affiliateBankDetails.bank_iban} size="sm" />
+                          </div>
                         </div>
                       )}
                       {affiliateBankDetails.bank_routing_number && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700">Routing Number</label>
-                          <p className="mt-1 text-sm text-gray-900">{affiliateBankDetails.bank_routing_number}</p>
+                          <div className="mt-1 flex items-center space-x-2">
+                            <p className="text-sm text-gray-900 flex-1">{affiliateBankDetails.bank_routing_number}</p>
+                            <CopyButton text={affiliateBankDetails.bank_routing_number} size="sm" />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -537,14 +557,34 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Bank Reference</label>
-                  <input
-                    type="text"
-                    value={bankReference}
-                    onChange={(e) => setBankReference(e.target.value.slice(0, 18))}
-                    className="mt-1 block w-full form-input"
-                    maxLength={18}
-                    placeholder="Enter bank reference"
-                  />
+                  <div className="mt-1 flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={bankReference}
+                      onChange={(e) => setBankReference(e.target.value.slice(0, 18))}
+                      className="flex-1 form-input"
+                      maxLength={18}
+                      placeholder="Enter bank reference"
+                      readOnly={!isEditingReference}
+                    />
+                    <CopyButton text={bankReference} size="sm" />
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingReference(!isEditingReference)}
+                      className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                      title={isEditingReference ? "Lock editing" : "Unlock editing"}
+                    >
+                      {isEditingReference ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex justify-end space-x-3">
                   <button
