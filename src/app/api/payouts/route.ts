@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch affiliates with their referrals and program data
+    // Fetch affiliates with their referrals, program data, and bank details
     const { data: affiliates, error: affiliatesError } = await authenticatedSupabase
       .from('affiliates')
       .select(`
@@ -45,6 +45,12 @@ export async function GET(request: NextRequest) {
         email,
         status,
         created_at,
+        bank_account_name,
+        bank_account_number,
+        bank_sort_code,
+        bank_iban,
+        bank_routing_number,
+        bank_name,
         referrals (
           id,
           status,

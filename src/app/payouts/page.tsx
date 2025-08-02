@@ -354,43 +354,23 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
       amount: selectedPayout ? selectedPayout.amount.toString() : ''
     });
 
-    // Fetch affiliate bank details if affiliate is selected
+    // Get affiliate bank details from the payouts data (no need for separate API call)
     if (affiliateId) {
-      try {
-        console.log('Fetching bank details for affiliate:', affiliateId);
-        const { data: { session } } = await supabase().auth.getSession();
-        const token = session?.access_token;
-        
-        if (token) {
-          const response = await fetch(`/api/affiliates/${affiliateId}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          console.log('Affiliate API response status:', response.status);
-          
-          if (response.ok) {
-            const data = await response.json();
-            console.log('Affiliate API response data:', data);
-            
-            if (data.success && data.affiliate) {
-              console.log('Setting affiliate bank details:', data.affiliate);
-              setAffiliateBankDetails(data.affiliate);
-            } else {
-              console.log('No affiliate data in response');
-              setAffiliateBankDetails(null);
-            }
-          } else {
-            console.log('Affiliate API response not ok');
-            setAffiliateBankDetails(null);
-          }
-        } else {
-          console.log('No auth token available');
-          setAffiliateBankDetails(null);
-        }
-      } catch (error) {
-        console.error('Failed to fetch affiliate bank details:', error);
+      console.log('Getting bank details for affiliate:', affiliateId);
+      const affiliateData = payouts.find(p => p.affiliateId === affiliateId);
+      
+      if (affiliateData) {
+        console.log('Found affiliate data with bank details:', {
+          bank_name: !!affiliateData.bank_name,
+          bank_account_name: !!affiliateData.bank_account_name,
+          bank_account_number: !!affiliateData.bank_account_number,
+          bank_sort_code: !!affiliateData.bank_sort_code,
+          bank_iban: !!affiliateData.bank_iban,
+          bank_routing_number: !!affiliateData.bank_routing_number
+        });
+        setAffiliateBankDetails(affiliateData);
+      } else {
+        console.log('No affiliate data found in payouts');
         setAffiliateBankDetails(null);
       }
     } else {
