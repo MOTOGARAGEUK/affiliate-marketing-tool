@@ -13,7 +13,7 @@ export default function Payouts() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPayout, setSelectedPayout] = useState<any>(null);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'unpaid' | 'paid'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'unpaid' | 'paid'>('unpaid');
 
   useEffect(() => {
     fetchPayouts();
@@ -250,7 +250,9 @@ export default function Payouts() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-green-600">
+                    <div className={`text-sm font-medium ${
+                      payout.amount > 0 ? 'text-red-600' : 'text-gray-500'
+                    }`}>
                       {formatCurrency(payout.amount)}
                     </div>
                   </td>
