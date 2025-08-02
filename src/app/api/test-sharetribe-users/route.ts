@@ -1,108 +1,141 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getSharetribeCredentials, createSharetribeAPI } from '@/lib/sharetribe';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get authenticated user
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ success: false, message: 'No authorization header' }, { status: 401 });
-    }
+    const body = await request.json();
+    const { userId } = body;
 
-    const token = authHeader.replace('Bearer ', '');
+    console.log('🧪 Testing ShareTribe users API for user:', userId);
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !authUser) {
-      return NextResponse.json({ success: false, message: 'Authentication failed' }, { status: 401 });
-    }
+    // Get ShareTribe settings
+    const { data: settings, error } = await supabase
+      .from('settings')
+      .select('setting_key, setting_value')
+      .eq('user_id', userId)
+      .eq('setting_type', 'sharetribe');
 
-    // Get ShareTribe credentials
-    const credentials = await getSharetribeCredentials(authUser.id);
-    if (!credentials) {
-      return NextResponse.json({ success: false, message: 'No ShareTribe credentials found' }, { status: 400 });
-    }
-
-    const sharetribeAPI = createSharetribeAPI(credentials);
-
-    // Test connection first
-    console.log('🔍 Testing ShareTribe connection...');
-    const connectionTest = await sharetribeAPI.testConnection();
-    if (!connectionTest) {
-      return NextResponse.json({ success: false, message: 'ShareTribe connection failed' }, { status: 500 });
-    }
-
-    console.log('✅ ShareTribe connection successful');
-
-    // Get all users from ShareTribe
-    console.log('🔍 Fetching all users from ShareTribe...');
-    const users = await sharetribeAPI.getUsers(100);
-    console.log(`✅ Found ${users.length} users in ShareTribe`);
-
-    if (users.length === 0) {
-      return NextResponse.json({
-        success: false,
-        message: 'No users found in ShareTribe marketplace'
+    if (error || !settings || settings.length === 0) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'No ShareTribe settings found' 
       });
     }
 
-    // Get listings count for each user
-    console.log('🔍 Fetching listings count for each user...');
-    const usersWithListings = [];
+    // Convert to object
+    const settingsObj: any = {};
+    settings.forEach(setting => {
+      settingsObj[setting.setting_key] = setting.setting_value;
+    });
 
-    for (const user of users) {
-      try {
-        console.log(`📋 Getting listings for user: ${user.email}`);
-        const listings = await sharetribeAPI.getUserListings(user.id, 1000);
-        
-        const activeListings = listings.filter(listing => {
-          const state = listing.attributes?.state || listing.state;
-          return state === 'published' || state === 'active';
-        });
+    console.log('📋 Settings found:', Object.keys(settingsObj));
 
-        usersWithListings.push({
-          id: user.id,
-          email: user.email,
-          displayName: user.profile?.displayName || 'No name',
-          listingsCount: activeListings.length,
-          totalListings: listings.length,
-          createdAt: user.createdAt
-        });
-
-        console.log(`✅ User ${user.email}: ${activeListings.length} active listings, ${listings.length} total`);
-      } catch (error) {
-        console.error(`❌ Error getting listings for user ${user.email}:`, error);
-        usersWithListings.push({
-          id: user.id,
-          email: user.email,
-          displayName: user.profile?.displayName || 'No name',
-          listingsCount: 0,
-          totalListings: 0,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          createdAt: user.createdAt
-        });
-      }
+    // Use Integration API credentials if available, otherwise Marketplace API
+    let clientId, clientSecret;
+    if (settingsObj.integrationClientId && settingsObj.integrationClientSecret) {
+      clientId = settingsObj.integrationClientId;
+      clientSecret = settingsObj.integrationClientSecret;
+      console.log('🔑 Using Integration API credentials');
+    } else if (settingsObj.marketplaceClientId && settingsObj.marketplaceClientSecret) {
+      clientId = settingsObj.marketplaceClientId;
+      clientSecret = settingsObj.marketplaceClientSecret;
+      console.log('🔑 Using Marketplace API credentials');
+    } else {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'No ShareTribe credentials found' 
+      });
     }
 
-    console.log('✅ Completed fetching listings for all users');
+    // Step 1: Get access token
+    console.log('🔑 Step 1: Getting access token...');
+    const tokenResponse = await fetch('https://auth.sharetribe.com/oauth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+      }),
+    });
 
-    return NextResponse.json({
-      success: true,
-      message: `Found ${users.length} users in ShareTribe marketplace`,
-      totalUsers: users.length,
-      users: usersWithListings
+    console.log('🔑 Token response status:', tokenResponse.status);
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error('❌ Token request failed:', errorText);
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Token request failed',
+        error: errorText,
+        status: tokenResponse.status
+      });
+    }
+
+    const tokenData = await tokenResponse.json();
+    console.log('✅ Token received:', { 
+      access_token: tokenData.access_token ? 'Present' : 'Missing', 
+      expires_in: tokenData.expires_in 
+    });
+
+    if (!tokenData.access_token) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'No access token received' 
+      });
+    }
+
+    // Step 2: Test users API call
+    console.log('👥 Step 2: Testing users API...');
+    const usersResponse = await fetch('https://api.sharetribe.com/v1/users?limit=3', {
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log('👥 Users API response status:', usersResponse.status);
+
+    if (!usersResponse.ok) {
+      const errorText = await usersResponse.text();
+      console.error('❌ Users API call failed:', errorText);
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Users API call failed',
+        error: errorText,
+        status: usersResponse.status
+      });
+    }
+
+    const usersData = await usersResponse.json();
+    console.log('✅ Users API call successful');
+    console.log('📊 Response structure:', JSON.stringify(usersData, null, 2));
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'ShareTribe users API test successful',
+      response: usersData,
+      credentials: {
+        type: settingsObj.integrationClientId ? 'Integration API' : 'Marketplace API',
+        clientId: clientId ? 'SET' : 'NOT SET',
+        clientSecret: clientSecret ? 'SET' : 'NOT SET'
+      }
     });
 
   } catch (error) {
-    console.error('Error fetching ShareTribe users:', error);
-    return NextResponse.json({
-      success: false,
-      message: 'Failed to fetch ShareTribe users',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error('❌ Test error:', error);
+    return NextResponse.json({ 
+      success: false, 
+      message: 'Test failed with error',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace'
+    });
   }
 } 

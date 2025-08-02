@@ -849,6 +849,47 @@ export default function Referrals() {
           >
             🔍 Direct Test
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                if (!session?.user?.id) {
+                  alert('No user ID found');
+                  return;
+                }
+                
+                console.log('🧪 Testing ShareTribe users API for user:', session.user.id);
+                
+                const response = await fetch('/api/test-sharetribe-users', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  },
+                  body: JSON.stringify({
+                    userId: session.user.id
+                  })
+                });
+                
+                const data = await response.json();
+                console.log('🧪 Users API test result:', data);
+                
+                if (data.success) {
+                  alert(`✅ Users API test successful!\n\nCredentials: ${data.credentials.type}\nResponse structure matches expected format.`);
+                } else {
+                  alert(`❌ Users API test failed:\n\nMessage: ${data.message}\nError: ${data.error || 'None'}\nStatus: ${data.status || 'None'}`);
+                }
+              } catch (error) {
+                console.error('Users API test error:', error);
+                alert('Users API test error: ' + error);
+              }
+            }}
+            className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🧪 Test Users API
+          </button>
         </div>
       </div>
       )}
