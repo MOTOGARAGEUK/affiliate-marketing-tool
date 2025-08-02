@@ -543,18 +543,25 @@ export async function getSharetribeCredentials(userId: string): Promise<Sharetri
     });
 
     // Check if we have the required credentials
-    if (!settingsObj.marketplaceClientId || !settingsObj.marketplaceClientSecret) {
+    // Try Integration API first (for user lookups), then Marketplace API as fallback
+    if (settingsObj.integrationClientId && settingsObj.integrationClientSecret) {
+      console.log('✅ Using Integration API credentials for user lookups');
+      return {
+        clientId: settingsObj.integrationClientId,
+        clientSecret: settingsObj.integrationClientSecret,
+        marketplaceUrl: settingsObj.marketplaceUrl // Optional - SDK will auto-detect
+      };
+    } else if (settingsObj.marketplaceClientId && settingsObj.marketplaceClientSecret) {
+      console.log('✅ Using Marketplace API credentials (fallback)');
+      return {
+        clientId: settingsObj.marketplaceClientId,
+        clientSecret: settingsObj.marketplaceClientSecret,
+        marketplaceUrl: settingsObj.marketplaceUrl // Optional - SDK will auto-detect
+      };
+    } else {
       console.log('Missing required ShareTribe credentials');
       return null;
     }
-
-    console.log('✅ ShareTribe credentials found - SDK will auto-detect marketplace');
-
-    return {
-      clientId: settingsObj.marketplaceClientId,
-      clientSecret: settingsObj.marketplaceClientSecret,
-      marketplaceUrl: settingsObj.marketplaceUrl // Optional - SDK will auto-detect
-    };
   } catch (error) {
     console.error('Error getting ShareTribe credentials:', error);
     return null;
