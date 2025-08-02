@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     // Step 1: Get access token
     console.log('🔑 Step 1: Getting access token...');
-    const tokenResponse = await fetch('https://auth.sharetribe.com/oauth/token', {
+    const tokenResponse = await fetch('https://auth.dev.sharetribe.com/oauth/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     // Step 2: Test users API call
     console.log('👥 Step 2: Testing users API...');
-    const usersResponse = await fetch('https://api.sharetribe.com/v1/users?limit=3', {
+    const usersResponse = await fetch('https://api.dev.sharetribe.com/v1/users?limit=3', {
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
         'Content-Type': 'application/json',
