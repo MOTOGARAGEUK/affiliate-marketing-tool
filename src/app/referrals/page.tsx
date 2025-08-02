@@ -58,7 +58,7 @@ export default function Referrals() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ forceRefresh: false }) // Use cache if recent
+        body: JSON.stringify({ forceRefresh: true }) // Force refresh to get latest status
       });
       
       if (response.ok) {
@@ -1196,6 +1196,39 @@ export default function Referrals() {
             <span className="text-sm text-gray-500">
               ({filteredReferrals.length} of {referrals.length} referrals)
             </span>
+            <button
+              onClick={async () => {
+                try {
+                  const { data: { session } } = await supabase().auth.getSession();
+                  const token = session?.access_token;
+                  
+                  console.log('🔄 Manually refreshing validation...');
+                  const response = await fetch('/api/validate-referral-emails', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ forceRefresh: true })
+                  });
+                  
+                  if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                      console.log('✅ Manual refresh completed:', data.summary);
+                      fetchReferrals(); // Refresh the data
+                      alert(`Validation refreshed!\n\n📊 Summary:\n✅ Green: ${data.summary.green}\n🟡 Amber: ${data.summary.amber}\n🔴 Red: ${data.summary.red}\n❌ Errors: ${data.summary.error}`);
+                    }
+                  }
+                } catch (error) {
+                  console.error('❌ Manual refresh error:', error);
+                  alert('Failed to refresh validation');
+                }
+              }}
+              className="ml-2 inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              🔄 Refresh Now
+            </button>
           </div>
         </div>
       </div>
