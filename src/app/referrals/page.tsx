@@ -645,6 +645,119 @@ export default function Referrals() {
                 const { data: { session } } = await supabase().auth.getSession();
                 const token = session?.access_token;
                 
+                console.log('🔍 Starting validation of all referrals...');
+                const response = await fetch('/api/validate-all-referrals', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  }
+                });
+                
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('🔍 All referrals validation result:', data);
+                
+                if (data.success) {
+                  alert(`All referrals validation completed!\n\n📊 Results:\n✅ Validated: ${data.validated}\n❌ Errors: ${data.errors}\n📋 Total: ${data.total}\n\nCheck console for detailed results.`);
+                  fetchReferrals(); // Refresh the data to show updated validation status
+                } else {
+                  alert('All referrals validation failed: ' + data.message);
+                }
+              } catch (error) {
+                console.error('All referrals validation error:', error);
+                alert('All referrals validation error: ' + error);
+              }
+            }}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🔍 Validate All Referrals
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                console.log('🔧 Fixing duplicate affiliates...');
+                const response = await fetch('/api/fix-database-issues', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  },
+                  body: JSON.stringify({ fixType: 'duplicate-affiliates' })
+                });
+                
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('🔧 Duplicate affiliates fix result:', data);
+                
+                if (data.success) {
+                  alert(`Duplicate affiliates fixed!\n\n📊 Results:\n🗑️ Removed: ${data.duplicatesRemoved}\n✅ Kept: ${data.affiliatesKept}\n📋 Total: ${data.total}\n\nCheck console for detailed results.`);
+                  window.location.reload(); // Refresh the page to show updated data
+                } else {
+                  alert('Failed to fix duplicate affiliates: ' + data.message);
+                }
+              } catch (error) {
+                console.error('Duplicate affiliates fix error:', error);
+                alert('Duplicate affiliates fix error: ' + error);
+              }
+            }}
+            className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🔧 Fix Duplicate Affiliates
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                console.log('🔧 Fixing missing validation status...');
+                const response = await fetch('/api/fix-database-issues', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  },
+                  body: JSON.stringify({ fixType: 'missing-validation-status' })
+                });
+                
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('🔧 Missing validation status fix result:', data);
+                
+                if (data.success) {
+                  alert(`Missing validation status fixed!\n\n📊 Results:\n✅ Fixed: ${data.fixed}\n📋 Total: ${data.total}\n\nCheck console for detailed results.`);
+                  fetchReferrals(); // Refresh the data to show updated validation status
+                } else {
+                  alert('Failed to fix missing validation status: ' + data.message);
+                }
+              } catch (error) {
+                console.error('Missing validation status fix error:', error);
+                alert('Missing validation status fix error: ' + error);
+              }
+            }}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🔧 Fix Missing Validation Status
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
                 console.log('🔧 Checking validation columns...');
                 const response = await fetch('/api/check-validation-columns', {
                   method: 'POST',

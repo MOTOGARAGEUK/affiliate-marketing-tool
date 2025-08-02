@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if email already exists for this user
+    // Check if email already exists for this user (case-insensitive)
     console.log('=== EMAIL VALIDATION DEBUG ===');
     console.log('Checking for existing affiliate with email:', body.email);
     console.log('User ID:', user.id);
@@ -175,28 +175,18 @@ export async function POST(request: NextRequest) {
     console.log('All affiliates for user:', allAffiliates);
     console.log('All affiliate emails:', allAffiliates?.map(a => a.email));
     
-    // Now check for the specific email
-    const { data: existingAffiliate, error: checkError } = await authenticatedSupabase
-      .from('affiliates')
-      .select('id, name, email')
-      .eq('user_id', user.id)
-      .eq('email', body.email.toLowerCase().trim())
-      .maybeSingle(); // Use maybeSingle instead of single to avoid errors
+    // Check for existing affiliate with the same email (case-insensitive)
+    const normalizedEmail = body.email.toLowerCase().trim();
+    const existingAffiliate = allAffiliates?.find(a => 
+      a.email.toLowerCase().trim() === normalizedEmail
+    );
 
-    console.log('Email check result:', { existingAffiliate, checkError });
-
-    if (checkError) {
-      console.error('Error checking for existing affiliate:', checkError);
-      return NextResponse.json(
-        { success: false, message: 'Error checking for existing affiliate' },
-        { status: 500 }
-      );
-    }
+    console.log('Email check result:', { existingAffiliate });
 
     if (existingAffiliate) {
       console.log('❌ Duplicate email found:', existingAffiliate);
       return NextResponse.json(
-        { success: false, message: `Sorry, this affiliate email already exists` },
+        { success: false, message: `Sorry, an affiliate with the email "${body.email}" already exists` },
         { status: 400 }
       );
     }
