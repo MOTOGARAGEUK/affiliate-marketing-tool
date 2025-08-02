@@ -131,12 +131,29 @@ export async function GET(request: NextRequest) {
       // Calculate outstanding amount
       const outstandingAmount = Math.max(0, totalEarnings - totalPaid);
 
+      // Debug: Log the affiliate data to see what's being returned
+      console.log(`Debug - Affiliate ${affiliate.name} bank details:`, {
+        bank_name: affiliate.bank_name,
+        bank_account_name: affiliate.bank_account_name,
+        bank_account_number: affiliate.bank_account_number,
+        bank_sort_code: affiliate.bank_sort_code,
+        bank_iban: affiliate.bank_iban,
+        bank_routing_number: affiliate.bank_routing_number
+      });
+
       return {
         id: affiliate.id,
         affiliateId: affiliate.id,
         affiliateName: affiliate.name,
         affiliateEmail: affiliate.email,
         affiliateStatus: affiliate.status,
+        // Bank details
+        bank_name: affiliate.bank_name,
+        bank_account_name: affiliate.bank_account_name,
+        bank_account_number: affiliate.bank_account_number,
+        bank_sort_code: affiliate.bank_sort_code,
+        bank_iban: affiliate.bank_iban,
+        bank_routing_number: affiliate.bank_routing_number,
         totalEarnings: Math.round(totalEarnings * 100) / 100,
         totalPaid: Math.round(totalPaid * 100) / 100,
         amount: Math.round(outstandingAmount * 100) / 100, // Outstanding amount
