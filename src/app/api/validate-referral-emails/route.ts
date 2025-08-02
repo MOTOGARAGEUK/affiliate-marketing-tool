@@ -73,11 +73,99 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Validate email against ShareTribe
+      // Validate email against ShareTribe using the working debug test approach
       console.log(`🔍 Validating email: ${email}`);
       
       try {
-        const sharetribeUser = await sharetribeAPI.getUserByEmail(email);
+        // Get ShareTribe settings directly (same as debug test)
+        const { data: settings, error: settingsError } = await supabase
+          .from('settings')
+          .select('setting_key, setting_value')
+          .eq('user_id', affiliate.user_id)
+          .eq('setting_type', 'sharetribe');
+
+        if (settingsError || !settings || settings.length === 0) {
+          console.log(`⚠️ No ShareTribe settings found for affiliate ${affiliate.user_id}`);
+          validationResults.push({
+            referralId: referral.id,
+            email: email,
+            status: 'error',
+            cached: false,
+            lastChecked: now,
+            error: 'No ShareTribe settings found'
+          });
+          continue;
+        }
+
+        // Convert to object (same as debug test)
+        const settingsObj: any = {};
+        settings.forEach(setting => {
+          settingsObj[setting.setting_key] = setting.setting_value;
+        });
+
+        // Use Integration API credentials (same as debug test)
+        if (!settingsObj.integrationClientId || !settingsObj.integrationClientSecret) {
+          console.log(`⚠️ No Integration API credentials found for affiliate ${affiliate.user_id}`);
+          validationResults.push({
+            referralId: referral.id,
+            email: email,
+            status: 'error',
+            cached: false,
+            lastChecked: now,
+            error: 'No Integration API credentials found'
+          });
+          continue;
+        }
+
+        // Import SDK (same as debug test)
+        let sharetribeIntegrationSdk;
+        try {
+          const module = await import('sharetribe-flex-integration-sdk');
+          sharetribeIntegrationSdk = module.default || module;
+        } catch (importError) {
+          console.error(`❌ SDK import failed for affiliate ${affiliate.user_id}:`, importError);
+          validationResults.push({
+            referralId: referral.id,
+            email: email,
+            status: 'error',
+            cached: false,
+            lastChecked: now,
+            error: 'SDK import failed'
+          });
+          continue;
+        }
+
+        const integrationSdk = sharetribeIntegrationSdk.createInstance({
+          clientId: settingsObj.integrationClientId,
+          clientSecret: settingsObj.integrationClientSecret
+        });
+
+        // Get all users from ShareTribe (same as debug test)
+        console.log(`🔍 Fetching all users from ShareTribe for affiliate ${affiliate.user_id}...`);
+        const usersResponse = await integrationSdk.users.query({
+          limit: 1000
+        });
+
+        if (!usersResponse || !usersResponse.data || !usersResponse.data.data) {
+          console.log(`⚠️ No users found or invalid response for affiliate ${affiliate.user_id}`);
+          validationResults.push({
+            referralId: referral.id,
+            email: email,
+            status: 'error',
+            cached: false,
+            lastChecked: now,
+            error: 'No users found in ShareTribe'
+          });
+          continue;
+        }
+
+        const sharetribeUsers = usersResponse.data.data;
+        console.log(`✅ Found ${sharetribeUsers.length} users in ShareTribe for affiliate ${affiliate.user_id}`);
+
+        // Find user by email (same logic as debug test)
+        const sharetribeUser = sharetribeUsers.find((user: any) => 
+          user.attributes?.email?.toLowerCase() === email.toLowerCase()
+        );
         
         // Log the complete ShareTribe user object in the expected format
         if (sharetribeUser) {
@@ -109,9 +197,9 @@ export async function POST(request: NextRequest) {
 
         if (sharetribeUser) {
           userId = sharetribeUser.id;
-          displayName = sharetribeUser.profile?.displayName || sharetribeUser.attributes?.profile?.displayName;
+          displayName = sharetribeUser.attributes?.profile?.displayName;
           
-          // Fix: emailVerified is directly in attributes, not nested
+          // Get emailVerified from the ShareTribe user attributes (same as debug test)
           emailVerified = sharetribeUser.attributes?.emailVerified === true;
           
           console.log(`🔍 User validation details for ${email}:`, {
