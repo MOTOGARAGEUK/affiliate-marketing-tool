@@ -94,10 +94,10 @@ export default function Dashboard() {
           },
           {
             name: 'Total Payouts',
-            value: formatCurrency(currentStats.totalEarnings, userCurrency as string),
+            value: formatCurrency(currentStats.totalPayouts, userCurrency as string),
             icon: CurrencyDollarIcon,
-            change: currentStats.totalEarnings > 0 ? '+100%' : '0%',
-            changeType: currentStats.totalEarnings > 0 ? 'positive' : 'neutral',
+            change: currentStats.totalPayouts > 0 ? '+100%' : '0%',
+            changeType: currentStats.totalPayouts > 0 ? 'positive' : 'neutral',
           },
           {
             name: 'Pending Payouts',

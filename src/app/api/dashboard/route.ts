@@ -266,8 +266,8 @@ export async function GET(request: NextRequest) {
       verifiedReferrals: verifiedReferralsCount, // Add verified referrals count
       totalRevenue: Math.round(totalRevenue * 100) / 100, // Round to 2 decimal places
       totalEarnings: Math.round(totalEarnings * 100) / 100, // Round to 2 decimal places
-      pendingPayouts: Math.round(totalPayoutsOwed * 100) / 100, // Outstanding payouts owed to affiliates
-      totalPayoutsPaid: Math.round(totalPayoutsPaid * 100) / 100, // Total payouts already paid
+      totalPayouts: Math.round(totalPayoutsPaid * 100) / 100, // Total payouts already paid (from payouts tab)
+      pendingPayouts: Math.round(totalPayoutsOwed * 100) / 100, // Outstanding payouts owed to affiliates (from payouts tab)
       referralChange: referralChange.startsWith('+') ? `+${referralChange}%` : `${referralChange}%`
     };
 
