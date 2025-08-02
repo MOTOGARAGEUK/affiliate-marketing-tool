@@ -767,6 +767,47 @@ export default function Referrals() {
           >
             🧪 Simple Test
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                if (!session?.user?.id) {
+                  alert('No user ID found');
+                  return;
+                }
+                
+                console.log('🔍 Checking ShareTribe settings for user:', session.user.id);
+                
+                const response = await fetch('/api/check-sharetribe-settings', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  },
+                  body: JSON.stringify({
+                    userId: session.user.id
+                  })
+                });
+                
+                const data = await response.json();
+                console.log('🔍 Settings check result:', data);
+                
+                if (data.success) {
+                  alert(`🔍 Current ShareTribe Settings:\n\nMarketplace Client ID: ${data.settings.marketplaceClientId}\nMarketplace Client Secret: ${data.settings.marketplaceClientSecret}\nMarketplace URL: ${data.settings.marketplaceUrl}\n\nIntegration Client ID: ${data.settings.integrationClientId}\nIntegration Client Secret: ${data.settings.integrationClientSecret}\n\n⚠️ ISSUE: Marketplace URL is set to localhost instead of ShareTribe URL!`);
+                } else {
+                  alert(`❌ Settings check failed:\n\n${data.message}`);
+                }
+              } catch (error) {
+                console.error('Settings check error:', error);
+                alert('Settings check error: ' + error);
+              }
+            }}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🔍 Check Settings
+          </button>
         </div>
       </div>
       )}
