@@ -538,6 +538,42 @@ export default function Referrals() {
           >
             🧹 Clear Cache
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                console.log('🔧 Checking validation columns...');
+                const response = await fetch('/api/check-validation-columns', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  }
+                });
+                
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('🔧 Column check result:', data);
+                
+                if (data.success) {
+                  alert('Column check completed: ' + data.message);
+                } else {
+                  alert('Column check failed: ' + data.message);
+                }
+              } catch (error) {
+                console.error('Column check error:', error);
+                alert('Column check error: ' + error);
+              }
+            }}
+            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🔧 Check Columns
+          </button>
         </div>
       </div>
 
