@@ -66,6 +66,17 @@ export async function GET(request: NextRequest) {
     const listings = await sharetribeAPI.getUserListings(userId);
     const transactions = await sharetribeAPI.getUserTransactions(userId);
 
+    // Let's also test the raw users query to see what's happening
+    console.log('🔍 Testing raw users query...');
+    const sdk = await sharetribeAPI.getSDK();
+    const rawUsersResponse = await sdk.users.query({ perPage: 1000 });
+    
+    const allUsers = rawUsersResponse.data?.data || [];
+    const userEmails = allUsers.map((u: any) => u.attributes.email);
+    const jacobEmailIndex = userEmails.findIndex((email: string) => 
+      email.toLowerCase() === user.email.toLowerCase()
+    );
+
     return NextResponse.json({
       success: true,
       message: 'Simple test completed successfully',
@@ -82,6 +93,13 @@ export async function GET(request: NextRequest) {
           email: userByEmail.email,
           displayName: userByEmail.profile?.displayName
         } : null
+      },
+      debug: {
+        totalUsersInShareTribe: allUsers.length,
+        allUserEmails: userEmails,
+        jacobEmailFound: jacobEmailIndex !== -1,
+        jacobEmailIndex: jacobEmailIndex,
+        jacobEmailInList: jacobEmailIndex !== -1 ? userEmails[jacobEmailIndex] : null
       },
       listings: listings.length,
       transactions: transactions.length
