@@ -72,6 +72,8 @@ export async function POST(request: NextRequest) {
       try {
         const sharetribeUser = await sharetribeAPI.getUserByEmail(email);
         
+        console.log(`🔍 Raw ShareTribe user object for ${email}:`, JSON.stringify(sharetribeUser, null, 2));
+        
         let status = 'red'; // Default: user not found
         let emailVerified = false;
         let userId = null;
@@ -80,7 +82,16 @@ export async function POST(request: NextRequest) {
         if (sharetribeUser) {
           userId = sharetribeUser.id;
           displayName = sharetribeUser.profile?.displayName || sharetribeUser.attributes?.profile?.displayName;
-          emailVerified = sharetribeUser.attributes?.emailVerified || false;
+          
+          // Fix: emailVerified is directly in attributes, not nested
+          emailVerified = sharetribeUser.attributes?.emailVerified === true;
+          
+          console.log(`🔍 User validation details for ${email}:`, {
+            userId: userId,
+            displayName: displayName,
+            emailVerified: emailVerified,
+            attributes: sharetribeUser.attributes
+          });
           
           if (emailVerified) {
             status = 'green'; // User exists and email verified
