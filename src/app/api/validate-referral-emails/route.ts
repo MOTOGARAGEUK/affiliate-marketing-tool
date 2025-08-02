@@ -22,6 +22,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Authentication failed' }, { status: 401 });
     }
 
+    // Get request body to check for force refresh
+    const body = await request.json().catch(() => ({}));
+    const forceRefresh = body.forceRefresh || false;
+
     // Get ShareTribe credentials
     const credentials = await getSharetribeCredentials(user.id);
     if (!credentials) {
@@ -42,6 +46,9 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`🔍 Validating ${referrals.length} referral emails...`);
+    if (forceRefresh) {
+      console.log('🔄 Force refresh enabled - clearing cache');
+    }
 
     const validationResults = [];
     const now = new Date().toISOString();
@@ -49,9 +56,9 @@ export async function POST(request: NextRequest) {
     for (const referral of referrals) {
       const email = referral.customer_email;
       
-      // Check if we have recent validation (within last hour)
+      // Check if we have recent validation (within last hour) - unless force refresh
       const lastValidation = referral.sharetribe_validation_updated_at;
-      const isRecent = lastValidation && (new Date().getTime() - new Date(lastValidation).getTime()) < 3600000; // 1 hour
+      const isRecent = !forceRefresh && lastValidation && (new Date().getTime() - new Date(lastValidation).getTime()) < 3600000; // 1 hour
 
       if (isRecent && referral.sharetribe_validation_status) {
         // Use cached result

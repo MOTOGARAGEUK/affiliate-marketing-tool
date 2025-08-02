@@ -475,7 +475,8 @@ export default function Referrals() {
                   headers: {
                     'Content-Type': 'application/json',
                     ...(token && { 'Authorization': `Bearer ${token}` })
-                  }
+                  },
+                  body: JSON.stringify({ forceRefresh: true })
                 });
                 
                 if (!response.ok) {
@@ -499,6 +500,43 @@ export default function Referrals() {
             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm"
           >
             🔍 Validate Emails
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                console.log('🧹 Clearing validation cache...');
+                const response = await fetch('/api/clear-validation-cache', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  }
+                });
+                
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('🧹 Cache clear result:', data);
+                
+                if (data.success) {
+                  alert('Validation cache cleared successfully!');
+                  fetchReferrals(); // Refresh the data
+                } else {
+                  alert('Failed to clear cache: ' + data.message);
+                }
+              } catch (error) {
+                console.error('Cache clear error:', error);
+                alert('Cache clear error: ' + error);
+              }
+            }}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🧹 Clear Cache
           </button>
         </div>
       </div>
