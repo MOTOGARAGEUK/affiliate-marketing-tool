@@ -74,15 +74,22 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const affiliate = await affiliatesAPI.update(params.id, body, user.id);
+    console.log('Update affiliate body:', body);
     
-    if (affiliate) {
-      return NextResponse.json({ success: true, affiliate });
-    } else {
-      return NextResponse.json(
-        { success: false, message: 'Affiliate not found' },
-        { status: 404 }
-      );
+    try {
+      const affiliate = await affiliatesAPI.update(params.id, body, user.id);
+      
+      if (affiliate) {
+        return NextResponse.json({ success: true, affiliate });
+      } else {
+        return NextResponse.json(
+          { success: false, message: 'Affiliate not found' },
+          { status: 404 }
+        );
+      }
+    } catch (updateError) {
+      console.error('Update error details:', updateError);
+      throw updateError;
     }
   } catch (error) {
     console.error('Failed to update affiliate:', error);
