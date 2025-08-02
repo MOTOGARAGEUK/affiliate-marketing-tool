@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { userId } = body;
 
-    console.log('🧪 Testing ShareTribe users API for user:', userId);
+    console.log('🧪 Testing ShareTribe Integration API for user:', userId);
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,99 +35,72 @@ export async function POST(request: NextRequest) {
 
     console.log('📋 Settings found:', Object.keys(settingsObj));
 
-    // Use Integration API credentials if available, otherwise Marketplace API
+    // Use Integration API credentials (required for user lookups)
     let clientId, clientSecret;
     if (settingsObj.integrationClientId && settingsObj.integrationClientSecret) {
       clientId = settingsObj.integrationClientId;
       clientSecret = settingsObj.integrationClientSecret;
       console.log('🔑 Using Integration API credentials');
-    } else if (settingsObj.marketplaceClientId && settingsObj.marketplaceClientSecret) {
-      clientId = settingsObj.marketplaceClientId;
-      clientSecret = settingsObj.marketplaceClientSecret;
-      console.log('🔑 Using Marketplace API credentials');
     } else {
       return NextResponse.json({ 
         success: false, 
-        message: 'No ShareTribe credentials found' 
+        message: 'Integration API credentials required for user lookups' 
       });
     }
 
-    // Step 1: Get access token
-    console.log('🔑 Step 1: Getting access token...');
-    const tokenResponse = await fetch('https://auth.dev.sharetribe.com/oauth/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: clientId,
-        client_secret: clientSecret,
-      }),
+    // Step 1: Test marketplace.show first (basic connection test)
+    console.log('🏪 Step 1: Testing marketplace connection...');
+    
+    // Dynamic import for SDK
+    const { default: sharetribeIntegrationSdk } = await import('sharetribe-flex-integration-sdk');
+    
+    const integrationSdk = sharetribeIntegrationSdk.createInstance({
+      clientId: clientId,
+      clientSecret: clientSecret
     });
 
-    console.log('🔑 Token response status:', tokenResponse.status);
-
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error('❌ Token request failed:', errorText);
+    try {
+      const marketplaceResponse = await integrationSdk.marketplace.show();
+      console.log('✅ Marketplace connection successful:', marketplaceResponse.data?.id);
+    } catch (marketplaceError) {
+      console.error('❌ Marketplace connection failed:', marketplaceError);
       return NextResponse.json({ 
         success: false, 
-        message: 'Token request failed',
-        error: errorText,
-        status: tokenResponse.status
+        message: 'Marketplace connection failed',
+        error: marketplaceError instanceof Error ? marketplaceError.message : 'Unknown error'
       });
     }
 
-    const tokenData = await tokenResponse.json();
-    console.log('✅ Token received:', { 
-      access_token: tokenData.access_token ? 'Present' : 'Missing', 
-      expires_in: tokenData.expires_in 
-    });
-
-    if (!tokenData.access_token) {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'No access token received' 
-      });
-    }
-
-    // Step 2: Test users API call
+    // Step 2: Test users API call using Integration API
     console.log('👥 Step 2: Testing users API...');
-    const usersResponse = await fetch('https://api.dev.sharetribe.com/v1/users?limit=3', {
-      headers: {
-        'Authorization': `Bearer ${tokenData.access_token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    
+    try {
+      const usersResponse = await integrationSdk.users.query({
+        limit: 3
+      });
+      
+      console.log('✅ Users API call successful');
+      console.log('📊 Response structure:', JSON.stringify(usersResponse, null, 2));
 
-    console.log('👥 Users API response status:', usersResponse.status);
+      return NextResponse.json({ 
+        success: true, 
+        message: 'ShareTribe Integration API test successful',
+        response: usersResponse,
+        credentials: {
+          type: 'Integration API',
+          clientId: clientId ? 'SET' : 'NOT SET',
+          clientSecret: clientSecret ? 'SET' : 'NOT SET'
+        }
+      });
 
-    if (!usersResponse.ok) {
-      const errorText = await usersResponse.text();
-      console.error('❌ Users API call failed:', errorText);
+    } catch (usersError) {
+      console.error('❌ Users API call failed:', usersError);
       return NextResponse.json({ 
         success: false, 
         message: 'Users API call failed',
-        error: errorText,
-        status: usersResponse.status
+        error: usersError instanceof Error ? usersError.message : 'Unknown error'
       });
     }
-
-    const usersData = await usersResponse.json();
-    console.log('✅ Users API call successful');
-    console.log('📊 Response structure:', JSON.stringify(usersData, null, 2));
-
-    return NextResponse.json({ 
-      success: true, 
-      message: 'ShareTribe users API test successful',
-      response: usersData,
-      credentials: {
-        type: settingsObj.integrationClientId ? 'Integration API' : 'Marketplace API',
-        clientId: clientId ? 'SET' : 'NOT SET',
-        clientSecret: clientSecret ? 'SET' : 'NOT SET'
-      }
-    });
 
   } catch (error) {
     console.error('❌ Test error:', error);
