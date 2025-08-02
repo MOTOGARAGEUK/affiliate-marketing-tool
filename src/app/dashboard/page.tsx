@@ -61,21 +61,22 @@ export default function Dashboard() {
 
         const currentStats = data.stats;
         const activityData = data.recentActivity;
+        const chartDataFromAPI = data.chartData;
         
         const dashboardStats = [
           {
             name: 'Total Affiliates',
             value: currentStats.totalAffiliates,
             icon: UsersIcon,
-            change: '0%',
-            changeType: 'neutral',
+            change: currentStats.totalAffiliates > 0 ? '+100%' : '0%',
+            changeType: currentStats.totalAffiliates > 0 ? 'positive' : 'neutral',
           },
           {
             name: 'Active Affiliates',
             value: currentStats.activeAffiliates,
             icon: UsersIcon,
-            change: '0%',
-            changeType: 'neutral',
+            change: currentStats.activeAffiliates > 0 ? '+100%' : '0%',
+            changeType: currentStats.activeAffiliates > 0 ? 'positive' : 'neutral',
           },
           {
             name: 'Total Referrals',
@@ -103,7 +104,7 @@ export default function Dashboard() {
         
         setStats(dashboardStats);
         setRecentActivity(activityData || []);
-        setChartData(chartData || []);
+        setChartData(chartDataFromAPI || []);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
@@ -147,7 +148,7 @@ export default function Dashboard() {
           {stats.map((item) => (
             <div
               key={item.name}
-              className="relative overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:px-6 dashboard-card"
+              className="relative overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:px-6 dashboard-card min-h-[120px]"
             >
               <dt>
                 <div className="absolute rounded-md bg-indigo-500 p-3">
@@ -158,7 +159,7 @@ export default function Dashboard() {
               <dd className="ml-16 flex items-baseline">
                 <p className="text-2xl font-semibold text-gray-900">{item.value}</p>
                 <p
-                  className={`ml-2 flex items-baseline text-sm font-semibold ${
+                  className={`ml-2 flex items-baseline text-sm font-semibold whitespace-nowrap ${
                     item.changeType === 'positive'
                       ? 'text-green-600'
                       : item.changeType === 'negative'

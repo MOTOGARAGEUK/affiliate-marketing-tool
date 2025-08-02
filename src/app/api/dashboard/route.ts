@@ -106,19 +106,32 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get recent activity (last 10 referrals)
+    // Get recent activity (last 10 referrals) with actual earnings calculation
     const recentActivity = referrals
       ?.slice(0, 10)
-      .map(referral => ({
-        id: referral.id,
-        type: 'referral',
-        description: `${referral.affiliates?.name || 'Unknown Affiliate'} earned commission`,
-        amount: referral.commission,
-        programName: referral.programs?.name || 'Unknown Program',
-        status: referral.status,
-        created_at: referral.created_at,
-        customer_email: referral.customer_email
-      })) || [];
+      .map(referral => {
+        // Calculate actual earnings based on program commission
+        let actualEarnings = 0;
+        const program = referral.programs;
+        if (program) {
+          if (program.commission_type === 'fixed') {
+            actualEarnings = program.commission;
+          } else if (program.commission_type === 'percentage') {
+            actualEarnings = (program.commission / 100) * 100; // Default base amount
+          }
+        }
+        
+        return {
+          id: referral.id,
+          type: 'referral',
+          description: `${referral.affiliates?.name || 'Unknown Affiliate'} earned commission`,
+          amount: actualEarnings,
+          programName: referral.programs?.name || 'Unknown Program',
+          status: referral.status,
+          created_at: referral.created_at,
+          customer_email: referral.customer_email
+        };
+      }) || [];
 
     // Calculate percentage changes (comparing to previous month) - only verified referrals
     const now = new Date();
@@ -154,6 +167,64 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Generate chart data for the last 6 months
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
+      const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      
+      months.push({
+        month: date.toLocaleDateString('en-US', { month: 'short' }),
+        startDate,
+        endDate
+      });
+    }
+
+    const chartData = await Promise.all(
+      months.map(async (month) => {
+        const [referralsResult, earningsResult] = await Promise.all([
+          authenticatedSupabase
+            .from('referrals')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .eq('sharetribe_validation_status', 'green') // Only verified for chart
+            .gte('created_at', month.startDate.toISOString())
+            .lt('created_at', month.endDate.toISOString()),
+          authenticatedSupabase
+            .from('referrals')
+            .select('commission, programs(commission_type, commission)')
+            .eq('user_id', user.id)
+            .eq('sharetribe_validation_status', 'green') // Only verified for chart
+            .gte('created_at', month.startDate.toISOString())
+            .lt('created_at', month.endDate.toISOString())
+        ]);
+
+        const referralsCount = referralsResult.count || 0;
+        let monthEarnings = 0;
+        
+        if (earningsResult.data) {
+          earningsResult.data.forEach(referral => {
+            const program = referral.programs;
+            if (program) {
+              if (program.commission_type === 'fixed') {
+                monthEarnings += program.commission;
+              } else if (program.commission_type === 'percentage') {
+                monthEarnings += (program.commission / 100) * 100;
+              }
+            }
+          });
+        }
+
+        return {
+          month: month.month,
+          referrals: referralsCount,
+          earnings: Math.round(monthEarnings * 100) / 100
+        };
+      })
+    );
+
     const stats = {
       totalAffiliates,
       activeAffiliates,
@@ -169,7 +240,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       stats,
-      recentActivity
+      recentActivity,
+      chartData
     });
   } catch (error) {
     console.error('Failed to fetch dashboard data:', error);
