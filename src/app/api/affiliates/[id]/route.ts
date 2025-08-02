@@ -6,15 +6,15 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('=== AFFILIATE GET DEBUG ===');
-    console.log('Fetching affiliate ID:', params.id);
-    
-    const supabase = createServerClient();
+    console.log('Affiliates GET - Starting...');
+    console.log('Affiliates GET - Fetching affiliate ID:', params.id);
     
     // Get the user from the request headers
     const authHeader = request.headers.get('authorization');
+    console.log('Affiliates GET - Auth header:', authHeader ? 'Present' : 'Missing');
+    
     if (!authHeader) {
-      console.log('❌ No authorization header');
+      console.log('Affiliates GET - ❌ No authorization header');
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
@@ -22,21 +22,39 @@ export async function GET(
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    console.log('Affiliates GET - Token length:', token.length);
+    
+    // Create an authenticated client with the user's token (same as POST)
+    const { createClient } = await import('@supabase/supabase-js');
+    const authenticatedSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    );
+    
+    console.log('Affiliates GET - Authenticated client created');
+    
+    const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
     
     if (authError || !user) {
-      console.log('❌ Auth error:', authError);
+      console.log('Affiliates GET - ❌ Auth error:', authError);
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    console.log('✅ User authenticated:', user.id);
+    console.log('Affiliates GET - ✅ User authenticated:', user.id);
 
     // Direct query approach - bypass database layer
-    console.log('Trying direct query...');
-    const { data: affiliate, error: queryError } = await supabase
+    console.log('Affiliates GET - Trying direct query...');
+    const { data: affiliate, error: queryError } = await authenticatedSupabase
       .from('affiliates')
       .select(`
         *,
@@ -53,8 +71,7 @@ export async function GET(
       .single();
 
     if (queryError) {
-      console.log('❌ Query error:', queryError);
-      console.log('=== END AFFILIATE GET DEBUG ===');
+      console.log('Affiliates GET - ❌ Query error:', queryError);
       
       if (queryError.code === 'PGRST116') {
         return NextResponse.json(
@@ -70,17 +87,16 @@ export async function GET(
     }
 
     if (!affiliate) {
-      console.log('❌ No affiliate data returned');
-      console.log('=== END AFFILIATE GET DEBUG ===');
+      console.log('Affiliates GET - ❌ No affiliate data returned');
       return NextResponse.json(
         { success: false, message: 'Affiliate not found' },
         { status: 404 }
       );
     }
 
-    console.log('✅ Affiliate found');
-    console.log('Affiliate data keys:', Object.keys(affiliate));
-    console.log('Bank details present:', {
+    console.log('Affiliates GET - ✅ Affiliate found');
+    console.log('Affiliates GET - Affiliate data keys:', Object.keys(affiliate));
+    console.log('Affiliates GET - Bank details present:', {
       bank_name: !!affiliate.bank_name,
       bank_account_name: !!affiliate.bank_account_name,
       bank_account_number: !!affiliate.bank_account_number,
@@ -88,13 +104,11 @@ export async function GET(
       bank_iban: !!affiliate.bank_iban,
       bank_routing_number: !!affiliate.bank_routing_number
     });
-    console.log('=== END AFFILIATE GET DEBUG ===');
     
     return NextResponse.json({ success: true, affiliate });
     
   } catch (error) {
-    console.error('❌ Failed to fetch affiliate:', error);
-    console.log('=== END AFFILIATE GET DEBUG ===');
+    console.error('Affiliates GET - ❌ Failed:', error);
     
     return NextResponse.json(
       { success: false, message: 'Failed to fetch affiliate', error: error instanceof Error ? error.message : 'Unknown error' },
@@ -108,10 +122,12 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createServerClient();
+    console.log('Affiliates PUT - Starting...');
     
     // Get the user from the request headers
     const authHeader = request.headers.get('authorization');
+    console.log('Affiliates PUT - Auth header:', authHeader ? 'Present' : 'Missing');
+    
     if (!authHeader) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
@@ -120,22 +136,43 @@ export async function PUT(
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    console.log('Affiliates PUT - Token length:', token.length);
+    
+    // Create an authenticated client with the user's token (same as POST)
+    const { createClient } = await import('@supabase/supabase-js');
+    const authenticatedSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    );
+    
+    console.log('Affiliates PUT - Authenticated client created');
+    
+    const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
     
     if (authError || !user) {
+      console.log('Affiliates PUT - Auth error:', authError);
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    console.log('Affiliates PUT - User authenticated:', user.id);
+
     const body = await request.json();
-    console.log('Update affiliate body:', body);
+    console.log('Affiliates PUT - Request body:', body);
     
     try {
-      console.log('Calling direct update with:', { id: params.id, body, userId: user.id });
+      console.log('Affiliates PUT - Calling update with:', { id: params.id, body, userId: user.id });
       
-      const { data: affiliate, error: updateError } = await supabase
+      const { data: affiliate, error: updateError } = await authenticatedSupabase
         .from('affiliates')
         .update(body)
         .eq('id', params.id)
@@ -153,29 +190,33 @@ export async function PUT(
         .single();
       
       if (updateError) {
-        console.error('Update error details:', updateError);
+        console.error('Affiliates PUT - Update error details:', updateError);
         throw updateError;
       }
       
       if (affiliate) {
-        console.log('Update successful, returning affiliate:', affiliate);
+        console.log('Affiliates PUT - Update successful, returning affiliate:', affiliate);
         return NextResponse.json({ success: true, affiliate });
       } else {
-        console.log('Update returned null/undefined');
+        console.log('Affiliates PUT - Update returned null/undefined');
         return NextResponse.json(
           { success: false, message: 'Affiliate not found' },
           { status: 404 }
         );
       }
     } catch (updateError) {
-      console.error('Update error details:', updateError);
-      console.error('Update error stack:', updateError instanceof Error ? updateError.stack : 'No stack trace');
+      console.error('Affiliates PUT - Update error details:', updateError);
+      console.error('Affiliates PUT - Update error stack:', updateError instanceof Error ? updateError.stack : 'No stack trace');
       throw updateError;
     }
   } catch (error) {
-    console.error('Failed to update affiliate:', error);
+    console.error('Affiliates PUT - Failed:', error);
     return NextResponse.json(
-      { success: false, message: 'Failed to update affiliate' },
+      { 
+        success: false, 
+        message: 'Failed to update affiliate',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
