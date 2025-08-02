@@ -408,6 +408,41 @@ export default function Referrals() {
           >
             🧪 Simple Test
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                const response = await fetch('/api/test-users-query', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  }
+                });
+                
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('🧪 Users query test result:', data);
+                
+                if (data.success) {
+                  alert(`Users query test completed!\n\nFound ${data.results.allUsersCount} users\n\nCheck console for detailed results.`);
+                } else {
+                  alert('Users query test failed: ' + data.message);
+                }
+              } catch (error) {
+                console.error('Users query test error:', error);
+                alert('Users query test error: ' + error);
+              }
+            }}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🧪 Test Users Query
+          </button>
         </div>
       </div>
 
