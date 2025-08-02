@@ -154,6 +154,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate summary stats
     const totalPayoutsOwed = payoutsWithEarnings.reduce((sum, payout) => sum + payout.amount, 0);
+    const totalPayoutsPaid = payoutsWithEarnings.reduce((sum, payout) => sum + payout.totalPaid, 0);
     const totalAffiliatesWithEarnings = payoutsWithEarnings.length;
     const totalReferrals = payouts.reduce((sum, payout) => sum + payout.totalReferrals, 0);
 
@@ -163,6 +164,7 @@ export async function GET(request: NextRequest) {
       allPayouts: payouts, // Include all payouts for reference
       summary: {
         totalPayoutsOwed: Math.round(totalPayoutsOwed * 100) / 100,
+        totalPayoutsPaid: Math.round(totalPayoutsPaid * 100) / 100,
         totalAffiliatesWithEarnings,
         totalReferrals,
         totalAffiliates: payouts.length

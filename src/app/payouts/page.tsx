@@ -140,11 +140,14 @@ export default function Payouts() {
           <p className="mt-1 text-sm text-gray-500">
             Manage affiliate payouts and payment processing
           </p>
-          {summary.totalPayoutsOwed > 0 && (
-            <p className="mt-1 text-sm text-green-600 font-medium">
-              Total Payouts Owed: {formatCurrency(summary.totalPayoutsOwed)}
+          <div className="mt-2 space-y-1">
+            <p className="text-sm text-red-600 font-medium">
+              Total Payouts Unpaid: {formatCurrency(summary.totalPayoutsOwed)}
             </p>
-          )}
+            <p className="text-sm text-green-600 font-medium">
+              Total Payouts Paid: {formatCurrency(summary.totalPayoutsPaid || 0)}
+            </p>
+          </div>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
