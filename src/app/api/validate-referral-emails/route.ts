@@ -35,10 +35,11 @@ export async function POST(request: NextRequest) {
     // Create ShareTribe API instance
     const sharetribeAPI = createSharetribeAPI(credentials);
 
-    // Get all referrals
+    // Get all referrals for this user
     const { data: referrals, error: referralsError } = await supabase
       .from('referrals')
       .select('id, customer_email, sharetribe_validation_status, sharetribe_validation_updated_at')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (referralsError) {
@@ -73,19 +74,19 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Validate email against ShareTribe using the working debug test approach
+      // Validate email against ShareTribe using the current user's credentials
       console.log(`🔍 Validating email: ${email}`);
       
       try {
-        // Get ShareTribe settings directly (same as debug test)
+        // Get ShareTribe settings for the current user
         const { data: settings, error: settingsError } = await supabase
           .from('settings')
           .select('setting_key, setting_value')
-          .eq('user_id', affiliate.user_id)
+          .eq('user_id', user.id)
           .eq('setting_type', 'sharetribe');
 
         if (settingsError || !settings || settings.length === 0) {
-          console.log(`⚠️ No ShareTribe settings found for affiliate ${affiliate.user_id}`);
+          console.log(`⚠️ No ShareTribe settings found for user ${user.id}`);
           validationResults.push({
             referralId: referral.id,
             email: email,
@@ -103,9 +104,9 @@ export async function POST(request: NextRequest) {
           settingsObj[setting.setting_key] = setting.setting_value;
         });
 
-        // Use Integration API credentials (same as debug test)
+        // Use Integration API credentials
         if (!settingsObj.integrationClientId || !settingsObj.integrationClientSecret) {
-          console.log(`⚠️ No Integration API credentials found for affiliate ${affiliate.user_id}`);
+          console.log(`⚠️ No Integration API credentials found for user ${user.id}`);
           validationResults.push({
             referralId: referral.id,
             email: email,
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
           const module = await import('sharetribe-flex-integration-sdk');
           sharetribeIntegrationSdk = module.default || module;
         } catch (importError) {
-          console.error(`❌ SDK import failed for affiliate ${affiliate.user_id}:`, importError);
+          console.error(`❌ SDK import failed for user ${user.id}:`, importError);
           validationResults.push({
             referralId: referral.id,
             email: email,
@@ -140,14 +141,14 @@ export async function POST(request: NextRequest) {
           clientSecret: settingsObj.integrationClientSecret
         });
 
-        // Get all users from ShareTribe (same as debug test)
-        console.log(`🔍 Fetching all users from ShareTribe for affiliate ${affiliate.user_id}...`);
+        // Get all users from ShareTribe
+        console.log(`🔍 Fetching all users from ShareTribe for user ${user.id}...`);
         const usersResponse = await integrationSdk.users.query({
           limit: 1000
         });
 
         if (!usersResponse || !usersResponse.data || !usersResponse.data.data) {
-          console.log(`⚠️ No users found or invalid response for affiliate ${affiliate.user_id}`);
+          console.log(`⚠️ No users found or invalid response for user ${user.id}`);
           validationResults.push({
             referralId: referral.id,
             email: email,
@@ -160,7 +161,7 @@ export async function POST(request: NextRequest) {
         }
 
         const sharetribeUsers = usersResponse.data.data;
-        console.log(`✅ Found ${sharetribeUsers.length} users in ShareTribe for affiliate ${affiliate.user_id}`);
+        console.log(`✅ Found ${sharetribeUsers.length} users in ShareTribe for user ${user.id}`);
 
         // Find user by email (same logic as debug test)
         const sharetribeUser = sharetribeUsers.find((user: any) => 
