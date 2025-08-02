@@ -285,7 +285,7 @@ export default function Payouts() {
         <CreatePayoutModal
           onClose={() => setShowCreateModal(false)}
           onSubmit={handleCreatePayout}
-          payouts={payouts}
+          payouts={payouts.filter(payout => payout.amount > 0)}
         />
       )}
 
