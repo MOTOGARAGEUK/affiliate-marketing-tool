@@ -97,21 +97,13 @@ class SharetribeAPI {
       try {
         const sharetribeIntegrationSdk = await import('sharetribe-flex-integration-sdk');
         
-        // Determine the environment based on marketplace URL
-        let environment = 'production'; // default
-        if (this.config.marketplaceUrl) {
-          if (this.config.marketplaceUrl.includes('dev.sharetribe.com')) {
-            environment = 'dev';
-          } else if (this.config.marketplaceUrl.includes('test.sharetribe.com')) {
-            environment = 'test';
-          }
-        }
-        
-        console.log('🔧 Creating ShareTribe SDK with environment:', environment);
+        console.log('🔧 Creating ShareTribe SDK...');
         console.log('🔧 Client ID:', this.config.clientId ? 'SET' : 'NOT SET');
         console.log('🔧 Client Secret:', this.config.clientSecret ? 'SET' : 'NOT SET');
-        console.log('🔧 Marketplace URL:', this.config.marketplaceUrl || 'NOT SET');
+        console.log('🔧 Marketplace URL (optional):', this.config.marketplaceUrl || 'NOT SET - SDK will auto-detect');
         
+        // Create SDK instance with just client credentials
+        // The SDK should auto-detect the marketplace from the client ID
         this.sdk = sharetribeIntegrationSdk.createInstance({
           clientId: this.config.clientId,
           clientSecret: this.config.clientSecret
@@ -120,6 +112,10 @@ class SharetribeAPI {
         console.log('✅ ShareTribe SDK instance created successfully');
       } catch (error) {
         console.error('❌ Failed to create ShareTribe SDK instance:', error);
+        console.error('❌ Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : 'No stack trace'
+        });
         throw error;
       }
     }
@@ -450,6 +446,7 @@ class SharetribeAPI {
       }
       
       console.log('❌ Connection failed - no data in response');
+      console.log('❌ Response structure:', JSON.stringify(response, null, 2));
       return false;
     } catch (error) {
       console.error('❌ Connection test failed:', error);
@@ -457,6 +454,12 @@ class SharetribeAPI {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : 'No stack trace'
       });
+      
+      // Log additional error information if available
+      if (error && typeof error === 'object') {
+        console.error('❌ Full error object:', JSON.stringify(error, null, 2));
+      }
+      
       return false;
     }
   }
@@ -545,10 +548,12 @@ export async function getSharetribeCredentials(userId: string): Promise<Sharetri
       return null;
     }
 
+    console.log('✅ ShareTribe credentials found - SDK will auto-detect marketplace');
+
     return {
       clientId: settingsObj.marketplaceClientId,
       clientSecret: settingsObj.marketplaceClientSecret,
-      marketplaceUrl: settingsObj.marketplaceUrl
+      marketplaceUrl: settingsObj.marketplaceUrl // Optional - SDK will auto-detect
     };
   } catch (error) {
     console.error('Error getting ShareTribe credentials:', error);
