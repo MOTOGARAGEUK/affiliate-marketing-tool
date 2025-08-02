@@ -36,6 +36,58 @@ export default function Referrals() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
   const [currency, setCurrency] = useState('$');
+  const [validationTimer, setValidationTimer] = useState<NodeJS.Timeout | null>(null);
+
+  // Auto-validate referrals on page load and every minute
+  const autoValidateReferrals = async () => {
+    try {
+      const { data: { session } } = await supabase().auth.getSession();
+      const token = session?.access_token;
+      
+      if (!token) {
+        console.log('No auth token, skipping auto-validation');
+        return;
+      }
+
+      console.log('🔄 Auto-validating referrals...');
+      const response = await fetch('/api/validate-referral-emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ forceRefresh: false }) // Use cache if recent
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          console.log('✅ Auto-validation completed:', data.summary);
+          // Refresh the referrals data to show updated status
+          fetchReferrals();
+        }
+      }
+    } catch (error) {
+      console.error('❌ Auto-validation error:', error);
+    }
+  };
+
+  // Set up validation timer
+  useEffect(() => {
+    // Run validation immediately on load
+    autoValidateReferrals();
+    
+    // Set up timer to run every minute
+    const timer = setInterval(autoValidateReferrals, 60000); // 60 seconds
+    setValidationTimer(timer);
+    
+    // Cleanup timer on unmount
+    return () => {
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
+  }, []); // Empty dependency array means this runs once on mount
 
   // Load referrals and currency settings on component mount
   useEffect(() => {
@@ -141,14 +193,19 @@ export default function Referrals() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Referrals</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Track all referrals made by your affiliates
-          </p>
-        </div>
-        <div className="flex space-x-2">
+      {/* Page Header */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Referrals</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Track your affiliate referrals and their ShareTribe validation status
+              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                Auto-validation active (every minute)
+              </span>
+            </p>
+          </div>
+          <div className="flex space-x-2">
           <button
             onClick={async () => {
               try {
@@ -596,8 +653,9 @@ export default function Referrals() {
           </button>
         </div>
       </div>
+    </div>
 
-      {/* Referrals Table */}
+    {/* Referrals Table */}
       <div className="bg-white shadow rounded-lg overflow-hidden table-container">
         {loading ? (
           <div className="flex justify-center items-center py-12">

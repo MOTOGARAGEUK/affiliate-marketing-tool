@@ -76,7 +76,10 @@ export async function GET(request: NextRequest) {
       listings_count: referral.listings_count,
       transactions_count: referral.transactions_count,
       total_revenue: referral.total_revenue,
-      last_sync_at: referral.last_sync_at
+      last_sync_at: referral.last_sync_at,
+      // Validation fields
+      sharetribe_validation_status: referral.sharetribe_validation_status,
+      sharetribe_validation_updated_at: referral.sharetribe_validation_updated_at
     })) || [];
 
     return NextResponse.json({ 
