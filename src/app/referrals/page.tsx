@@ -26,6 +26,9 @@ interface Referral {
   transactions_count?: number;
   total_revenue?: number;
   last_sync_at?: string;
+  // Validation fields
+  sharetribe_validation_status?: 'green' | 'amber' | 'red' | 'error';
+  sharetribe_validation_updated_at?: string;
 }
 
 export default function Referrals() {
@@ -85,18 +88,35 @@ export default function Referrals() {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { color: 'bg-yellow-100 text-yellow-800', label: 'Pending' },
-      approved: { color: 'bg-green-100 text-green-800', label: 'Approved' },
-      rejected: { color: 'bg-red-100 text-red-800', label: 'Rejected' }
-    };
+    const baseClasses = "px-2 py-1 text-xs font-medium rounded-full";
+    switch (status) {
+      case 'approved':
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>Approved</span>;
+      case 'pending':
+        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>Pending</span>;
+      case 'rejected':
+        return <span className={`${baseClasses} bg-red-100 text-red-800`}>Rejected</span>;
+      default:
+        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>{status}</span>;
+    }
+  };
+
+  const getValidationDot = (status?: string) => {
+    if (!status) return null;
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-    return (
-      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
-        {config.label}
-      </span>
-    );
+    const baseClasses = "w-3 h-3 rounded-full inline-block mr-2";
+    switch (status) {
+      case 'green':
+        return <span className={`${baseClasses} bg-green-500`} title="User exists in ShareTribe and email is verified"></span>;
+      case 'amber':
+        return <span className={`${baseClasses} bg-yellow-500`} title="User exists in ShareTribe but email is not verified"></span>;
+      case 'red':
+        return <span className={`${baseClasses} bg-red-500`} title="User does not exist in ShareTribe"></span>;
+      case 'error':
+        return <span className={`${baseClasses} bg-gray-500`} title="Error checking user status"></span>;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -443,6 +463,43 @@ export default function Referrals() {
           >
             🧪 Test Users Query
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                console.log('🔍 Starting email validation...');
+                const response = await fetch('/api/validate-referral-emails', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  }
+                });
+                
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('🔍 Email validation result:', data);
+                
+                if (data.success) {
+                  alert(`Email validation completed!\n\n📊 Summary:\n✅ Green: ${data.summary.green}\n🟡 Amber: ${data.summary.amber}\n🔴 Red: ${data.summary.red}\n❌ Errors: ${data.summary.error}\n💾 Cached: ${data.summary.cached}\n🆕 Fresh: ${data.summary.fresh}\n\nCheck console for detailed results.`);
+                  fetchReferrals(); // Refresh the data to show validation dots
+                } else {
+                  alert('Email validation failed: ' + data.message);
+                }
+              } catch (error) {
+                console.error('Email validation error:', error);
+                alert('Email validation error: ' + error);
+              }
+            }}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🔍 Validate Emails
+          </button>
         </div>
       </div>
 
@@ -535,6 +592,7 @@ export default function Referrals() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(referral.status)}
+                        {getValidationDot(referral.sharetribe_validation_status)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {referral.sharetribe_created_at ? 
