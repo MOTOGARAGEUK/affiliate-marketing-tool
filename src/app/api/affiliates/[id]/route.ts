@@ -76,21 +76,8 @@ export async function PUT(
     const body = await request.json();
     console.log('Update affiliate body:', body);
     
-    // Temporarily filter out bank details to test if that's the issue
-    const { 
-      bank_account_name, 
-      bank_account_number, 
-      bank_sort_code, 
-      bank_iban, 
-      bank_routing_number, 
-      bank_name, 
-      ...updateData 
-    } = body;
-    
-    console.log('Filtered update data:', updateData);
-    
     try {
-      const affiliate = await affiliatesAPI.update(params.id, updateData, user.id);
+      const affiliate = await affiliatesAPI.update(params.id, body, user.id);
       
       if (affiliate) {
         return NextResponse.json({ success: true, affiliate });
