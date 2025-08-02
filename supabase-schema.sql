@@ -39,7 +39,13 @@ CREATE TABLE public.affiliates (
     total_earnings DECIMAL(10,2) DEFAULT 0,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    bank_account_name TEXT,
+    bank_account_number TEXT,
+    bank_sort_code TEXT,
+    bank_iban TEXT,
+    bank_routing_number TEXT,
+    bank_name TEXT
 );
 
 -- Create referrals table

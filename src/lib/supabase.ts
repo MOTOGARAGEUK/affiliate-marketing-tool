@@ -121,6 +121,12 @@ export interface Database {
           user_id: string
           created_at: string
           updated_at: string
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_sort_code: string | null
+          bank_iban: string | null
+          bank_routing_number: string | null
+          bank_name: string | null
         }
         Insert: {
           id?: string
@@ -136,6 +142,12 @@ export interface Database {
           user_id: string
           created_at?: string
           updated_at?: string
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_sort_code?: string | null
+          bank_iban?: string | null
+          bank_routing_number?: string | null
+          bank_name?: string | null
         }
         Update: {
           id?: string
@@ -151,6 +163,12 @@ export interface Database {
           user_id?: string
           created_at?: string
           updated_at?: string
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_sort_code?: string | null
+          bank_iban?: string | null
+          bank_routing_number?: string | null
+          bank_name?: string | null
         }
       }
       referrals: {
