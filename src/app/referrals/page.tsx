@@ -257,10 +257,12 @@ export default function Referrals() {
           </button>
           <button
             onClick={async () => {
+              console.log('🔄 Starting sync...');
               try {
                 const { data: { session } } = await supabase().auth.getSession();
                 const token = session?.access_token;
                 
+                console.log('🔄 Making sync request...');
                 const response = await fetch('/api/sync-all-referrals', {
                   method: 'POST',
                   headers: {
@@ -269,6 +271,8 @@ export default function Referrals() {
                   }
                 });
                 const data = await response.json();
+                console.log('🔄 Raw sync response:', data);
+                
                 if (data.success) {
                   alert(`Live sync completed!\n\nSynced: ${data.syncedCount}\nUpdated: ${data.updatedCount}\nErrors: ${data.errorCount || 0}\n\nDetails: ${JSON.stringify(data.details, null, 2)}`);
                   fetchReferrals(); // Refresh the data
