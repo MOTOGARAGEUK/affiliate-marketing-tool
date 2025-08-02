@@ -25,14 +25,14 @@ export async function POST(request: NextRequest) {
     const { data: referrals, error: referralsError } = await supabase
       .from('referrals')
       .select('id, user_id, customer_email, sharetribe_user_id, listings_count, transactions_count, total_revenue, last_sync_at')
-      .not('sharetribe_user_id', 'is', null);
+      .not('customer_email', 'is', null);
 
     if (referralsError) {
       return NextResponse.json({ success: false, message: 'Error fetching referrals', error: referralsError.message }, { status: 500 });
     }
 
     if (!referrals || referrals.length === 0) {
-      return NextResponse.json({ success: false, message: 'No referrals with ShareTribe user IDs found' });
+      return NextResponse.json({ success: false, message: 'No referrals with customer emails found' });
     }
 
     console.log('🔍 Found referrals:', referrals);
@@ -45,15 +45,15 @@ export async function POST(request: NextRequest) {
 
     const sharetribeAPI = createSharetribeAPI(credentials);
 
-    // Test each referral's ShareTribe user ID
+    // Test each referral's customer email
     const debugResults = [];
 
     for (const referral of referrals) {
-      console.log(`🔍 Testing referral ${referral.id} with ShareTribe user ID: ${referral.sharetribe_user_id}`);
+      console.log(`🔍 Testing referral ${referral.id} with customer email: ${referral.customer_email}`);
       
       try {
-        // Test if user exists in ShareTribe
-        const user = await sharetribeAPI.getUserById(referral.sharetribe_user_id);
+        // Test if user exists in ShareTribe by email
+        const user = await sharetribeAPI.getUserByEmail(referral.customer_email);
         
         if (!user) {
           debugResults.push({
@@ -61,13 +61,13 @@ export async function POST(request: NextRequest) {
             customerEmail: referral.customer_email,
             sharetribeUserId: referral.sharetribe_user_id,
             status: 'User not found in ShareTribe',
-            error: 'User does not exist in ShareTribe marketplace'
+            error: 'Email does not exist in ShareTribe marketplace'
           });
           continue;
         }
 
         // Test getUserStats
-        const stats = await sharetribeAPI.getUserStats(referral.sharetribe_user_id);
+        const stats = await sharetribeAPI.getUserStats(user.id);
         
         debugResults.push({
           referralId: referral.id,
