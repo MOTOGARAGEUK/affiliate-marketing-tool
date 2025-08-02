@@ -411,49 +411,123 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
 }
 
 function ViewPayoutModal({ payout, affiliateName, onClose }: any) {
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setLoading(true);
+        
+        // Get auth token for API request
+        const { data: { session } } = await supabase().auth.getSession();
+        const token = session?.access_token;
+        
+        if (!token) {
+          console.log('No auth token, skipping transaction fetch');
+          return;
+        }
+
+        const response = await fetch(`/api/payouts/${payout.affiliateId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch transactions');
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.message || 'Failed to fetch transactions');
+        }
+
+        setTransactions(data.transactions);
+      } catch (error) {
+        console.error('Failed to fetch transactions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, [payout.affiliateId]);
+
   return (
     <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-      <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white/90 backdrop-blur-sm">
+      <div className="relative p-5 border w-[800px] max-h-[80vh] shadow-lg rounded-md bg-white/90 backdrop-blur-sm overflow-y-auto">
         <div className="mt-3">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Payout Details</h3>
-          <div className="space-y-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Transaction History - {affiliateName}</h3>
+          
+          {/* Summary Section */}
+          <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Affiliate</label>
-              <p className="mt-1 text-sm text-gray-900">{affiliateName}</p>
+              <label className="block text-sm font-medium text-gray-700">Total Earnings</label>
+              <p className="mt-1 text-lg font-semibold text-gray-900">{formatCurrency(payout.totalEarnings)}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Amount Paid</label>
-              <p className="mt-1 text-sm text-gray-900">{formatCurrency(payout.totalPaid)}</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Total Earnings</label>
-              <p className="mt-1 text-sm text-gray-900">{formatCurrency(payout.totalEarnings)}</p>
+              <p className="mt-1 text-lg font-semibold text-gray-900">{formatCurrency(payout.totalPaid)}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Outstanding Amount</label>
-              <p className="mt-1 text-sm text-gray-900">{formatCurrency(payout.amount)}</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Payment Method</label>
-              <p className="mt-1 text-sm text-gray-900 capitalize">{payout.method?.replace('_', ' ') || 'Not specified'}</p>
+              <p className="mt-1 text-lg font-semibold text-gray-900">{formatCurrency(payout.amount)}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Status</label>
-              <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+              <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-1 ${
                 payout.amount > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
               }`}>
                 {payout.amount > 0 ? 'Unpaid' : 'Paid'}
               </span>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Verified Referrals</label>
-              <p className="mt-1 text-sm text-gray-900">{payout.verifiedReferrals} referrals</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Created</label>
-              <p className="mt-1 text-sm text-gray-900">{formatDate(payout.createdAt)}</p>
-            </div>
           </div>
+
+          {/* Transaction History */}
+          <div>
+            <h4 className="text-md font-medium text-gray-900 mb-3">Transaction History</h4>
+            {loading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                <span className="ml-3 text-gray-600">Loading transactions...</span>
+              </div>
+            ) : transactions.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No transactions found</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {transactions.map((transaction, index) => (
+                  <div key={`${transaction.type}-${transaction.id}`} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-3 h-3 rounded-full ${
+                        transaction.type === 'referral' ? 'bg-green-500' : 'bg-red-500'
+                      }`}></div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{transaction.description}</p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(transaction.date).toLocaleString()}
+                          {transaction.program && ` • ${transaction.program}`}
+                          {transaction.reference && ` • Ref: ${transaction.reference}`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-sm font-medium ${
+                        transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {transaction.amount >= 0 ? '+' : ''}{formatCurrency(transaction.amount)}
+                      </p>
+                      <p className="text-xs text-gray-500 capitalize">{transaction.status}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="mt-6 flex justify-end">
             <button
               onClick={onClose}
