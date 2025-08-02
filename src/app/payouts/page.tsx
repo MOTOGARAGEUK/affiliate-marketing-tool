@@ -58,16 +58,46 @@ export default function Payouts() {
     }
   };
 
-  const handleCreatePayout = (payoutData: any) => {
-    const newPayout = {
-      id: Date.now().toString(),
-      ...payoutData,
-      status: 'pending',
-      reference: `PAY-${Date.now()}`,
-      createdAt: new Date(),
-    };
-    setPayouts([...payouts, newPayout]);
-    setShowCreateModal(false);
+  const handleCreatePayout = async (payoutData: any) => {
+    try {
+      // Get auth token for API request
+      const { data: { session } } = await supabase().auth.getSession();
+      const token = session?.access_token;
+      
+      if (!token) {
+        console.log('No auth token, skipping payout creation');
+        return;
+      }
+
+      const response = await fetch('/api/payouts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payoutData)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create payout');
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to create payout');
+      }
+
+      // Refresh the payouts data
+      await fetchPayouts();
+      setShowCreateModal(false);
+      
+      // Show success message
+      alert('Payout created successfully!');
+    } catch (error) {
+      console.error('Failed to create payout:', error);
+      alert('Failed to create payout: ' + error);
+    }
   };
 
   const getAffiliateName = (affiliateId: string) => {
@@ -108,31 +138,31 @@ export default function Payouts() {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Affiliate
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Method
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Reference
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
+                          <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Affiliate
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total Earnings
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total Paid
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Outstanding
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Referrals
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
               {payouts.length === 0 ? (
                 <tr>
@@ -160,26 +190,28 @@ export default function Payouts() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
+                      {formatCurrency(payout.totalEarnings)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {formatCurrency(payout.totalPaid)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-green-600">
                       {formatCurrency(payout.amount)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 capitalize">
-                      {payout.method.replace('_', ' ')}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(payout.status)}`}>
-                      {payout.status}
+                      {payout.status === 'paid' ? 'Fully Paid' : 'Outstanding'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 font-mono">
-                      {payout.reference}
+                    <div className="text-sm text-gray-900">
+                      {payout.verifiedReferrals} verified
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(payout.createdAt)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
@@ -225,15 +257,32 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
     amount: 0,
     method: 'bank_transfer',
   });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    try {
+      await onSubmit(formData);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAffiliateChange = (affiliateId: string) => {
+    const selectedPayout = payouts.find(p => p.affiliateId === affiliateId);
+    setFormData({
+      ...formData,
+      affiliateId,
+      amount: selectedPayout ? selectedPayout.amount : 0
+    });
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+      <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white/90 backdrop-blur-sm">
         <div className="mt-3">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Create New Payout</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -241,16 +290,21 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
               <label className="block text-sm font-medium text-gray-700">Affiliate</label>
               <select
                 value={formData.affiliateId}
-                onChange={(e) => setFormData({ ...formData, affiliateId: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                onChange={(e) => handleAffiliateChange(e.target.value)}
+                className="mt-1 block w-full form-select disabled:opacity-50 disabled:cursor-not-allowed"
                 required
+                disabled={isLoading}
               >
                 <option value="">Select an affiliate</option>
-                {payouts.map((payout) => (
-                  <option key={payout.affiliateId} value={payout.affiliateId}>
-                    {payout.affiliateName} - {formatCurrency(payout.amount)} owed
-                  </option>
-                ))}
+                {payouts.length > 0 ? (
+                  payouts.map((payout) => (
+                    <option key={payout.affiliateId} value={payout.affiliateId}>
+                      {payout.affiliateName} - {formatCurrency(payout.amount)} owed
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>No affiliates with outstanding payouts</option>
+                )}
               </select>
             </div>
             <div>
@@ -258,11 +312,12 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
               <input
                 type="number"
                 value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                className="mt-1 block w-full form-input disabled:opacity-50 disabled:cursor-not-allowed"
                 min="0"
                 step="0.01"
                 required
+                disabled={isLoading}
               />
             </div>
             <div>
@@ -270,7 +325,8 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
               <select
                 value={formData.method}
                 onChange={(e) => setFormData({ ...formData, method: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full form-select disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading}
               >
                 <option value="bank_transfer">Bank Transfer</option>
                 <option value="paypal">PayPal</option>
@@ -281,15 +337,17 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                disabled={isLoading}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                disabled={isLoading}
               >
-                Create Payout
+                {isLoading ? 'Creating...' : 'Create Payout'}
               </button>
             </div>
           </form>
