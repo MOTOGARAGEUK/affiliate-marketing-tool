@@ -142,25 +142,37 @@ export const affiliatesAPI = {
   },
 
   async update(id: string, updates: UpdateDto<'affiliates'>, userId: string) {
-    const { data, error } = await getSupabase()
-      .from('affiliates')
-      .update(updates)
-      .eq('id', id)
-      .eq('user_id', userId)
-      .select(`
-        *,
-        programs (
-          id,
-          name,
-          commission,
-          commission_type,
-          type
-        )
-      `)
-      .single();
+    console.log('Database update called with:', { id, updates, userId });
+    
+    try {
+      const { data, error } = await getSupabase()
+        .from('affiliates')
+        .update(updates)
+        .eq('id', id)
+        .eq('user_id', userId)
+        .select(`
+          *,
+          programs (
+            id,
+            name,
+            commission,
+            commission_type,
+            type
+          )
+        `)
+        .single();
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        console.error('Database update error:', error);
+        throw error;
+      }
+      
+      console.log('Database update successful:', data);
+      return data;
+    } catch (error) {
+      console.error('Database update exception:', error);
+      throw error;
+    }
   },
 
   async delete(id: string, userId: string) {
