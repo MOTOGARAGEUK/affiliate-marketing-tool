@@ -732,15 +732,6 @@ export default function Referrals() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date Joined
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Listings
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Transactions
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Revenue
-                  </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -749,7 +740,7 @@ export default function Referrals() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredReferrals.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                       <div className="flex flex-col items-center">
                         <ArrowPathIcon className="h-12 w-12 text-gray-300 mb-4" />
                         <p className="text-lg font-medium text-gray-900 mb-2">No referrals yet</p>
@@ -796,24 +787,6 @@ export default function Referrals() {
                         {referral.sharetribe_created_at ? 
                           formatDate(referral.sharetribe_created_at) : 
                           <span className="text-gray-400">Not synced</span>
-                        }
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {referral.listings_count !== undefined ? 
-                          referral.listings_count : 
-                          <span className="text-gray-400">-</span>
-                        }
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {referral.transactions_count !== undefined ? 
-                          referral.transactions_count : 
-                          <span className="text-gray-400">-</span>
-                        }
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {referral.total_revenue !== undefined ? 
-                          `${currency}${referral.total_revenue.toFixed(2)}` : 
-                          <span className="text-gray-400">-</span>
                         }
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
