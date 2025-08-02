@@ -281,6 +281,24 @@ export default function Referrals() {
                   console.log('🔄 Live Sync Results:', data);
                   console.log('📊 Summary:', data.summary);
                   console.log('📋 Details:', data.details);
+                  
+                  // Expand and show detailed results for each user
+                  if (data.details && data.details.results) {
+                    console.log('👥 DETAILED USER RESULTS:');
+                    data.details.results.forEach((result: any, index: number) => {
+                      if (result.status === 'Success') {
+                        console.log(`\n✅ User ${index + 1}: ${result.user.displayName} (${result.email})`);
+                        console.log(`   📋 Listings: ${result.stats.listingsCount || 0}`);
+                        console.log(`   💰 Transactions: ${result.stats.transactionsCount || 0}`);
+                        console.log(`   💵 Revenue: $${result.stats.totalRevenue || 0}`);
+                        console.log(`   🔄 Updated: ${result.updated ? 'Yes' : 'No'}`);
+                      } else {
+                        console.log(`\n❌ User ${index + 1}: ${result.email} - ${result.status}`);
+                        console.log(`   Error: ${result.error}`);
+                      }
+                    });
+                  }
+                  
                   if (data.errors && data.errors.length > 0) {
                     console.log('❌ Errors:', data.errors);
                   }
