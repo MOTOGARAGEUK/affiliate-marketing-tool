@@ -303,7 +303,9 @@ export default function Referrals() {
                 const token = session?.access_token;
                 
                 const response = await fetch('/api/test-sharetribe-basic', {
+                  method: 'POST',
                   headers: {
+                    'Content-Type': 'application/json',
                     ...(token && { 'Authorization': `Bearer ${token}` })
                   }
                 });
