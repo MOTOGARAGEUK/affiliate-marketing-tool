@@ -890,6 +890,42 @@ export default function Referrals() {
           >
             🧪 Test Users API
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                if (!session?.user?.id) {
+                  alert('❌ No user session found');
+                  return;
+                }
+                
+                const response = await fetch('/api/debug-sharetribe-user-structure', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    userId: session.user.id
+                  })
+                });
+                
+                const data = await response.json();
+                console.log('🔍 User structure debug result:', data);
+                
+                if (data.success) {
+                  alert(`✅ User structure debug successful!\n\nFound ${data.userCount} users\nCheck console for detailed structure.`);
+                } else {
+                  alert(`❌ User structure debug failed:\n\nMessage: ${data.message}\nError: ${data.error || 'None'}`);
+                }
+              } catch (error) {
+                console.error('Debug error:', error);
+                alert('❌ Debug failed');
+              }
+            }}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🔍 Debug User Structure
+          </button>
         </div>
       </div>
       )}

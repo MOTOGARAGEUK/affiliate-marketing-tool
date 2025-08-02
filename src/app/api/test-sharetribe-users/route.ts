@@ -51,8 +51,28 @@ export async function POST(request: NextRequest) {
     // Step 1: Test marketplace.show first (basic connection test)
     console.log('🏪 Step 1: Testing marketplace connection...');
     
-    // Dynamic import for SDK
-    const { default: sharetribeIntegrationSdk } = await import('sharetribe-flex-integration-sdk');
+    // Dynamic import for SDK - handle both default and named exports
+    let sharetribeIntegrationSdk;
+    try {
+      const module = await import('sharetribe-flex-integration-sdk');
+      sharetribeIntegrationSdk = module.default || module;
+      console.log('✅ SDK imported successfully');
+    } catch (importError) {
+      console.error('❌ SDK import failed:', importError);
+      return NextResponse.json({ 
+        success: false, 
+        message: 'SDK import failed',
+        error: importError instanceof Error ? importError.message : 'Unknown error'
+      });
+    }
+    
+    if (!sharetribeIntegrationSdk || !sharetribeIntegrationSdk.createInstance) {
+      console.error('❌ SDK does not have createInstance method');
+      return NextResponse.json({ 
+        success: false, 
+        message: 'SDK does not have createInstance method'
+      });
+    }
     
     const integrationSdk = sharetribeIntegrationSdk.createInstance({
       clientId: clientId,
