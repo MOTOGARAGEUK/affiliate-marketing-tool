@@ -112,7 +112,7 @@ class SharetribeAPI {
   // Get user by email
   async getUserByEmail(email: string): Promise<SharetribeUser | null> {
     try {
-      console.log('Searching for user by email:', email);
+      console.log('🔍 Searching for user by email:', email);
       
       const sdk = await this.getSDK();
       
@@ -122,19 +122,28 @@ class SharetribeAPI {
         perPage: 1000 // Get a large number to ensure we find the user
       });
       
-      console.log('Users query response:', {
+      console.log('📊 Users query response:', {
         totalCount: response.data?.meta?.totalItems,
         dataLength: response.data?.data?.length
       });
       
       if (response.data && response.data.data) {
+        console.log('🔍 Checking all users for email match...');
+        
+        // Log all users and their emails for debugging
+        response.data.data.forEach((user: any, index: number) => {
+          const userEmail = user.attributes.email;
+          const isMatch = userEmail.toLowerCase() === email.toLowerCase();
+          console.log(`   User ${index + 1}: ${userEmail} (${isMatch ? 'MATCH' : 'no match'})`);
+        });
+        
         // Filter users by email
         const userData = response.data.data.find((user: any) => 
           user.attributes.email.toLowerCase() === email.toLowerCase()
         );
         
         if (userData) {
-          console.log('User found:', userData.id);
+          console.log('✅ User found:', userData.id);
           return {
             id: userData.id,
             email: userData.attributes.email,
@@ -145,10 +154,10 @@ class SharetribeAPI {
         }
       }
       
-      console.log('No user found with email:', email);
+      console.log('❌ No user found with email:', email);
       return null;
     } catch (error) {
-      console.error('Error fetching user by email:', error);
+      console.error('❌ Error fetching user by email:', error);
       return null;
     }
   }
@@ -230,19 +239,21 @@ class SharetribeAPI {
   // Get listings for a user
   async getUserListings(userId: string, limit: number = 50): Promise<SharetribeListing[]> {
     try {
-      console.log('Fetching listings for user:', userId);
+      console.log('📋 Fetching listings for user:', userId);
       
       const sdk = await this.getSDK();
       
       // Use documented ShareTribe endpoint: /v1/integration_api/listings/query
+      console.log('🔍 Querying listings with author_id:', userId);
       const response = await sdk.listings.query({ 
         author_id: userId, // Documented parameter for filtering by author
         perPage: limit
       });
       
-      console.log('Listings response:', {
+      console.log('📊 Listings response:', {
         totalCount: response.data?.meta?.totalItems,
-        dataLength: response.data?.data?.length
+        dataLength: response.data?.data?.length,
+        queryParams: { author_id: userId, perPage: limit }
       });
       
       if (response.data && response.data.data) {
@@ -253,13 +264,15 @@ class SharetribeAPI {
           attributes: listing.attributes
         }));
         
-        console.log('Processed listings:', listings.length);
+        console.log('✅ Processed listings:', listings.length);
+        console.log('📋 Listing details:', listings.map((l: SharetribeListing) => ({ id: l.id, state: l.attributes.state, title: l.attributes.title })));
         return listings;
       }
       
+      console.log('❌ No listings found for user:', userId);
       return [];
     } catch (error) {
-      console.error('Error fetching user listings:', error);
+      console.error('❌ Error fetching user listings:', error);
       return [];
     }
   }
