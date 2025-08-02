@@ -467,9 +467,10 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
                 {/* Bank Details Section */}
                 {(() => {
                   console.log('Rendering confirmation modal, affiliateBankDetails:', affiliateBankDetails);
-                  console.log('Bank details condition check:', affiliateBankDetails && (affiliateBankDetails.bank_name || affiliateBankDetails.bank_account_name || affiliateBankDetails.bank_account_number));
-                  return affiliateBankDetails && (affiliateBankDetails.bank_name || affiliateBankDetails.bank_account_name || affiliateBankDetails.bank_account_number);
-                })() && (
+                  const hasBankDetails = affiliateBankDetails && (affiliateBankDetails.bank_name || affiliateBankDetails.bank_account_name || affiliateBankDetails.bank_account_number);
+                  console.log('Bank details condition check:', hasBankDetails);
+                  return hasBankDetails;
+                })() ? (
                   <div className="border-t pt-4 mt-4">
                     <h4 className="text-sm font-medium text-gray-900 mb-3">Bank Details</h4>
                     <div className="space-y-3">
@@ -509,6 +510,18 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
                           <p className="mt-1 text-sm text-gray-900">{affiliateBankDetails.bank_routing_number}</p>
                         </div>
                       )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border-t pt-4 mt-4">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                      <h4 className="text-sm font-medium text-yellow-800 mb-2">Bank Details Missing</h4>
+                      <p className="text-sm text-yellow-700 mb-3">
+                        No bank details found for this affiliate. You can still proceed with the payout, but you'll need to manually enter the bank details when processing the payment.
+                      </p>
+                      <p className="text-xs text-yellow-600">
+                        To add bank details for future payouts, edit the affiliate from the Affiliates page.
+                      </p>
                     </div>
                   </div>
                 )}
