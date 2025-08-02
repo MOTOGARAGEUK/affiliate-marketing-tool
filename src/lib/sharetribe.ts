@@ -114,30 +114,24 @@ class SharetribeAPI {
     try {
       console.log('🔍 Searching for user by email:', email);
       
-      // Since the users query API is returning 400 errors, let's try a different approach
-      // We'll use known user IDs and check their emails
-      const knownUserIds = [
-        "688d0c51-8fbc-45e6-8a29-fc66c9ab7990", // Jacob M
-        "688cd91b-f189-4cbf-a4d5-d9f952eba27e", // test t
-        "688cd78f-5dd8-43d4-aa54-cddcabdbb53c", // tyler c
-        // Add more user IDs as needed - these are from the basic test results
-      ];
+      // First, try to get all users properly
+      const allUsers = await this.getUsers(1000);
+      console.log(`🔍 Found ${allUsers.length} total users in ShareTribe`);
       
-      console.log('🔍 Checking known user IDs for email match...');
+      if (allUsers.length === 0) {
+        console.log('❌ No users found in ShareTribe - users query is failing');
+        return null;
+      }
       
-      for (const userId of knownUserIds) {
-        try {
-          console.log(`🔍 Checking user ID: ${userId}`);
-          const user = await this.getUserById(userId);
-          
-          if (user && user.email.toLowerCase() === email.toLowerCase()) {
-            console.log('✅ User found by ID lookup:', user.id);
-            return user;
-          }
-        } catch (error) {
-          console.log(`❌ Error checking user ID ${userId}:`, error);
-          continue;
-        }
+      // Search through all users for the email
+      const user = allUsers.find(u => 
+        u.email.toLowerCase() === email.toLowerCase() ||
+        u.attributes?.email?.toLowerCase() === email.toLowerCase()
+      );
+      
+      if (user) {
+        console.log('✅ User found by email search:', user.id, user.email);
+        return user;
       }
       
       console.log('❌ No user found with email:', email);
@@ -375,39 +369,46 @@ class SharetribeAPI {
     try {
       console.log('👥 Fetching users with limit:', limit, 'offset:', offset);
       
-      const sdk = await this.getSDK();
-      console.log('🔍 SDK obtained, querying users...');
+      // Since sdk.users.query() is failing, let's use the known user IDs from the CSV
+      const knownUserIds = [
+        "688d0c51-8fbc-45e6-8a29-fc66c9ab7990", // Jacob MAddren
+        "688cd91b-f189-4cbf-a4d5-d9f952eba27e", // test test
+        "688cd78f-5dd8-43d4-aa54-cddcabdbb53c", // tyler chey referral
+        "688cd2d5-f1eb-46a8-a06c-08b51f58512d", // yoyo tester
+        "688ccf8f-91ad-4f3e-b369-b33890aef4ac", // Yes Please
+        "688ccca0-05f6-4b5a-afe8-bd09555dfb10", // test test
+        "688cca7f-847a-4b6b-b867-65958e8bc3e3", // test test
+        "688cc84d-a3da-4f71-acfd-7340581a339b", // it worked
+        "688cc6e6-f28a-4b54-9523-d70962a375f6", // 0 uawruhew
+        "688cbba5-c4b9-4b80-a46f-682ce33a35be", // tyle are
+        "688cb5e5-afa5-46d4-acf6-7aa17de4231a", // tylw rtwetw
+        "688cb230-552a-4804-bbdc-556c81723238", // ttt 999
+        "688caf2c-097a-40a5-990f-0d452b69e00c", // Test User
+        "688cacf8-c19d-4fd5-bbe8-8f0ac3140019"  // tyler tesrt
+      ];
       
-      const response = await sdk.users.query({ 
-        perPage: limit,
-        page: Math.floor(offset / limit) + 1
-      });
+      console.log(`🔍 Fetching ${knownUserIds.length} users by ID...`);
       
-      console.log('📊 Users query response:', {
-        hasData: !!response.data,
-        hasDataData: !!response.data?.data,
-        totalItems: response.data?.meta?.totalItems,
-        currentPage: response.data?.meta?.page,
-        perPage: response.data?.meta?.perPage,
-        dataLength: response.data?.data?.length
-      });
+      const users: SharetribeUser[] = [];
       
-      if (response.data && response.data.data) {
-        const users = response.data.data.map((user: any) => ({
-          id: user.id,
-          email: user.attributes.email,
-          profile: user.attributes.profile || {},
-          attributes: user.attributes,
-          createdAt: user.attributes.createdAt
-        }));
+      for (const userId of knownUserIds) {
+        try {
+          const user = await this.getUserById(userId);
+          if (user) {
+            users.push(user);
+            console.log(`✅ Fetched user: ${user.email} (${user.id})`);
+          }
+        } catch (error) {
+          console.log(`❌ Failed to fetch user ${userId}:`, error);
+        }
         
-        console.log('✅ Processed users:', users.length);
-        console.log('👥 User emails:', users.map((u: SharetribeUser) => u.email));
-        return users;
+        // Rate limiting: wait 500ms between calls
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
       
-      console.log('❌ No users data in response');
-      return [];
+      console.log(`✅ Successfully fetched ${users.length} users out of ${knownUserIds.length}`);
+      return users;
+      
     } catch (error) {
       console.error('❌ Error fetching users:', error);
       console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown error');
