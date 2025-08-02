@@ -123,7 +123,7 @@ export default function Referrals() {
                 const data = await response.json();
                 if (data.success) {
                   console.log('🔍 Debug Data:', data.debug);
-                  alert(`Debug Info:\nAffiliates: ${data.debug.affiliatesCount}\nUser Referrals: ${data.debug.userReferralsCount}\nTotal System Referrals: ${data.debug.totalReferralsInSystem}\n\nAffiliate Details:\n${data.debug.affiliates.map(a => `${a.name}: ${a.referral_code}`).join('\n')}`);
+                  alert(`Debug Info:\nAffiliates: ${data.debug.affiliatesCount}\nUser Referrals: ${data.debug.userReferralsCount}\nTotal System Referrals: ${data.debug.totalReferralsInSystem}\n\nAffiliate Details:\n${data.debug.affiliates.map((a: any) => `${a.name}: ${a.referral_code}`).join('\n')}`);
                 } else {
                   alert('Debug failed: ' + data.message);
                 }
@@ -273,7 +273,12 @@ export default function Referrals() {
                   alert(`Live sync completed!\n\nSynced: ${data.syncedCount}\nUpdated: ${data.updatedCount}\nErrors: ${data.errorCount || 0}\n\nDetails: ${JSON.stringify(data.details, null, 2)}`);
                   fetchReferrals(); // Refresh the data
                 } else {
-                  alert('Live sync failed: ' + data.message);
+                  // Check if it's a "no users found" case vs actual failure
+                  if (data.message && data.message.includes('no users found')) {
+                    alert(`Live sync completed!\n\n${data.message}\n\nSynced: ${data.syncedCount}\nUpdated: ${data.updatedCount}\nErrors: ${data.errorCount || 0}\n\nSummary: ${JSON.stringify(data.summary, null, 2)}\n\nDetails: ${JSON.stringify(data.details, null, 2)}`);
+                  } else {
+                    alert('Live sync failed: ' + data.message);
+                  }
                 }
               } catch (error) {
                 console.error('Live sync error:', error);
