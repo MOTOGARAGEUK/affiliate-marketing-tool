@@ -60,6 +60,13 @@ export default function Payouts() {
 
   const handleCreatePayout = async (payoutData: any) => {
     try {
+      // Validate amount
+      const amount = parseFloat(payoutData.amount);
+      if (isNaN(amount) || amount <= 0) {
+        alert('Please enter a valid amount greater than 0');
+        return;
+      }
+
       // Get auth token for API request
       const { data: { session } } = await supabase().auth.getSession();
       const token = session?.access_token;
@@ -75,11 +82,15 @@ export default function Payouts() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(payoutData)
+        body: JSON.stringify({
+          ...payoutData,
+          amount: amount
+        })
       });
       
       if (!response.ok) {
-        throw new Error('Failed to create payout');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to create payout');
       }
       
       const data = await response.json();
@@ -254,8 +265,8 @@ export default function Payouts() {
 function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
   const [formData, setFormData] = useState({
     affiliateId: '',
-    amount: 0,
-    method: 'bank_transfer',
+    amount: '',
+    method: 'bank',
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -276,7 +287,7 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
     setFormData({
       ...formData,
       affiliateId,
-      amount: selectedPayout ? selectedPayout.amount : 0
+      amount: selectedPayout ? selectedPayout.amount.toString() : ''
     });
   };
 
@@ -312,7 +323,7 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
               <input
                 type="number"
                 value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                 className="mt-1 block w-full form-input disabled:opacity-50 disabled:cursor-not-allowed"
                 min="0"
                 step="0.01"
@@ -328,7 +339,7 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
                 className="mt-1 block w-full form-select disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isLoading}
               >
-                <option value="bank_transfer">Bank Transfer</option>
+                <option value="bank">Bank Transfer</option>
                 <option value="paypal">PayPal</option>
                 <option value="stripe">Stripe</option>
               </select>
