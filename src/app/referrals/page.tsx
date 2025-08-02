@@ -964,6 +964,66 @@ export default function Referrals() {
           >
             🔄 Force Validate All
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                if (!session?.user?.id) {
+                  alert('❌ No user session found');
+                  return;
+                }
+                
+                // Step 1: Clear cache
+                console.log('🧹 Step 1: Clearing cache...');
+                const clearResponse = await fetch('/api/clear-validation-cache', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    userId: session.user.id
+                  })
+                });
+                
+                const clearData = await clearResponse.json();
+                if (!clearData.success) {
+                  alert(`❌ Failed to clear cache: ${clearData.message}`);
+                  return;
+                }
+                
+                console.log('✅ Cache cleared successfully');
+                
+                // Step 2: Force validate all
+                console.log('🔄 Step 2: Force validating all...');
+                const validateResponse = await fetch('/api/force-validate-all', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    userId: session.user.id
+                  })
+                });
+                
+                const validateData = await validateResponse.json();
+                console.log('🔄 Force validation result:', validateData);
+                
+                if (validateData.success) {
+                  alert(`✅ Cache cleared & validation completed!\n\nUpdated: ${validateData.results.updated}\nErrors: ${validateData.results.errors}\nTotal: ${validateData.results.total}\n\nPage will refresh to show updated statuses.`);
+                  // Refresh the page to show updated statuses
+                  window.location.reload();
+                } else {
+                  alert(`❌ Force validation failed:\n\nMessage: ${validateData.message}\nError: ${validateData.error || 'None'}`);
+                }
+              } catch (error) {
+                console.error('Clear & validate error:', error);
+                alert('❌ Clear & validate failed');
+              }
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🧹 Clear Cache & Validate
+          </button>
         </div>
       </div>
       )}
