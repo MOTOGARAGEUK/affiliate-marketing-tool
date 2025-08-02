@@ -515,14 +515,14 @@ export async function getSharetribeCredentials(userId: string): Promise<Sharetri
     });
 
     // Check if we have the required credentials
-    if (!settingsObj.integrationClientId || !settingsObj.integrationClientSecret) {
+    if (!settingsObj.marketplaceClientId || !settingsObj.marketplaceClientSecret) {
       console.log('Missing required ShareTribe credentials');
       return null;
     }
 
     return {
-      clientId: settingsObj.integrationClientId,
-      clientSecret: settingsObj.integrationClientSecret,
+      clientId: settingsObj.marketplaceClientId,
+      clientSecret: settingsObj.marketplaceClientSecret,
       marketplaceUrl: settingsObj.marketplaceUrl
     };
   } catch (error) {

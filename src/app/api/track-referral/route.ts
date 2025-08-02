@@ -402,10 +402,18 @@ async function processSignupCompletion(referralCode: string, customerEmail: stri
     // Immediately validate against ShareTribe and update referral data
     try {
       console.log('🔍 Immediately validating user against ShareTribe:', customerEmail);
+      console.log('🔍 Using affiliate user_id:', affiliate.user_id);
       
       // Get ShareTribe credentials
       const { getSharetribeCredentials } = await import('@/lib/sharetribe');
       const credentials = await getSharetribeCredentials(affiliate.user_id);
+      
+      console.log('🔍 ShareTribe credentials found:', !!credentials);
+      if (credentials) {
+        console.log('🔍 Using clientId:', credentials.clientId ? 'SET' : 'NOT SET');
+        console.log('🔍 Using clientSecret:', credentials.clientSecret ? 'SET' : 'NOT SET');
+        console.log('🔍 Using marketplaceUrl:', credentials.marketplaceUrl || 'NOT SET');
+      }
       
       if (credentials) {
         const { createSharetribeAPI } = await import('@/lib/sharetribe');
