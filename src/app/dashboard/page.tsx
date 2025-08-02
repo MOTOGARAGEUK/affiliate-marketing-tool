@@ -87,6 +87,13 @@ export default function Dashboard() {
                        currentStats.referralChange?.startsWith('-') ? 'negative' : 'neutral',
           },
           {
+            name: 'Total Revenue',
+            value: formatCurrency(currentStats.totalRevenue || 0, userCurrency as string),
+            icon: CurrencyDollarIcon,
+            change: '0%',
+            changeType: 'neutral',
+          },
+          {
             name: 'Total Earnings',
             value: formatCurrency(currentStats.totalEarnings, userCurrency as string),
             icon: CurrencyDollarIcon,
@@ -144,7 +151,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-6">
           {stats.map((item) => (
             <div
               key={item.name}
@@ -156,10 +163,10 @@ export default function Dashboard() {
                 </div>
                 <p className="ml-16 truncate text-sm font-medium text-gray-500">{item.name}</p>
               </dt>
-              <dd className="ml-16 flex items-baseline">
-                <p className="text-2xl font-semibold text-gray-900">{item.value}</p>
+              <dd className="ml-16 flex items-baseline flex-wrap">
+                <p className="text-2xl font-semibold text-gray-900 mr-2">{item.value}</p>
                 <p
-                  className={`ml-2 flex items-baseline text-sm font-semibold whitespace-nowrap ${
+                  className={`flex items-baseline text-sm font-semibold whitespace-nowrap ${
                     item.changeType === 'positive'
                       ? 'text-green-600'
                       : item.changeType === 'negative'
@@ -177,7 +184,7 @@ export default function Dashboard() {
         {/* Charts */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="rounded-lg bg-white p-6 shadow dashboard-card">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Referrals & Earnings</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Referrals, Revenue & Earnings</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -186,10 +193,11 @@ export default function Dashboard() {
                 <Tooltip 
                   formatter={(value: any, name: string) => [
                     name === 'referrals' ? value : formatCurrency(value, currency as string),
-                    name === 'referrals' ? 'Referrals' : 'Earnings'
+                    name === 'referrals' ? 'Referrals' : name === 'earnings' ? 'Earnings' : 'Revenue'
                   ]}
                 />
                 <Line type="monotone" dataKey="referrals" stroke="#3B82F6" strokeWidth={2} />
+                <Line type="monotone" dataKey="revenue" stroke="#F59E0B" strokeWidth={2} />
                 <Line type="monotone" dataKey="earnings" stroke="#10B981" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>

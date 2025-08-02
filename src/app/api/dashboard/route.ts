@@ -89,18 +89,23 @@ export async function GET(request: NextRequest) {
     const verifiedReferrals = referrals?.filter(r => r.sharetribe_validation_status === 'green') || [];
     const verifiedReferralsCount = verifiedReferrals.length;
 
-    // Calculate total earnings based on verified referrals and program commission rates
+    // Calculate total earnings and revenue based on verified referrals and program commission rates
     let totalEarnings = 0;
+    let totalRevenue = 0;
     if (verifiedReferrals && programs) {
       verifiedReferrals.forEach(referral => {
         const program = referral.programs;
         if (program) {
           if (program.commission_type === 'fixed') {
             totalEarnings += program.commission;
+            // For fixed commission, assume revenue is 10x the commission (10% commission rate)
+            totalRevenue += program.commission * 10;
           } else if (program.commission_type === 'percentage') {
             // For percentage, we need a base amount - using a default of 100 for now
             // In a real scenario, this would be the actual transaction amount
-            totalEarnings += (program.commission / 100) * 100; // Default base amount
+            const baseAmount = 100;
+            totalEarnings += (program.commission / 100) * baseAmount;
+            totalRevenue += baseAmount;
           }
         }
       });
@@ -203,6 +208,7 @@ export async function GET(request: NextRequest) {
 
         const referralsCount = referralsResult.count || 0;
         let monthEarnings = 0;
+        let monthRevenue = 0;
         
         if (earningsResult.data) {
           earningsResult.data.forEach(referral => {
@@ -210,8 +216,11 @@ export async function GET(request: NextRequest) {
             if (program) {
               if (program.commission_type === 'fixed') {
                 monthEarnings += program.commission;
+                monthRevenue += program.commission * 10; // Assume 10% commission rate
               } else if (program.commission_type === 'percentage') {
-                monthEarnings += (program.commission / 100) * 100;
+                const baseAmount = 100;
+                monthEarnings += (program.commission / 100) * baseAmount;
+                monthRevenue += baseAmount;
               }
             }
           });
@@ -220,6 +229,7 @@ export async function GET(request: NextRequest) {
         return {
           month: month.month,
           referrals: referralsCount,
+          revenue: Math.round(monthRevenue * 100) / 100,
           earnings: Math.round(monthEarnings * 100) / 100
         };
       })
@@ -232,6 +242,7 @@ export async function GET(request: NextRequest) {
       pendingReferrals,
       approvedReferrals,
       verifiedReferrals: verifiedReferralsCount, // Add verified referrals count
+      totalRevenue: Math.round(totalRevenue * 100) / 100, // Round to 2 decimal places
       totalEarnings: Math.round(totalEarnings * 100) / 100, // Round to 2 decimal places
       pendingPayouts: Math.round(totalPayoutsOwed * 100) / 100, // Actual payouts owed to affiliates
       referralChange: referralChange.startsWith('+') ? `+${referralChange}%` : `${referralChange}%`
