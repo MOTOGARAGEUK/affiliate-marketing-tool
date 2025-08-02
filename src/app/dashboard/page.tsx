@@ -9,10 +9,10 @@ import {
 } from '@heroicons/react/24/outline';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
-import { dashboardAPI } from '@/lib/database';
 import { settingsAPI } from '@/lib/settings-database';
-import { formatCurrency, calculatePercentageChange } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { supabase } from '@/lib/supabase';
 
 export default function Dashboard() {
   const [stats, setStats] = useState<any[]>([]);
@@ -27,93 +27,77 @@ export default function Dashboard() {
       if (!user) return;
       
       try {
+        // Get auth token for API request
+        const { data: { session } } = await supabase().auth.getSession();
+        const token = session?.access_token;
+        
+        if (!token) {
+          console.log('No auth token, skipping dashboard data fetch');
+          return;
+        }
+
         // Fetch user settings for currency
         const settings = await settingsAPI.getByType(user.id, 'general');
         const currencySetting = settings.find(s => s.setting_key === 'currency');
         const userCurrency = (currencySetting?.setting_value as string) || 'GBP';
         setCurrency(userCurrency);
 
-        // Fetch current stats
-        const currentStats = await dashboardAPI.getStats(user.id);
+        // Fetch dashboard data from API
+        const response = await fetch('/api/dashboard', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         
-        // Fetch previous month stats for comparison
-        const previousMonth = new Date();
-        previousMonth.setMonth(previousMonth.getMonth() - 1);
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data');
+        }
         
-        const previousStats = await dashboardAPI.getStats(user.id, previousMonth);
+        const data = await response.json();
         
-        // Calculate percentage changes
-        const affiliateChange = calculatePercentageChange(
-          currentStats.totalAffiliates, 
-          previousStats.totalAffiliates
-        );
-        
-        const activeAffiliateChange = calculatePercentageChange(
-          currentStats.activeAffiliates, 
-          previousStats.activeAffiliates
-        );
-        
-        const referralChange = calculatePercentageChange(
-          currentStats.totalReferrals, 
-          previousStats.totalReferrals
-        );
-        
-        const earningsChange = calculatePercentageChange(
-          currentStats.totalEarnings, 
-          previousStats.totalEarnings
-        );
-        
-        const payoutChange = calculatePercentageChange(
-          currentStats.pendingPayouts, 
-          previousStats.pendingPayouts
-        );
+        if (!data.success) {
+          throw new Error(data.message || 'Failed to fetch dashboard data');
+        }
 
-        // Fetch recent activity
-        const activityData = await dashboardAPI.getRecentActivity(user.id);
-        
-        // Fetch chart data (last 6 months)
-        const chartData = await dashboardAPI.getChartData(user.id);
+        const currentStats = data.stats;
+        const activityData = data.recentActivity;
         
         const dashboardStats = [
           {
             name: 'Total Affiliates',
             value: currentStats.totalAffiliates,
             icon: UsersIcon,
-            change: affiliateChange,
-            changeType: affiliateChange.startsWith('+') ? 'positive' : 
-                       affiliateChange.startsWith('-') ? 'negative' : 'neutral',
+            change: '0%',
+            changeType: 'neutral',
           },
           {
             name: 'Active Affiliates',
             value: currentStats.activeAffiliates,
             icon: UsersIcon,
-            change: activeAffiliateChange,
-            changeType: activeAffiliateChange.startsWith('+') ? 'positive' : 
-                       activeAffiliateChange.startsWith('-') ? 'negative' : 'neutral',
+            change: '0%',
+            changeType: 'neutral',
           },
           {
             name: 'Total Referrals',
             value: currentStats.totalReferrals,
             icon: ChartBarIcon,
-            change: referralChange,
-            changeType: referralChange.startsWith('+') ? 'positive' : 
-                       referralChange.startsWith('-') ? 'negative' : 'neutral',
+            change: currentStats.referralChange || '0%',
+            changeType: currentStats.referralChange?.startsWith('+') ? 'positive' : 
+                       currentStats.referralChange?.startsWith('-') ? 'negative' : 'neutral',
           },
           {
             name: 'Total Earnings',
             value: formatCurrency(currentStats.totalEarnings, userCurrency as string),
             icon: CurrencyDollarIcon,
-            change: earningsChange,
-            changeType: earningsChange.startsWith('+') ? 'positive' : 
-                       earningsChange.startsWith('-') ? 'negative' : 'neutral',
+            change: '0%',
+            changeType: 'neutral',
           },
           {
             name: 'Pending Payouts',
             value: formatCurrency(currentStats.pendingPayouts, userCurrency as string),
             icon: CreditCardIcon,
-            change: payoutChange,
-            changeType: payoutChange.startsWith('+') ? 'positive' : 
-                       payoutChange.startsWith('-') ? 'negative' : 'neutral',
+            change: '0%',
+            changeType: 'neutral',
           },
         ];
         
