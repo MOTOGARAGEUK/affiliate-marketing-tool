@@ -425,6 +425,13 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
     phone: affiliate?.phone || '',
     status: (affiliate?.status || 'pending') as 'active' | 'inactive' | 'pending',
     programId: affiliate?.program_id || '',
+    // Bank details
+    bank_account_name: affiliate?.bank_account_name || '',
+    bank_account_number: affiliate?.bank_account_number || '',
+    bank_sort_code: affiliate?.bank_sort_code || '',
+    bank_iban: affiliate?.bank_iban || '',
+    bank_routing_number: affiliate?.bank_routing_number || '',
+    bank_name: affiliate?.bank_name || '',
   });
   const [marketplaceUrl, setMarketplaceUrl] = useState('https://marketplace.com');
   const [emailError, setEmailError] = useState('');
@@ -617,6 +624,99 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
               </select>
             </div>
             
+            {/* Bank Details Section */}
+            <div className="border-t pt-4 mt-4">
+              <h4 className="text-sm font-medium text-gray-900 mb-3">Bank Details (Optional)</h4>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Bank Name</label>
+                  <input
+                    type="text"
+                    value={formData.bank_name}
+                    onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+                    className="mt-1 block w-full form-input"
+                    placeholder="e.g., Barclays Bank"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Account Holder Name</label>
+                  <input
+                    type="text"
+                    value={formData.bank_account_name}
+                    onChange={(e) => setFormData({ ...formData, bank_account_name: e.target.value })}
+                    className="mt-1 block w-full form-input"
+                    placeholder="Name on bank account"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Account Number</label>
+                  <input
+                    type="text"
+                    value={formData.bank_account_number}
+                    onChange={(e) => setFormData({ ...formData, bank_account_number: e.target.value })}
+                    className="mt-1 block w-full form-input"
+                    placeholder="8 digits"
+                    maxLength={8}
+                    disabled={isLoading}
+                  />
+                </div>
+                {currency === 'GBP' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Sort Code</label>
+                    <input
+                      type="text"
+                      value={formData.bank_sort_code}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                        const formatted = value.replace(/(\d{2})(\d{2})(\d{2})/, '$1-$2-$3');
+                        setFormData({ ...formData, bank_sort_code: formatted });
+                      }}
+                      className="mt-1 block w-full form-input"
+                      placeholder="12-34-56"
+                      maxLength={8}
+                      disabled={isLoading}
+                    />
+                  </div>
+                )}
+                {currency === 'EUR' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">IBAN</label>
+                    <input
+                      type="text"
+                      value={formData.bank_iban}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\s/g, '').toUpperCase();
+                        setFormData({ ...formData, bank_iban: value });
+                      }}
+                      className="mt-1 block w-full form-input"
+                      placeholder="GB29NWBK60161331926819"
+                      maxLength={34}
+                      disabled={isLoading}
+                    />
+                  </div>
+                )}
+                {currency === 'USD' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Routing Number</label>
+                    <input
+                      type="text"
+                      value={formData.bank_routing_number}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+                        setFormData({ ...formData, bank_routing_number: value });
+                      }}
+                      className="mt-1 block w-full form-input"
+                      placeholder="123456789"
+                      maxLength={9}
+                      disabled={isLoading}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            
             {/* Show referral link for both new and existing affiliates */}
             <div className="bg-gray-50 p-3 rounded-md">
               <label className="block text-sm font-medium text-gray-700 mb-2">Generated Referral Link</label>
@@ -803,6 +903,51 @@ function ViewAffiliateModal({ affiliate, programs, onClose, currency = 'GBP' }: 
               <label className="block text-sm font-medium text-gray-700">Joined</label>
               <p className="mt-1 text-sm text-gray-900">{formatDate(affiliate.created_at)}</p>
             </div>
+            
+            {/* Bank Details Section */}
+            {(affiliate.bank_name || affiliate.bank_account_name || affiliate.bank_account_number) && (
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-medium text-gray-900 mb-3">Bank Details</h4>
+                <div className="space-y-3">
+                  {affiliate.bank_name && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Bank Name</label>
+                      <p className="mt-1 text-sm text-gray-900">{affiliate.bank_name}</p>
+                    </div>
+                  )}
+                  {affiliate.bank_account_name && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Account Holder Name</label>
+                      <p className="mt-1 text-sm text-gray-900">{affiliate.bank_account_name}</p>
+                    </div>
+                  )}
+                  {affiliate.bank_account_number && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Account Number</label>
+                      <p className="mt-1 text-sm text-gray-900">****{affiliate.bank_account_number.slice(-4)}</p>
+                    </div>
+                  )}
+                  {currency === 'GBP' && affiliate.bank_sort_code && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Sort Code</label>
+                      <p className="mt-1 text-sm text-gray-900">{affiliate.bank_sort_code}</p>
+                    </div>
+                  )}
+                  {currency === 'EUR' && affiliate.bank_iban && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">IBAN</label>
+                      <p className="mt-1 text-sm text-gray-900">{affiliate.bank_iban}</p>
+                    </div>
+                  )}
+                  {currency === 'USD' && affiliate.bank_routing_number && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Routing Number</label>
+                      <p className="mt-1 text-sm text-gray-900">{affiliate.bank_routing_number}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <div className="mt-6 flex justify-end">
             <button

@@ -23,6 +23,13 @@ export interface Affiliate {
   referral_link: string;
   created_at: string;
   updated_at: string;
+  // Bank details (optional)
+  bank_account_name?: string;
+  bank_account_number?: string;
+  bank_sort_code?: string; // For GBP
+  bank_iban?: string; // For EUR
+  bank_routing_number?: string; // For USD
+  bank_name?: string;
   // Keep camelCase versions for backward compatibility
   programId?: string;
   totalEarnings?: number;
