@@ -315,6 +315,7 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [bankReference, setBankReference] = useState('');
+  const [affiliateBankDetails, setAffiliateBankDetails] = useState<any>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -345,13 +346,41 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
     setBankReference('');
   };
 
-  const handleAffiliateChange = (affiliateId: string) => {
+  const handleAffiliateChange = async (affiliateId: string) => {
     const selectedPayout = payouts.find(p => p.affiliateId === affiliateId);
     setFormData({
       ...formData,
       affiliateId,
       amount: selectedPayout ? selectedPayout.amount.toString() : ''
     });
+
+    // Fetch affiliate bank details if affiliate is selected
+    if (affiliateId) {
+      try {
+        const { data: { session } } = await supabase().auth.getSession();
+        const token = session?.access_token;
+        
+        if (token) {
+          const response = await fetch(`/api/affiliates/${affiliateId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.affiliate) {
+              setAffiliateBankDetails(data.affiliate);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch affiliate bank details:', error);
+        setAffiliateBankDetails(null);
+      }
+    } else {
+      setAffiliateBankDetails(null);
+    }
   };
 
   return (
@@ -438,6 +467,52 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
                     {payouts.find(p => p.affiliateId === formData.affiliateId)?.affiliateName}
                   </p>
                 </div>
+                
+                {/* Bank Details Section */}
+                {affiliateBankDetails && (affiliateBankDetails.bank_name || affiliateBankDetails.bank_account_name || affiliateBankDetails.bank_account_number) && (
+                  <div className="border-t pt-4 mt-4">
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">Bank Details</h4>
+                    <div className="space-y-3">
+                      {affiliateBankDetails.bank_name && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Bank Name</label>
+                          <p className="mt-1 text-sm text-gray-900">{affiliateBankDetails.bank_name}</p>
+                        </div>
+                      )}
+                      {affiliateBankDetails.bank_account_name && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Account Holder Name</label>
+                          <p className="mt-1 text-sm text-gray-900">{affiliateBankDetails.bank_account_name}</p>
+                        </div>
+                      )}
+                      {affiliateBankDetails.bank_account_number && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Account Number</label>
+                          <p className="mt-1 text-sm text-gray-900">****{affiliateBankDetails.bank_account_number.slice(-4)}</p>
+                        </div>
+                      )}
+                      {affiliateBankDetails.bank_sort_code && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Sort Code</label>
+                          <p className="mt-1 text-sm text-gray-900">{affiliateBankDetails.bank_sort_code}</p>
+                        </div>
+                      )}
+                      {affiliateBankDetails.bank_iban && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">IBAN</label>
+                          <p className="mt-1 text-sm text-gray-900">{affiliateBankDetails.bank_iban}</p>
+                        </div>
+                      )}
+                      {affiliateBankDetails.bank_routing_number && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Routing Number</label>
+                          <p className="mt-1 text-sm text-gray-900">{affiliateBankDetails.bank_routing_number}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Payment Amount</label>
                   <input
