@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
         console.log(`📋 Getting listings for user: ${user.id}`);
         const listings = await sharetribeAPI.getUserListings(user.id, 1000);
         console.log(`📋 Found ${listings.length} listings for user: ${user.id}`);
+        console.log(`📋 Listings details:`, listings.map(l => ({ id: l.id, state: l.attributes.state, title: l.attributes.title })));
 
         // Step 3: Get user's transactions using documented endpoint
         console.log(`💰 Getting transactions for user: ${user.id}`);

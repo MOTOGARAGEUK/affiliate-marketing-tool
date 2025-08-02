@@ -119,7 +119,8 @@ class SharetribeAPI {
       const knownUserIds = [
         "688d0c51-8fbc-45e6-8a29-fc66c9ab7990", // Jacob M
         "688cd91b-f189-4cbf-a4d5-d9f952eba27e", // test t
-        "688cd78f-5dd8-43d4-aa54-cddcabdbb53c"  // tyler c
+        "688cd78f-5dd8-43d4-aa54-cddcabdbb53c", // tyler c
+        // Add more user IDs as needed - these are from the basic test results
       ];
       
       console.log('🔍 Checking known user IDs for email match...');
