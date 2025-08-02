@@ -78,6 +78,22 @@ export async function POST(request: NextRequest) {
       console.error('❌ getUserStats error:', statsError);
     }
 
+    // Test specific email lookup
+    console.log('🔍 Testing specific email lookup...');
+    try {
+      const jacobUser = await sharetribeAPI.getUserByEmail('maddren.jacob@gmail.com');
+      console.log('✅ Jacob email lookup result:', jacobUser ? 'Found' : 'Not found');
+      if (jacobUser) {
+        console.log('✅ Jacob user details:', {
+          id: jacobUser.id,
+          email: jacobUser.email,
+          displayName: jacobUser.profile?.displayName
+        });
+      }
+    } catch (emailError) {
+      console.error('❌ Email lookup error:', emailError);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Basic ShareTribe test successful',
