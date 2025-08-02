@@ -789,7 +789,13 @@ function ViewAffiliateModal({ affiliate, programs, onClose, currency = 'GBP' }: 
               <p className="mt-1 text-sm text-gray-900">
                 {(() => {
                   const program = programs.find(p => p.id === affiliate.program_id);
-                  return program ? `${program.commission}${program.commissionType === 'percentage' ? '%' : '$'} per ${program.type === 'signup' ? 'signup' : 'purchase'}` : 'N/A';
+                  if (!program) return 'N/A';
+                  
+                  if (program.commissionType === 'percentage') {
+                    return `${program.commission}% per ${program.type === 'signup' ? 'signup' : 'purchase'}`;
+                  } else {
+                    return `${formatCurrency(program.commission, currency)} per ${program.type === 'signup' ? 'signup' : 'purchase'}`;
+                  }
                 })()}
               </p>
             </div>
