@@ -445,8 +445,8 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
   const [emailError, setEmailError] = useState('');
   const [isValidatingEmail, setIsValidatingEmail] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (isLoading || emailError || isValidatingEmail) return; // Prevent submission while loading or if email has errors
     onSubmit(formData);
   };
@@ -811,7 +811,8 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
               Cancel
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
               disabled={isLoading || !!emailError || isValidatingEmail}
               className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
