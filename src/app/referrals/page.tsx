@@ -35,8 +35,10 @@ export default function Referrals() {
   const { user } = useAuth();
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currency, setCurrency] = useState('$');
+  const [currency, setCurrency] = useState('GBP');
   const [validationTimer, setValidationTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showTestButtons, setShowTestButtons] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('green'); // Default to verified users only
 
   // Auto-validate referrals on page load and every minute
   const autoValidateReferrals = async () => {
@@ -191,6 +193,12 @@ export default function Referrals() {
     }
   };
 
+  // Filter referrals based on status filter
+  const filteredReferrals = referrals.filter(referral => {
+    if (statusFilter === 'all') return true;
+    return referral.sharetribe_validation_status === statusFilter;
+  });
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -206,6 +214,22 @@ export default function Referrals() {
             </p>
           </div>
           <div className="flex space-x-2">
+            {/* Test Buttons Toggle */}
+            <button
+              onClick={() => setShowTestButtons(!showTestButtons)}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              {showTestButtons ? '🔒 Hide Test Buttons' : '🔧 Show Test Buttons'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Test Buttons Section - Hidden by default */}
+      {showTestButtons && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h3 className="text-lg font-medium text-yellow-900 mb-4">🧪 Test & Debug Tools</h3>
+          <div className="flex flex-wrap gap-2">
           <button
             onClick={async () => {
               try {
@@ -653,9 +677,32 @@ export default function Referrals() {
           </button>
         </div>
       </div>
-    </div>
+      )}
 
-    {/* Referrals Table */}
+      {/* Controls Section */}
+      <div className="bg-white shadow rounded-lg p-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          {/* Status Filter */}
+          <div className="flex items-center space-x-3">
+            <label className="text-sm font-medium text-gray-700">ShareTribe Status:</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="form-select text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="green">Verified Only</option>
+              <option value="amber">Unverified Only</option>
+              <option value="red">Invalid Only</option>
+              <option value="all">All Statuses</option>
+            </select>
+            <span className="text-sm text-gray-500">
+              ({filteredReferrals.length} of {referrals.length} referrals)
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Referrals Table */}
       <div className="bg-white shadow rounded-lg overflow-hidden table-container">
         {loading ? (
           <div className="flex justify-center items-center py-12">
@@ -700,7 +747,7 @@ export default function Referrals() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {referrals.length === 0 ? (
+                {filteredReferrals.length === 0 ? (
                   <tr>
                     <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
                       <div className="flex flex-col items-center">
@@ -713,7 +760,7 @@ export default function Referrals() {
                     </td>
                   </tr>
                 ) : (
-                  referrals.map((referral) => (
+                  filteredReferrals.map((referral) => (
                     <tr key={referral.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
