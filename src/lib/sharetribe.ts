@@ -230,9 +230,9 @@ class SharetribeAPI {
       const sdk = await this.getSDK();
       
       // Use documented ShareTribe endpoint: /v1/integration_api/listings/query
-      console.log('🔍 Querying listings with author_id:', userId);
+      console.log('🔍 Querying listings with author:', userId);
       const response = await sdk.listings.query({ 
-        author_id: userId, // Documented parameter for filtering by author
+        author: userId, // Documented parameter for filtering by author
         perPage: limit
       });
       
