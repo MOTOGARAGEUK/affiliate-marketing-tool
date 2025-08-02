@@ -72,7 +72,28 @@ export async function POST(request: NextRequest) {
       try {
         const sharetribeUser = await sharetribeAPI.getUserByEmail(email);
         
-        console.log(`🔍 Raw ShareTribe user object for ${email}:`, JSON.stringify(sharetribeUser, null, 2));
+        // Log the complete ShareTribe user object in the expected format
+        if (sharetribeUser) {
+          const userResponse = {
+            data: [{
+              id: sharetribeUser.id,
+              type: "user",
+              attributes: sharetribeUser.attributes
+            }],
+            meta: {
+              totalItems: 1,
+              totalPages: 1,
+              page: 1,
+              perPage: 1
+            }
+          };
+          
+          console.log(`// res.data for ${email}:`);
+          console.log(JSON.stringify(userResponse, null, 2));
+        } else {
+          console.log(`// No user found for ${email}`);
+          console.log('null');
+        }
         
         let status = 'red'; // Default: user not found
         let emailVerified = false;
@@ -122,7 +143,8 @@ export async function POST(request: NextRequest) {
           lastChecked: now,
           userId: userId,
           displayName: displayName,
-          emailVerified: emailVerified
+          emailVerified: emailVerified,
+          sharetribeUserAttributes: sharetribeUser ? sharetribeUser.attributes : null
         });
 
         console.log(`✅ Validation result for ${email}: ${status} (verified: ${emailVerified})`);
@@ -155,6 +177,22 @@ export async function POST(request: NextRequest) {
     };
 
     console.log('📊 Validation Summary:', summary);
+    
+    // Log all user responses in the expected format
+    console.log('\n=== ALL SHARETRIBE USER RESPONSES ===');
+    const allUserResponses = validationResults
+      .filter(r => r.userId) // Only include found users
+      .map(r => ({
+        email: r.email,
+        user: {
+          id: r.userId,
+          type: "user",
+          attributes: r.sharetribeUserAttributes || {}
+        }
+      }));
+    
+    console.log('// All found users:');
+    console.log(JSON.stringify(allUserResponses, null, 2));
 
     return NextResponse.json({
       success: true,
