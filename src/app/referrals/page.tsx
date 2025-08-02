@@ -1024,6 +1024,42 @@ export default function Referrals() {
           >
             🧹 Clear Cache & Validate
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                if (!session?.user?.id) {
+                  alert('❌ No user session found');
+                  return;
+                }
+                
+                const response = await fetch('/api/debug-referrals-structure', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    userId: session.user.id
+                  })
+                });
+                
+                const data = await response.json();
+                console.log('🔍 Referrals structure debug result:', data);
+                
+                if (data.success) {
+                  alert(`✅ Referrals structure debug successful!\n\nTotal referrals: ${data.summary.totalReferrals}\nUser referrals: ${data.summary.userReferrals}\nTotal affiliates: ${data.summary.totalAffiliates}\n\nCheck console for detailed structure.`);
+                } else {
+                  alert(`❌ Referrals structure debug failed:\n\nMessage: ${data.message}\nError: ${data.error || 'None'}`);
+                }
+              } catch (error) {
+                console.error('Referrals structure debug error:', error);
+                alert('❌ Referrals structure debug failed');
+              }
+            }}
+            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🔍 Debug Referrals Structure
+          </button>
         </div>
       </div>
       )}
