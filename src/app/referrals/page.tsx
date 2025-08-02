@@ -926,6 +926,44 @@ export default function Referrals() {
           >
             🔍 Debug User Structure
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                if (!session?.user?.id) {
+                  alert('❌ No user session found');
+                  return;
+                }
+                
+                const response = await fetch('/api/force-validate-all', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    userId: session.user.id
+                  })
+                });
+                
+                const data = await response.json();
+                console.log('🔄 Force validation result:', data);
+                
+                if (data.success) {
+                  alert(`✅ Force validation completed!\n\nUpdated: ${data.results.updated}\nErrors: ${data.results.errors}\nTotal: ${data.results.total}\n\nCheck console for details.`);
+                  // Refresh the page to show updated statuses
+                  window.location.reload();
+                } else {
+                  alert(`❌ Force validation failed:\n\nMessage: ${data.message}\nError: ${data.error || 'None'}`);
+                }
+              } catch (error) {
+                console.error('Force validation error:', error);
+                alert('❌ Force validation failed');
+              }
+            }}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🔄 Force Validate All
+          </button>
         </div>
       </div>
       )}
