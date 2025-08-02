@@ -1,14 +1,62 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlusIcon, EyeIcon } from '@heroicons/react/24/outline';
-import { mockPayouts, mockAffiliates } from '@/lib/mockData';
 import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export default function Payouts() {
-  const [payouts, setPayouts] = useState(mockPayouts);
+  const { user } = useAuth();
+  const [payouts, setPayouts] = useState<any[]>([]);
+  const [summary, setSummary] = useState<any>({});
+  const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPayout, setSelectedPayout] = useState<any>(null);
+
+  useEffect(() => {
+    fetchPayouts();
+  }, [user]);
+
+  const fetchPayouts = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      
+      // Get auth token for API request
+      const { data: { session } } = await supabase().auth.getSession();
+      const token = session?.access_token;
+      
+      if (!token) {
+        console.log('No auth token, skipping payouts fetch');
+        return;
+      }
+
+      const response = await fetch('/api/payouts', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch payouts');
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch payouts');
+      }
+
+      setPayouts(data.payouts);
+      setSummary(data.summary);
+    } catch (error) {
+      console.error('Failed to fetch payouts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCreatePayout = (payoutData: any) => {
     const newPayout = {
@@ -23,8 +71,8 @@ export default function Payouts() {
   };
 
   const getAffiliateName = (affiliateId: string) => {
-    const affiliate = mockAffiliates.find(a => a.id === affiliateId);
-    return affiliate ? affiliate.name : 'Unknown';
+    const payout = payouts.find(p => p.affiliateId === affiliateId);
+    return payout ? payout.affiliateName : 'Unknown';
   };
 
   return (
@@ -35,6 +83,11 @@ export default function Payouts() {
           <p className="mt-1 text-sm text-gray-500">
             Manage affiliate payouts and payment processing
           </p>
+          {summary.totalPayoutsOwed > 0 && (
+            <p className="mt-1 text-sm text-green-600 font-medium">
+              Total Payouts Owed: {formatCurrency(summary.totalPayoutsOwed)}
+            </p>
+          )}
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -47,8 +100,14 @@ export default function Payouts() {
 
       {/* Payouts Table */}
       <div className="bg-white shadow rounded-lg overflow-hidden table-container">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <span className="ml-3 text-gray-600">Loading payouts...</span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -74,12 +133,29 @@ export default function Payouts() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {payouts.map((payout) => (
+                          <tbody className="bg-white divide-y divide-gray-200">
+              {payouts.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                    <div className="flex flex-col items-center">
+                      <p className="text-lg font-medium text-gray-900 mb-2">No payouts due</p>
+                      <p className="text-sm text-gray-500">
+                        Affiliates will appear here when they have approved referrals and earnings
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                payouts.map((payout) => (
                 <tr key={payout.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {getAffiliateName(payout.affiliateId)}
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {payout.affiliateName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {payout.verifiedReferrals} verified referrals
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -114,10 +190,12 @@ export default function Payouts() {
                     </button>
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* Create Payout Modal */}

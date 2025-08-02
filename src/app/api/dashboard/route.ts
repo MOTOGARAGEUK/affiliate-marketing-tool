@@ -78,19 +78,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Calculate stats
+    // Calculate stats - only count verified referrals (green status)
     const totalAffiliates = affiliates?.length || 0;
     const activeAffiliates = affiliates?.filter(a => a.status === 'active').length || 0;
     const totalReferrals = referrals?.length || 0;
     const pendingReferrals = referrals?.filter(r => r.status === 'pending').length || 0;
     const approvedReferrals = referrals?.filter(r => r.status === 'approved').length || 0;
+    
+    // Only count verified referrals (green ShareTribe status)
+    const verifiedReferrals = referrals?.filter(r => r.sharetribe_validation_status === 'green') || [];
+    const verifiedReferralsCount = verifiedReferrals.length;
 
-    // Calculate total earnings based on approved referrals and program commission rates
+    // Calculate total earnings based on verified referrals and program commission rates
     let totalEarnings = 0;
-    if (referrals && programs) {
-      const approvedReferralsWithPrograms = referrals.filter(r => r.status === 'approved');
-      
-      approvedReferralsWithPrograms.forEach(referral => {
+    if (verifiedReferrals && programs) {
+      verifiedReferrals.forEach(referral => {
         const program = referral.programs;
         if (program) {
           if (program.commission_type === 'fixed') {
@@ -117,16 +119,16 @@ export async function GET(request: NextRequest) {
         customer_email: referral.customer_email
       })) || [];
 
-    // Calculate percentage changes (comparing to previous month)
+    // Calculate percentage changes (comparing to previous month) - only verified referrals
     const now = new Date();
     const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const currentMonthReferrals = referrals?.filter(r => 
+    const currentMonthReferrals = verifiedReferrals.filter(r => 
       new Date(r.created_at) >= currentMonth
     ).length || 0;
 
-    const previousMonthReferrals = referrals?.filter(r => 
+    const previousMonthReferrals = verifiedReferrals.filter(r => 
       new Date(r.created_at) >= previousMonth && new Date(r.created_at) < currentMonth
     ).length || 0;
 
@@ -134,14 +136,32 @@ export async function GET(request: NextRequest) {
       ? ((currentMonthReferrals - previousMonthReferrals) / previousMonthReferrals * 100).toFixed(1)
       : currentMonthReferrals > 0 ? '+100' : '0';
 
+    // Calculate payouts owed to affiliates - only verified referrals
+    let totalPayoutsOwed = 0;
+    if (verifiedReferrals && programs) {
+      verifiedReferrals.forEach(referral => {
+        const program = referral.programs;
+        if (program) {
+          if (program.commission_type === 'fixed') {
+            totalPayoutsOwed += program.commission;
+          } else if (program.commission_type === 'percentage') {
+            // For percentage, we need a base amount - using a default of 100 for now
+            // In a real scenario, this would be the actual transaction amount
+            totalPayoutsOwed += (program.commission / 100) * 100; // Default base amount
+          }
+        }
+      });
+    }
+
     const stats = {
       totalAffiliates,
       activeAffiliates,
       totalReferrals,
       pendingReferrals,
       approvedReferrals,
+      verifiedReferrals: verifiedReferralsCount, // Add verified referrals count
       totalEarnings: Math.round(totalEarnings * 100) / 100, // Round to 2 decimal places
-      pendingPayouts: Math.round(totalEarnings * 100) / 100, // Same as total earnings for now
+      pendingPayouts: Math.round(totalPayoutsOwed * 100) / 100, // Actual payouts owed to affiliates
       referralChange: referralChange.startsWith('+') ? `+${referralChange}%` : `${referralChange}%`
     };
 
