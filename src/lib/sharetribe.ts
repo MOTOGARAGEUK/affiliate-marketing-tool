@@ -96,13 +96,30 @@ class SharetribeAPI {
     if (!this.sdk) {
       try {
         const sharetribeIntegrationSdk = await import('sharetribe-flex-integration-sdk');
+        
+        // Determine the environment based on marketplace URL
+        let environment = 'production'; // default
+        if (this.config.marketplaceUrl) {
+          if (this.config.marketplaceUrl.includes('dev.sharetribe.com')) {
+            environment = 'dev';
+          } else if (this.config.marketplaceUrl.includes('test.sharetribe.com')) {
+            environment = 'test';
+          }
+        }
+        
+        console.log('🔧 Creating ShareTribe SDK with environment:', environment);
+        console.log('🔧 Client ID:', this.config.clientId ? 'SET' : 'NOT SET');
+        console.log('🔧 Client Secret:', this.config.clientSecret ? 'SET' : 'NOT SET');
+        console.log('🔧 Marketplace URL:', this.config.marketplaceUrl || 'NOT SET');
+        
         this.sdk = sharetribeIntegrationSdk.createInstance({
           clientId: this.config.clientId,
           clientSecret: this.config.clientSecret
         });
-        console.log('ShareTribe SDK instance created with client ID:', this.config.clientId ? 'Set' : 'Not set');
+        
+        console.log('✅ ShareTribe SDK instance created successfully');
       } catch (error) {
-        console.error('Failed to create ShareTribe SDK instance:', error);
+        console.error('❌ Failed to create ShareTribe SDK instance:', error);
         throw error;
       }
     }
@@ -419,19 +436,27 @@ class SharetribeAPI {
   // Test connection
   async testConnection(): Promise<boolean> {
     try {
-      console.log('Testing ShareTribe SDK connection...');
+      console.log('🔧 Testing ShareTribe SDK connection...');
       
       const sdk = await this.getSDK();
+      console.log('🔧 SDK created, testing marketplace.show()...');
+      
       const response = await sdk.marketplace.show();
+      console.log('🔧 Marketplace.show() response:', response);
       
       if (response.data && response.data.data) {
-        console.log('Connection successful, marketplace:', response.data.data.attributes.name);
+        console.log('✅ Connection successful, marketplace:', response.data.data.attributes.name);
         return true;
       }
       
+      console.log('❌ Connection failed - no data in response');
       return false;
     } catch (error) {
-      console.error('Connection test failed:', error);
+      console.error('❌ Connection test failed:', error);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
       return false;
     }
   }
