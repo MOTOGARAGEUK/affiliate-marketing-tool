@@ -349,27 +349,44 @@ class SharetribeAPI {
   // Get all users
   async getUsers(limit: number = 100, offset: number = 0): Promise<SharetribeUser[]> {
     try {
-      console.log('Fetching users with limit:', limit, 'offset:', offset);
+      console.log('👥 Fetching users with limit:', limit, 'offset:', offset);
       
       const sdk = await this.getSDK();
+      console.log('🔍 SDK obtained, querying users...');
+      
       const response = await sdk.users.query({ 
         perPage: limit,
         page: Math.floor(offset / limit) + 1
       });
       
+      console.log('📊 Users query response:', {
+        hasData: !!response.data,
+        hasDataData: !!response.data?.data,
+        totalItems: response.data?.meta?.totalItems,
+        currentPage: response.data?.meta?.page,
+        perPage: response.data?.meta?.perPage,
+        dataLength: response.data?.data?.length
+      });
+      
       if (response.data && response.data.data) {
-        return response.data.data.map((user: any) => ({
+        const users = response.data.data.map((user: any) => ({
           id: user.id,
           email: user.attributes.email,
           profile: user.attributes.profile || {},
           attributes: user.attributes,
           createdAt: user.attributes.createdAt
         }));
+        
+        console.log('✅ Processed users:', users.length);
+        console.log('👥 User emails:', users.map((u: SharetribeUser) => u.email));
+        return users;
       }
       
+      console.log('❌ No users data in response');
       return [];
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('❌ Error fetching users:', error);
+      console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown error');
       return [];
     }
   }
