@@ -726,6 +726,47 @@ export default function Referrals() {
           >
             🔍 Debug Validation
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                if (!session?.user?.id) {
+                  alert('No user ID found');
+                  return;
+                }
+                
+                console.log('🧪 Running simple ShareTribe test for user:', session.user.id);
+                
+                const response = await fetch('/api/test-sharetribe-simple', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  },
+                  body: JSON.stringify({
+                    userId: session.user.id
+                  })
+                });
+                
+                const data = await response.json();
+                console.log('🧪 Simple test result:', data);
+                
+                if (data.success) {
+                  alert(`✅ Simple test passed!\n\nAll ShareTribe components working correctly.`);
+                } else {
+                  alert(`❌ Simple test failed at step: ${data.step}\n\nMessage: ${data.message}\n\nError: ${data.error || 'None'}`);
+                }
+              } catch (error) {
+                console.error('Simple test error:', error);
+                alert('Simple test error: ' + error);
+              }
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🧪 Simple Test
+          </button>
         </div>
       </div>
       )}
