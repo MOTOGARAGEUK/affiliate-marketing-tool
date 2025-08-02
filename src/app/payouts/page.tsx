@@ -13,6 +13,7 @@ export default function Payouts() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPayout, setSelectedPayout] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'unpaid' | 'paid'>('all');
 
   useEffect(() => {
     fetchPayouts();
@@ -67,6 +68,13 @@ export default function Payouts() {
         return;
       }
 
+      // Validate against outstanding amount
+      const selectedPayout = payouts.find(p => p.affiliateId === payoutData.affiliateId);
+      if (selectedPayout && amount > selectedPayout.amount) {
+        alert(`Cannot pay more than what is owed. Maximum payout amount is ${formatCurrency(selectedPayout.amount)}`);
+        return;
+      }
+
       // Get auth token for API request
       const { data: { session } } = await supabase().auth.getSession();
       const token = session?.access_token;
@@ -116,6 +124,14 @@ export default function Payouts() {
     return payout ? payout.affiliateName : 'Unknown';
   };
 
+  // Filter payouts based on status
+  const filteredPayouts = payouts.filter(payout => {
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'unpaid') return payout.amount > 0;
+    if (statusFilter === 'paid') return payout.amount === 0;
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -137,6 +153,22 @@ export default function Payouts() {
           <PlusIcon className="h-4 w-4 mr-2" />
           Create Payout
         </button>
+      </div>
+
+      {/* Filter Controls */}
+      <div className="bg-white shadow rounded-lg p-4">
+        <div className="flex items-center space-x-4">
+          <label className="text-sm font-medium text-gray-700">Filter by Status:</label>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'unpaid' | 'paid')}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="all">All Payouts</option>
+            <option value="unpaid">Unpaid</option>
+            <option value="paid">Paid</option>
+          </select>
+        </div>
       </div>
 
       {/* Payouts Table */}
@@ -175,19 +207,24 @@ export default function Payouts() {
                 </tr>
               </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
-              {payouts.length === 0 ? (
+              {filteredPayouts.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                     <div className="flex flex-col items-center">
-                      <p className="text-lg font-medium text-gray-900 mb-2">No payouts due</p>
+                      <p className="text-lg font-medium text-gray-900 mb-2">
+                        {statusFilter === 'all' ? 'No payouts due' : `No ${statusFilter} payouts`}
+                      </p>
                       <p className="text-sm text-gray-500">
-                        Affiliates will appear here when they have approved referrals and earnings
+                        {statusFilter === 'all' 
+                          ? 'Affiliates will appear here when they have approved referrals and earnings'
+                          : `No ${statusFilter} payouts found with current filter`
+                        }
                       </p>
                     </div>
                   </td>
                 </tr>
               ) : (
-                payouts.map((payout) => (
+                filteredPayouts.map((payout) => (
                 <tr key={payout.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
@@ -215,8 +252,10 @@ export default function Payouts() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(payout.status)}`}>
-                      {payout.status === 'paid' ? 'Fully Paid' : 'Outstanding'}
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                      payout.amount > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                    }`}>
+                      {payout.amount > 0 ? 'Unpaid' : 'Paid'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
