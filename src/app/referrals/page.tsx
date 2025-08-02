@@ -675,6 +675,57 @@ export default function Referrals() {
           >
             🔧 Check Columns
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                // Get the most recent referral
+                const response = await fetch('/api/referrals', {
+                  headers: {
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  }
+                });
+                const data = await response.json();
+                
+                if (data.success && data.referrals.length > 0) {
+                  const latestReferral = data.referrals[0];
+                  console.log('🔍 Testing validation for latest referral:', latestReferral);
+                  
+                  const debugResponse = await fetch('/api/debug-referral-validation', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      ...(token && { 'Authorization': `Bearer ${token}` })
+                    },
+                    body: JSON.stringify({
+                      referralId: latestReferral.id,
+                      userEmail: latestReferral.customer_email
+                    })
+                  });
+                  
+                  const debugData = await debugResponse.json();
+                  console.log('🔍 Debug validation result:', debugData);
+                  
+                  if (debugData.success) {
+                    alert(`✅ Debug validation successful!\n\nUser found in ShareTribe\nStatus: ${debugData.debug.validationStatus}\nUser ID: ${debugData.debug.userId}\nEmail Verified: ${debugData.debug.emailVerified}`);
+                    fetchReferrals(); // Refresh the data
+                  } else {
+                    alert(`❌ Debug validation failed:\n\n${debugData.message}\n\nDebug info:\n${JSON.stringify(debugData.debug, null, 2)}`);
+                  }
+                } else {
+                  alert('No referrals found to test');
+                }
+              } catch (error) {
+                console.error('Debug validation error:', error);
+                alert('Debug validation error: ' + error);
+              }
+            }}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🔍 Debug Validation
+          </button>
         </div>
       </div>
       )}
