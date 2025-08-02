@@ -68,11 +68,9 @@ export async function GET(request: NextRequest) {
 
     // Let's also test the raw users query to see what's happening
     console.log('🔍 Testing raw users query...');
-    const sdk = await sharetribeAPI.getSDK();
-    const rawUsersResponse = await sdk.users.query({ perPage: 1000 });
+    const allUsers = await sharetribeAPI.getUsers(1000);
     
-    const allUsers = rawUsersResponse.data?.data || [];
-    const userEmails = allUsers.map((u: any) => u.attributes.email);
+    const userEmails = allUsers.map((u: any) => u.email);
     const jacobEmailIndex = userEmails.findIndex((email: string) => 
       email.toLowerCase() === user.email.toLowerCase()
     );
