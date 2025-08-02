@@ -7,7 +7,7 @@ import ConditionalLayout from '@/components/ConditionalLayout';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Affiliate Marketing Tool',
+  title: 'Buzzy Affiliates',
   description: 'Manage your affiliate marketing programs and track referrals',
 };
 
