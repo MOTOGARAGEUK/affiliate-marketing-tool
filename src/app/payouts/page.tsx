@@ -313,17 +313,36 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
     method: 'bank',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [bankReference, setBankReference] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
     
+    // Generate a unique bank reference
+    const timestamp = Date.now().toString();
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const reference = `PAY-${timestamp.slice(-6)}-${random}`;
+    setBankReference(reference);
+    
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmPayout = async () => {
+    if (isLoading) return;
+    
     setIsLoading(true);
     try {
-      await onSubmit(formData);
+      await onSubmit({ ...formData, reference: bankReference });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleBack = () => {
+    setShowConfirmation(false);
+    setBankReference('');
   };
 
   const handleAffiliateChange = (affiliateId: string) => {
@@ -339,8 +358,10 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
     <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
       <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white/90 backdrop-blur-sm">
         <div className="mt-3">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Create New Payout</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {!showConfirmation ? (
+            <>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Create New Payout</h3>
+              <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Affiliate</label>
               <select
@@ -406,6 +427,58 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
               </button>
             </div>
           </form>
+            </>
+          ) : (
+            <>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Payout</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Affiliate</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {payouts.find(p => p.affiliateId === formData.affiliateId)?.affiliateName}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Payment Amount</label>
+                  <input
+                    type="text"
+                    value={formatCurrency(parseFloat(formData.amount) || 0)}
+                    className="mt-1 block w-full form-input bg-gray-100"
+                    disabled
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Bank Reference</label>
+                  <input
+                    type="text"
+                    value={bankReference}
+                    onChange={(e) => setBankReference(e.target.value.slice(0, 18))}
+                    className="mt-1 block w-full form-input"
+                    maxLength={18}
+                    placeholder="Enter bank reference"
+                  />
+                </div>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                    disabled={isLoading}
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmPayout}
+                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Creating...' : 'Confirm'}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

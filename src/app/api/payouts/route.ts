@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { affiliateId, amount, method } = body;
+    const { affiliateId, amount, method, reference } = body;
 
     if (!affiliateId || !amount || amount <= 0) {
       return NextResponse.json(
@@ -225,8 +225,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique reference
-    const reference = `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    if (!reference || reference.length > 18) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid reference (max 18 characters)' },
+        { status: 400 }
+      );
+    }
 
     // Create payout record
     const { data: payout, error: createError } = await authenticatedSupabase

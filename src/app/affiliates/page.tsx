@@ -546,9 +546,9 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
   const selectedProgram = programs.find(p => p.id === formData.programId);
 
   return (
-    <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-      <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white/90 backdrop-blur-sm">
-        <div className="mt-3">
+    <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="relative border w-96 max-h-[90vh] shadow-lg rounded-md bg-white/90 backdrop-blur-sm overflow-hidden flex flex-col">
+        <div className="p-5 overflow-y-auto flex-1">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             {affiliate ? 'Edit Affiliate' : 'Add New Affiliate'}
           </h3>
@@ -788,30 +788,31 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                 </p>
               </div>
             )}
-            
-
-            
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isLoading}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading || !!emailError || isValidatingEmail}
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-              >
-                {isLoading && (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                )}
-                {affiliate ? 'Update' : 'Add'}
-              </button>
-            </div>
           </form>
+        </div>
+        
+        {/* Fixed Footer with Buttons */}
+        <div className="p-5 border-t border-gray-200 bg-white">
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isLoading}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading || !!emailError || isValidatingEmail}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              {isLoading && (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              )}
+              {affiliate ? 'Update' : 'Add'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
