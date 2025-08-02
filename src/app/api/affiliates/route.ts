@@ -277,7 +277,14 @@ export async function POST(request: NextRequest) {
         program_id: body.programId,
         user_id: user.id,
         referral_code: referralCode,
-        referral_link: referralLink
+        referral_link: referralLink,
+        // Bank details (optional)
+        bank_account_name: body.bank_account_name || null,
+        bank_account_number: body.bank_account_number || null,
+        bank_sort_code: body.bank_sort_code || null,
+        bank_iban: body.bank_iban || null,
+        bank_routing_number: body.bank_routing_number || null,
+        bank_name: body.bank_name || null
       })
       .select()
       .single();

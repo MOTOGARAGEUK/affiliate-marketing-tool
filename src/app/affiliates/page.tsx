@@ -448,10 +448,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (isLoading || emailError || isValidatingEmail) return; // Prevent submission while loading or if email has errors
-    
-    // Temporarily exclude bank details until database migration is complete
-    const { bank_account_name, bank_account_number, bank_sort_code, bank_iban, bank_routing_number, bank_name, ...submitData } = formData;
-    onSubmit(submitData);
+    onSubmit(formData);
   };
 
   const validateEmail = async (email: string) => {
