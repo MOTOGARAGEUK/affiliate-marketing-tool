@@ -551,7 +551,7 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
                   <input
                     type="text"
                     value={formatCurrency(parseFloat(formData.amount) || 0)}
-                    className="mt-1 block w-full form-input bg-gray-100"
+                    className="mt-1 block w-full form-input !bg-gray-100 !text-gray-600"
                     disabled
                   />
                 </div>
