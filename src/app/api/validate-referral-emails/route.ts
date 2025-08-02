@@ -223,7 +223,8 @@ export async function POST(request: NextRequest) {
           .update({
             sharetribe_validation_status: status,
             sharetribe_validation_updated_at: now,
-            sharetribe_user_id: userId ? JSON.stringify(userId) : null
+            sharetribe_user_id: userId ? JSON.stringify(userId) : null,
+            sharetribe_created_at: sharetribeUser?.attributes?.createdAt || null
           })
           .eq('id', referral.id);
 
