@@ -562,7 +562,7 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
                       type="text"
                       value={bankReference}
                       onChange={(e) => setBankReference(e.target.value.slice(0, 18))}
-                      className={`flex-1 form-input ${!isEditingReference ? 'bg-gray-100' : ''}`}
+                      className={`flex-1 form-input ${!isEditingReference ? '!bg-gray-100 !text-gray-600' : ''}`}
                       maxLength={18}
                       placeholder="Enter bank reference"
                       readOnly={!isEditingReference}
