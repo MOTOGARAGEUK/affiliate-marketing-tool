@@ -101,6 +101,26 @@ export default function Referrals() {
     }
   };
 
+  const getValidationStatusBadge = (validationStatus?: string) => {
+    if (!validationStatus) {
+      return <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">Not Checked</span>;
+    }
+    
+    const baseClasses = "px-2 py-1 text-xs font-medium rounded-full";
+    switch (validationStatus) {
+      case 'green':
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>Verified</span>;
+      case 'amber':
+        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>Unverified</span>;
+      case 'red':
+        return <span className={`${baseClasses} bg-red-100 text-red-800`}>Invalid</span>;
+      case 'error':
+        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>Error</span>;
+      default:
+        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>Unknown</span>;
+    }
+  };
+
   const getValidationDot = (status?: string) => {
     if (!status) return null;
     
@@ -602,7 +622,7 @@ export default function Referrals() {
                     Commission
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    ShareTribe Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date Joined
@@ -664,10 +684,9 @@ export default function Referrals() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {currency}{referral.commission?.toFixed(2) || '0.00'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(referral.status)}
-                        {getValidationDot(referral.sharetribe_validation_status)}
-                      </td>
+                                              <td className="px-6 py-4 whitespace-nowrap">
+                          {getValidationStatusBadge(referral.sharetribe_validation_status)}
+                        </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {referral.sharetribe_created_at ? 
                           formatDate(referral.sharetribe_created_at) : 
