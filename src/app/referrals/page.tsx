@@ -275,8 +275,15 @@ export default function Referrals() {
                 } else {
                   // Check if it's a "no users found" case vs actual failure
                   if (data.message && data.message.includes('no users found')) {
-                    alert(`Live sync completed!\n\n${data.message}\n\nSynced: ${data.syncedCount}\nUpdated: ${data.updatedCount}\nErrors: ${data.errorCount || 0}\n\nSummary: ${JSON.stringify(data.summary, null, 2)}\n\nDetails: ${JSON.stringify(data.details, null, 2)}`);
+                    console.log('🔄 Live Sync Results:', data);
+                    console.log('📊 Summary:', data.summary);
+                    console.log('📋 Details:', data.details);
+                    if (data.errors && data.errors.length > 0) {
+                      console.log('❌ Errors:', data.errors);
+                    }
+                    alert(`Live sync completed!\n\n${data.message}\n\nSynced: ${data.syncedCount}\nUpdated: ${data.updatedCount}\nErrors: ${data.errorCount || 0}\n\nCheck console for detailed results.`);
                   } else {
+                    console.log('❌ Live Sync Failed:', data);
                     alert('Live sync failed: ' + data.message);
                   }
                 }

@@ -208,6 +208,35 @@ export async function POST(request: NextRequest) {
 
     const overallSuccess = foundUsers > 0; // Success if we found at least one user
 
+    // Log detailed results to console
+    console.log('📊 SYNC RESULTS SUMMARY:');
+    console.log(`Total Referrals: ${referrals.length}`);
+    console.log(`Users Found: ${foundUsers}`);
+    console.log(`Users Not Found: ${notFoundUsers}`);
+    console.log(`Errors: ${errorUsers}`);
+    console.log('📋 DETAILED RESULTS:');
+    results.forEach((result, index) => {
+      console.log(`${index + 1}. Referral ${result.referralId}:`);
+      console.log(`   Email: ${result.email}`);
+      console.log(`   Status: ${result.status}`);
+      if (result.error) {
+        console.log(`   Error: ${result.error}`);
+      }
+      if (result.user) {
+        console.log(`   User: ${result.user.displayName} (${result.user.email})`);
+      }
+      if (result.stats) {
+        console.log(`   Stats: ${result.stats.listingsCount} listings, ${result.stats.transactionsCount} transactions, $${result.stats.totalRevenue}`);
+      }
+    });
+
+    if (errors.length > 0) {
+      console.log('❌ ERRORS:');
+      errors.forEach((error, index) => {
+        console.log(`${index + 1}. ${error}`);
+      });
+    }
+
     return NextResponse.json({
       success: overallSuccess,
       message: overallSuccess ? 'Comprehensive sync completed successfully' : 'Sync completed but no users found in ShareTribe',
