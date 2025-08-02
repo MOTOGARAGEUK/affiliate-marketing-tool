@@ -157,20 +157,42 @@ export async function GET(request: NextRequest) {
 
     // Calculate payouts owed to affiliates - only verified referrals
     let totalPayoutsOwed = 0;
+    let totalPayoutsPaid = 0;
+    
+    // Fetch existing payouts to calculate outstanding amounts
+    const { data: existingPayouts, error: payoutsError } = await authenticatedSupabase
+      .from('payouts')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (payoutsError) {
+      console.error('Error fetching payouts:', payoutsError);
+    }
+
+    // Calculate total earnings from verified referrals
+    let totalEarningsFromReferrals = 0;
     if (verifiedReferrals && programs) {
       verifiedReferrals.forEach(referral => {
         const program = referral.programs;
         if (program) {
           if (program.commission_type === 'fixed') {
-            totalPayoutsOwed += program.commission;
+            totalEarningsFromReferrals += program.commission;
           } else if (program.commission_type === 'percentage') {
             // For percentage, we need a base amount - using a default of 100 for now
             // In a real scenario, this would be the actual transaction amount
-            totalPayoutsOwed += (program.commission / 100) * 100; // Default base amount
+            totalEarningsFromReferrals += (program.commission / 100) * 100; // Default base amount
           }
         }
       });
     }
+
+    // Calculate total paid out
+    if (existingPayouts) {
+      totalPayoutsPaid = existingPayouts.reduce((sum, payout) => sum + Number(payout.amount || 0), 0);
+    }
+
+    // Calculate outstanding amount (what's still owed)
+    totalPayoutsOwed = Math.max(0, totalEarningsFromReferrals - totalPayoutsPaid);
 
     // Generate chart data for the last 6 months
     const months = [];
@@ -244,7 +266,8 @@ export async function GET(request: NextRequest) {
       verifiedReferrals: verifiedReferralsCount, // Add verified referrals count
       totalRevenue: Math.round(totalRevenue * 100) / 100, // Round to 2 decimal places
       totalEarnings: Math.round(totalEarnings * 100) / 100, // Round to 2 decimal places
-      pendingPayouts: Math.round(totalPayoutsOwed * 100) / 100, // Actual payouts owed to affiliates
+      pendingPayouts: Math.round(totalPayoutsOwed * 100) / 100, // Outstanding payouts owed to affiliates
+      totalPayoutsPaid: Math.round(totalPayoutsPaid * 100) / 100, // Total payouts already paid
       referralChange: referralChange.startsWith('+') ? `+${referralChange}%` : `${referralChange}%`
     };
 
