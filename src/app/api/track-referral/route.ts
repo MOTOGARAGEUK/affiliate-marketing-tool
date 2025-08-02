@@ -399,6 +399,88 @@ async function processSignupCompletion(referralCode: string, customerEmail: stri
       );
     }
 
+    // Immediately validate against ShareTribe and update referral data
+    try {
+      console.log('🔍 Immediately validating user against ShareTribe:', customerEmail);
+      
+      // Get ShareTribe credentials
+      const { getSharetribeCredentials } = await import('@/lib/sharetribe');
+      const credentials = await getSharetribeCredentials(affiliate.user_id);
+      
+      if (credentials) {
+        const { createSharetribeAPI } = await import('@/lib/sharetribe');
+        const sharetribeAPI = createSharetribeAPI(credentials);
+        
+        // Check if user exists in ShareTribe
+        const sharetribeUser = await sharetribeAPI.getUserByEmail(customerEmail);
+        
+        if (sharetribeUser) {
+          console.log('✅ User found in ShareTribe:', sharetribeUser.id);
+          
+          // Determine validation status based on email verification
+          let validationStatus = 'red'; // Default: invalid
+          if (sharetribeUser.attributes?.emailVerified === true) {
+            validationStatus = 'green'; // Verified
+          } else if (sharetribeUser.attributes?.emailVerified === false) {
+            validationStatus = 'amber'; // Unverified
+          }
+          
+          // Update referral with ShareTribe data
+          const { error: updateError } = await supabase
+            .from('referrals')
+            .update({
+              sharetribe_user_id: sharetribeUser.id,
+              sharetribe_created_at: sharetribeUser.attributes?.createdAt || new Date().toISOString(),
+              sharetribe_validation_status: validationStatus,
+              sharetribe_validation_updated_at: new Date().toISOString()
+            })
+            .eq('id', referral.id);
+          
+          if (updateError) {
+            console.error('❌ Error updating referral with ShareTribe data:', updateError);
+          } else {
+            console.log('✅ Referral updated with ShareTribe data:', {
+              userId: sharetribeUser.id,
+              validationStatus: validationStatus,
+              createdAt: sharetribeUser.attributes?.createdAt
+            });
+          }
+        } else {
+          console.log('❌ User not found in ShareTribe, marking as invalid');
+          
+          // Update referral to mark as invalid
+          const { error: updateError } = await supabase
+            .from('referrals')
+            .update({
+              sharetribe_validation_status: 'red',
+              sharetribe_validation_updated_at: new Date().toISOString()
+            })
+            .eq('id', referral.id);
+          
+          if (updateError) {
+            console.error('❌ Error updating referral validation status:', updateError);
+          }
+        }
+      } else {
+        console.log('⚠️ No ShareTribe credentials found, skipping validation');
+      }
+    } catch (validationError) {
+      console.error('❌ Error during ShareTribe validation:', validationError);
+      
+      // Mark as error status
+      const { error: updateError } = await supabase
+        .from('referrals')
+        .update({
+          sharetribe_validation_status: 'error',
+          sharetribe_validation_updated_at: new Date().toISOString()
+        })
+        .eq('id', referral.id);
+      
+      if (updateError) {
+        console.error('❌ Error updating referral error status:', updateError);
+      }
+    }
+
     // Update affiliate stats
     try {
       const supabaseAdmin = createClient(
