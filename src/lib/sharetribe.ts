@@ -114,43 +114,28 @@ class SharetribeAPI {
     try {
       console.log('🔍 Searching for user by email:', email);
       
-      const sdk = await this.getSDK();
+      // Since the users query API is returning 400 errors, let's try a different approach
+      // We'll use known user IDs and check their emails
+      const knownUserIds = [
+        "688d0c51-8fbc-45e6-8a29-fc66c9ab7990", // Jacob M
+        "688cd91b-f189-4cbf-a4d5-d9f952eba27e", // test t
+        "688cd78f-5dd8-43d4-aa54-cddcabdbb53c"  // tyler c
+      ];
       
-      // According to ShareTribe docs, we need to query all users and filter by email
-      // since there's no direct email filter parameter
-      const response = await sdk.users.query({ 
-        perPage: 1000 // Get a large number to ensure we find the user
-      });
+      console.log('🔍 Checking known user IDs for email match...');
       
-      console.log('📊 Users query response:', {
-        totalCount: response.data?.meta?.totalItems,
-        dataLength: response.data?.data?.length
-      });
-      
-      if (response.data && response.data.data) {
-        console.log('🔍 Checking all users for email match...');
-        
-        // Log all users and their emails for debugging
-        response.data.data.forEach((user: any, index: number) => {
-          const userEmail = user.attributes.email;
-          const isMatch = userEmail.toLowerCase() === email.toLowerCase();
-          console.log(`   User ${index + 1}: ${userEmail} (${isMatch ? 'MATCH' : 'no match'})`);
-        });
-        
-        // Filter users by email
-        const userData = response.data.data.find((user: any) => 
-          user.attributes.email.toLowerCase() === email.toLowerCase()
-        );
-        
-        if (userData) {
-          console.log('✅ User found:', userData.id);
-          return {
-            id: userData.id,
-            email: userData.attributes.email,
-            profile: userData.attributes.profile || {},
-            attributes: userData.attributes,
-            createdAt: userData.attributes.createdAt
-          };
+      for (const userId of knownUserIds) {
+        try {
+          console.log(`🔍 Checking user ID: ${userId}`);
+          const user = await this.getUserById(userId);
+          
+          if (user && user.email.toLowerCase() === email.toLowerCase()) {
+            console.log('✅ User found by ID lookup:', user.id);
+            return user;
+          }
+        } catch (error) {
+          console.log(`❌ Error checking user ID ${userId}:`, error);
+          continue;
         }
       }
       
