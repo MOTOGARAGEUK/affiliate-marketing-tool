@@ -457,8 +457,8 @@ function ViewPayoutModal({ payout, affiliateName, onClose }: any) {
 
   return (
     <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="relative p-5 border w-[800px] max-h-[80vh] shadow-lg rounded-md bg-white/90 backdrop-blur-sm overflow-hidden">
-        <div className="mt-3">
+      <div className="relative border w-[800px] max-h-[80vh] shadow-lg rounded-md bg-white/90 backdrop-blur-sm overflow-hidden flex flex-col">
+        <div className="p-5 overflow-y-auto flex-1">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Transaction History - {affiliateName}</h3>
           
           {/* Summary Section */}
@@ -486,7 +486,7 @@ function ViewPayoutModal({ payout, affiliateName, onClose }: any) {
           </div>
 
           {/* Transaction History */}
-          <div className="flex-1 overflow-hidden">
+          <div>
             <h4 className="text-md font-medium text-gray-900 mb-3">Transaction History</h4>
             {loading ? (
               <div className="flex justify-center items-center py-8">
@@ -498,7 +498,7 @@ function ViewPayoutModal({ payout, affiliateName, onClose }: any) {
                 <p className="text-gray-500">No transactions found</p>
               </div>
             ) : (
-              <div className="space-y-3 overflow-y-auto" style={{ maxHeight: 'calc(80vh - 300px)' }}>
+              <div className="space-y-3">
                 {transactions.map((transaction, index) => (
                   <div key={`${transaction.type}-${transaction.id}`} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
                     <div className="flex items-center space-x-3">
@@ -527,8 +527,11 @@ function ViewPayoutModal({ payout, affiliateName, onClose }: any) {
               </div>
             )}
           </div>
+        </div>
 
-          <div className="mt-6 flex justify-end">
+        {/* Fixed Footer with Close Button */}
+        <div className="p-5 border-t border-gray-200 bg-white">
+          <div className="flex justify-end">
             <button
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
