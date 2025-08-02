@@ -409,8 +409,8 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
 
 function ViewPayoutModal({ payout, affiliateName, onClose }: any) {
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+      <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white/90 backdrop-blur-sm">
         <div className="mt-3">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Payout Details</h3>
           <div className="space-y-4">
@@ -419,31 +419,37 @@ function ViewPayoutModal({ payout, affiliateName, onClose }: any) {
               <p className="mt-1 text-sm text-gray-900">{affiliateName}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Amount</label>
+              <label className="block text-sm font-medium text-gray-700">Amount Paid</label>
+              <p className="mt-1 text-sm text-gray-900">{formatCurrency(payout.totalPaid)}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Total Earnings</label>
+              <p className="mt-1 text-sm text-gray-900">{formatCurrency(payout.totalEarnings)}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Outstanding Amount</label>
               <p className="mt-1 text-sm text-gray-900">{formatCurrency(payout.amount)}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Payment Method</label>
-              <p className="mt-1 text-sm text-gray-900 capitalize">{payout.method.replace('_', ' ')}</p>
+              <p className="mt-1 text-sm text-gray-900 capitalize">{payout.method?.replace('_', ' ') || 'Not specified'}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Status</label>
-              <p className="mt-1 text-sm text-gray-900">{payout.status}</p>
+              <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                payout.amount > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+              }`}>
+                {payout.amount > 0 ? 'Unpaid' : 'Paid'}
+              </span>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Reference</label>
-              <p className="mt-1 text-sm text-gray-900 font-mono">{payout.reference}</p>
+              <label className="block text-sm font-medium text-gray-700">Verified Referrals</label>
+              <p className="mt-1 text-sm text-gray-900">{payout.verifiedReferrals} referrals</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Created</label>
               <p className="mt-1 text-sm text-gray-900">{formatDate(payout.createdAt)}</p>
             </div>
-            {payout.processedAt && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Processed</label>
-                <p className="mt-1 text-sm text-gray-900">{formatDate(payout.processedAt)}</p>
-              </div>
-            )}
           </div>
           <div className="mt-6 flex justify-end">
             <button
