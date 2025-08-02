@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch referrals with affiliate information
+    // Fetch referrals with affiliate and program information
     const { data: referrals, error } = await authenticatedSupabase
       .from('referrals')
       .select(`
@@ -45,6 +45,13 @@ export async function GET(request: NextRequest) {
           id,
           name,
           email
+        ),
+        programs (
+          id,
+          name,
+          commission,
+          commission_type,
+          type
         )
       `)
       .eq('user_id', user.id)
@@ -58,29 +65,49 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Transform the data to include affiliate information and ShareTribe fields
-    const transformedReferrals = referrals?.map(referral => ({
-      id: referral.id,
-      affiliate_id: referral.affiliate_id,
-      affiliate_name: referral.affiliates?.name || 'Unknown Affiliate',
-      affiliate_email: referral.affiliates?.email || 'No email',
-      customer_email: referral.customer_email,
-      customer_name: referral.customer_name,
-      status: referral.status || 'pending',
-      commission: referral.commission || 0,
-      referral_code: referral.referral_code,
-      created_at: referral.created_at,
-      // ShareTribe fields
-      sharetribe_user_id: referral.sharetribe_user_id,
-      sharetribe_created_at: referral.sharetribe_created_at,
-      listings_count: referral.listings_count,
-      transactions_count: referral.transactions_count,
-      total_revenue: referral.total_revenue,
-      last_sync_at: referral.last_sync_at,
-      // Validation fields
-      sharetribe_validation_status: referral.sharetribe_validation_status,
-      sharetribe_validation_updated_at: referral.sharetribe_validation_updated_at
-    })) || [];
+    // Transform the data to include affiliate information and calculate commission dynamically
+    const transformedReferrals = referrals?.map(referral => {
+      // Calculate commission based on program settings
+      const program = referral.programs;
+      let calculatedCommission = 0;
+      
+      if (program) {
+        if (program.commission_type === 'fixed') {
+          calculatedCommission = program.commission;
+        } else if (program.commission_type === 'percentage') {
+          // For percentage, we need a base amount - using a default of 100 for now
+          // In a real scenario, this would be the actual transaction amount
+          calculatedCommission = (program.commission / 100) * 100; // Default base amount
+        }
+      }
+      
+      return {
+        id: referral.id,
+        affiliate_id: referral.affiliate_id,
+        affiliate_name: referral.affiliates?.name || 'Unknown Affiliate',
+        affiliate_email: referral.affiliates?.email || 'No email',
+        customer_email: referral.customer_email,
+        customer_name: referral.customer_name,
+        status: referral.status || 'pending',
+        commission: calculatedCommission,
+        referral_code: referral.referral_code,
+        created_at: referral.created_at,
+        // Program information
+        program_name: program?.name || 'Unknown Program',
+        program_commission: program?.commission || 0,
+        program_commission_type: program?.commission_type || 'fixed',
+        // ShareTribe fields
+        sharetribe_user_id: referral.sharetribe_user_id,
+        sharetribe_created_at: referral.sharetribe_created_at,
+        listings_count: referral.listings_count,
+        transactions_count: referral.transactions_count,
+        total_revenue: referral.total_revenue,
+        last_sync_at: referral.last_sync_at,
+        // Validation fields
+        sharetribe_validation_status: referral.sharetribe_validation_status,
+        sharetribe_validation_updated_at: referral.sharetribe_validation_updated_at
+      };
+    }) || [];
 
     return NextResponse.json({ 
       success: true, 

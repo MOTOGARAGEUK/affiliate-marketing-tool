@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Use authenticated client to fetch affiliates
+    // Use authenticated client to fetch affiliates with their referrals and program info
     const { data: affiliates, error } = await authenticatedSupabase
       .from('affiliates')
       .select(`
@@ -50,13 +50,52 @@ export async function GET(request: NextRequest) {
           commission,
           commission_type,
           type
+        ),
+        referrals (
+          id,
+          status,
+          commission
         )
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return NextResponse.json({ success: true, affiliates: affiliates || [] });
+    
+    // Calculate total earnings dynamically for each affiliate
+    const affiliatesWithCalculatedEarnings = affiliates?.map(affiliate => {
+      const program = affiliate.programs;
+      const referrals = affiliate.referrals || [];
+      
+      // Calculate total earnings based on program commission rate
+      let totalEarnings = 0;
+      let totalReferrals = 0;
+      
+      if (program && referrals.length > 0) {
+        // Count approved referrals
+        const approvedReferrals = referrals.filter(ref => ref.status === 'approved');
+        totalReferrals = approvedReferrals.length;
+        
+        // Calculate earnings based on program commission rate
+        if (program.commission_type === 'fixed') {
+          totalEarnings = approvedReferrals.length * program.commission;
+        } else if (program.commission_type === 'percentage') {
+          // For percentage, we need transaction amounts - using default for now
+          const defaultTransactionAmount = 100; // This should come from actual transactions
+          totalEarnings = approvedReferrals.length * (program.commission / 100) * defaultTransactionAmount;
+        }
+      }
+      
+      return {
+        ...affiliate,
+        total_earnings: totalEarnings,
+        total_referrals: totalReferrals,
+        program_commission: program?.commission || 0,
+        program_commission_type: program?.commission_type || 'fixed'
+      };
+    }) || [];
+    
+    return NextResponse.json({ success: true, affiliates: affiliatesWithCalculatedEarnings });
   } catch (error) {
     console.error('Failed to fetch affiliates:', error);
     return NextResponse.json(
