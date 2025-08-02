@@ -357,6 +357,7 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
     // Fetch affiliate bank details if affiliate is selected
     if (affiliateId) {
       try {
+        console.log('Fetching bank details for affiliate:', affiliateId);
         const { data: { session } } = await supabase().auth.getSession();
         const token = session?.access_token;
         
@@ -367,18 +368,33 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
             }
           });
           
+          console.log('Affiliate API response status:', response.status);
+          
           if (response.ok) {
             const data = await response.json();
+            console.log('Affiliate API response data:', data);
+            
             if (data.success && data.affiliate) {
+              console.log('Setting affiliate bank details:', data.affiliate);
               setAffiliateBankDetails(data.affiliate);
+            } else {
+              console.log('No affiliate data in response');
+              setAffiliateBankDetails(null);
             }
+          } else {
+            console.log('Affiliate API response not ok');
+            setAffiliateBankDetails(null);
           }
+        } else {
+          console.log('No auth token available');
+          setAffiliateBankDetails(null);
         }
       } catch (error) {
         console.error('Failed to fetch affiliate bank details:', error);
         setAffiliateBankDetails(null);
       }
     } else {
+      console.log('No affiliate ID selected, clearing bank details');
       setAffiliateBankDetails(null);
     }
   };
@@ -469,7 +485,11 @@ function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
                 </div>
                 
                 {/* Bank Details Section */}
-                {affiliateBankDetails && (affiliateBankDetails.bank_name || affiliateBankDetails.bank_account_name || affiliateBankDetails.bank_account_number) && (
+                {(() => {
+                  console.log('Rendering confirmation modal, affiliateBankDetails:', affiliateBankDetails);
+                  console.log('Bank details condition check:', affiliateBankDetails && (affiliateBankDetails.bank_name || affiliateBankDetails.bank_account_name || affiliateBankDetails.bank_account_number));
+                  return affiliateBankDetails && (affiliateBankDetails.bank_name || affiliateBankDetails.bank_account_name || affiliateBankDetails.bank_account_number);
+                })() && (
                   <div className="border-t pt-4 mt-4">
                     <h4 className="text-sm font-medium text-gray-900 mb-3">Bank Details</h4>
                     <div className="space-y-3">
