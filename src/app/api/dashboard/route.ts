@@ -112,8 +112,9 @@ export async function GET(request: NextRequest) {
       .map(referral => ({
         id: referral.id,
         type: 'referral',
-        description: `New referral from ${referral.affiliates?.name || 'Unknown'} for ${referral.customer_name}`,
+        description: `${referral.affiliates?.name || 'Unknown Affiliate'} earned commission`,
         amount: referral.commission,
+        programName: referral.programs?.name || 'Unknown Program',
         status: referral.status,
         created_at: referral.created_at,
         customer_email: referral.customer_email
@@ -134,7 +135,7 @@ export async function GET(request: NextRequest) {
 
     const referralChange = previousMonthReferrals > 0 
       ? ((currentMonthReferrals - previousMonthReferrals) / previousMonthReferrals * 100).toFixed(1)
-      : currentMonthReferrals > 0 ? '+100' : '0';
+      : currentMonthReferrals > 0 ? '100' : '0';
 
     // Calculate payouts owed to affiliates - only verified referrals
     let totalPayoutsOwed = 0;

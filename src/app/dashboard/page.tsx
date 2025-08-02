@@ -89,15 +89,15 @@ export default function Dashboard() {
             name: 'Total Earnings',
             value: formatCurrency(currentStats.totalEarnings, userCurrency as string),
             icon: CurrencyDollarIcon,
-            change: '0%',
-            changeType: 'neutral',
+            change: currentStats.totalEarnings > 0 ? '+100%' : '0%',
+            changeType: currentStats.totalEarnings > 0 ? 'positive' : 'neutral',
           },
           {
             name: 'Pending Payouts',
             value: formatCurrency(currentStats.pendingPayouts, userCurrency as string),
             icon: CreditCardIcon,
-            change: '0%',
-            changeType: 'neutral',
+            change: currentStats.pendingPayouts > 0 ? '+100%' : '0%',
+            changeType: currentStats.pendingPayouts > 0 ? 'positive' : 'neutral',
           },
         ];
         
@@ -207,10 +207,10 @@ export default function Dashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900">
-                        {activity.affiliates?.name || 'Unknown Affiliate'} earned commission
+                        {activity.description}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {formatCurrency(activity.commission_earned || 0, currency as string)} from {activity.programs?.name || 'Unknown Program'}
+                        {formatCurrency(activity.amount || 0, currency as string)} from {activity.programName}
                       </p>
                     </div>
                     <div className="text-sm text-gray-500">

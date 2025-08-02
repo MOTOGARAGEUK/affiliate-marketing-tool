@@ -203,6 +203,7 @@ export default function Payouts() {
         <CreatePayoutModal
           onClose={() => setShowCreateModal(false)}
           onSubmit={handleCreatePayout}
+          payouts={payouts}
         />
       )}
 
@@ -218,7 +219,7 @@ export default function Payouts() {
   );
 }
 
-function CreatePayoutModal({ onClose, onSubmit }: any) {
+function CreatePayoutModal({ onClose, onSubmit, payouts }: any) {
   const [formData, setFormData] = useState({
     affiliateId: '',
     amount: 0,
@@ -245,9 +246,9 @@ function CreatePayoutModal({ onClose, onSubmit }: any) {
                 required
               >
                 <option value="">Select an affiliate</option>
-                {mockAffiliates.map((affiliate) => (
-                  <option key={affiliate.id} value={affiliate.id}>
-                    {affiliate.name} - {formatCurrency(affiliate.totalEarnings)}
+                {payouts.map((payout) => (
+                  <option key={payout.affiliateId} value={payout.affiliateId}>
+                    {payout.affiliateName} - {formatCurrency(payout.amount)} owed
                   </option>
                 ))}
               </select>
