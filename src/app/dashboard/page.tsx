@@ -82,19 +82,18 @@ export default function Dashboard() {
             name: 'Total Referrals',
             value: currentStats.totalReferrals,
             icon: ChartBarIcon,
-            change: currentStats.referralChange || '0%',
-            changeType: currentStats.referralChange?.startsWith('+') ? 'positive' : 
-                       currentStats.referralChange?.startsWith('-') ? 'negative' : 'neutral',
+            change: currentStats.totalReferrals > 0 ? '+100%' : '0%',
+            changeType: currentStats.totalReferrals > 0 ? 'positive' : 'neutral',
           },
           {
             name: 'Total Revenue',
-            value: formatCurrency(currentStats.totalRevenue || 0, userCurrency as string),
+            value: formatCurrency(0, userCurrency as string),
             icon: CurrencyDollarIcon,
             change: '0%',
             changeType: 'neutral',
           },
           {
-            name: 'Total Earnings',
+            name: 'Total Payouts',
             value: formatCurrency(currentStats.totalEarnings, userCurrency as string),
             icon: CurrencyDollarIcon,
             change: currentStats.totalEarnings > 0 ? '+100%' : '0%',
@@ -158,12 +157,12 @@ export default function Dashboard() {
               className="relative overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:px-6 dashboard-card min-h-[120px]"
             >
               <dt>
-                <div className="absolute rounded-md bg-indigo-500 p-3">
+                {/* <div className="absolute rounded-md bg-indigo-500 p-3">
                   <item.icon className="h-6 w-6 text-white" />
-                </div>
-                <p className="ml-16 truncate text-sm font-medium text-gray-500">{item.name}</p>
+                </div> */}
+                <p className="truncate text-sm font-medium text-gray-500">{item.name}</p>
               </dt>
-              <dd className="ml-16 flex items-baseline flex-wrap">
+              <dd className="flex items-baseline flex-wrap">
                 <p className="text-2xl font-semibold text-gray-900 mr-2">{item.value}</p>
                 <p
                   className={`flex items-baseline text-sm font-semibold whitespace-nowrap ${
