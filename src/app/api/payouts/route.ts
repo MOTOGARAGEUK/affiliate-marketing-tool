@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
           status,
           commission,
           created_at,
+          sharetribe_validation_status,
           programs (
             id,
             name,
@@ -87,6 +88,17 @@ export async function GET(request: NextRequest) {
     const payouts = affiliates?.map(affiliate => {
       const approvedReferrals = affiliate.referrals?.filter(r => r.status === 'approved') || [];
       const verifiedReferrals = approvedReferrals.filter(r => r.sharetribe_validation_status === 'green') || [];
+      
+      console.log(`Debug - Affiliate ${affiliate.name}:`, {
+        totalReferrals: affiliate.referrals?.length || 0,
+        approvedReferrals: approvedReferrals.length,
+        verifiedReferrals: verifiedReferrals.length,
+        referrals: affiliate.referrals?.map(r => ({
+          status: r.status,
+          sharetribe_validation_status: r.sharetribe_validation_status,
+          commission: r.commission
+        }))
+      });
       
       let totalEarnings = 0;
       let totalReferrals = approvedReferrals.length;
@@ -137,21 +149,21 @@ export async function GET(request: NextRequest) {
       };
     }) || [];
 
-    // Filter out affiliates with no outstanding payouts
-    const payoutsWithOutstanding = payouts.filter(payout => payout.amount > 0);
+    // Show all affiliates who have earned money (have verified referrals), not just those with outstanding amounts
+    const payoutsWithEarnings = payouts.filter(payout => payout.totalEarnings > 0);
 
     // Calculate summary stats
-    const totalPayoutsOwed = payoutsWithOutstanding.reduce((sum, payout) => sum + payout.amount, 0);
-    const totalAffiliatesWithOutstanding = payoutsWithOutstanding.length;
+    const totalPayoutsOwed = payoutsWithEarnings.reduce((sum, payout) => sum + payout.amount, 0);
+    const totalAffiliatesWithEarnings = payoutsWithEarnings.length;
     const totalReferrals = payouts.reduce((sum, payout) => sum + payout.totalReferrals, 0);
 
     return NextResponse.json({
       success: true,
-      payouts: payoutsWithOutstanding,
+      payouts: payoutsWithEarnings,
       allPayouts: payouts, // Include all payouts for reference
       summary: {
         totalPayoutsOwed: Math.round(totalPayoutsOwed * 100) / 100,
-        totalAffiliatesWithOutstanding,
+        totalAffiliatesWithEarnings,
         totalReferrals,
         totalAffiliates: payouts.length
       }
