@@ -808,6 +808,47 @@ export default function Referrals() {
           >
             🔍 Check Settings
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const { data: { session } } = await supabase().auth.getSession();
+                const token = session?.access_token;
+                
+                if (!session?.user?.id) {
+                  alert('No user ID found');
+                  return;
+                }
+                
+                console.log('🔍 Running direct ShareTribe test for user:', session.user.id);
+                
+                const response = await fetch('/api/test-sharetribe-direct', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  },
+                  body: JSON.stringify({
+                    userId: session.user.id
+                  })
+                });
+                
+                const data = await response.json();
+                console.log('🔍 Direct test result:', data);
+                
+                if (data.success) {
+                  alert(`✅ Direct test passed!\n\nShareTribe connection successful\nMarketplace: ${data.marketplace}`);
+                } else {
+                  alert(`❌ Direct test failed at step: ${data.step}\n\nMessage: ${data.message}\n\nError: ${data.error || 'None'}\n\nStack: ${data.stack || 'None'}`);
+                }
+              } catch (error) {
+                console.error('Direct test error:', error);
+                alert('Direct test error: ' + error);
+              }
+            }}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm"
+          >
+            🔍 Direct Test
+          </button>
         </div>
       </div>
       )}
