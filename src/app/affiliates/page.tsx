@@ -838,131 +838,180 @@ interface ViewAffiliateModalProps {
 function ViewAffiliateModal({ affiliate, programs, onClose, currency = 'GBP' }: ViewAffiliateModalProps) {
 
   return (
-    <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-      <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white/90 backdrop-blur-sm">
-        <div className="mt-3">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Affiliate Details</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Name</label>
-              <p className="mt-1 text-sm text-gray-900">{affiliate.name}</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <p className="mt-1 text-sm text-gray-900">{affiliate.email}</p>
-            </div>
-            {affiliate.phone && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-xl overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-gray-900">Affiliate Details</h3>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-6">
+            {/* Basic Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Phone</label>
-                <p className="mt-1 text-sm text-gray-900">{affiliate.phone}</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">{affiliate.name}</p>
               </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Referral Code</label>
-              <div className="flex items-center space-x-2">
-                <p className="mt-1 text-sm text-gray-900 font-mono">{affiliate.referral_code}</p>
-                <CopyButton
-                  text={affiliate.referral_code}
-                  size="sm"
-                />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">{affiliate.email}</p>
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Referral Link</label>
-              <div className="flex items-center space-x-2">
-                <p className="mt-1 text-sm text-gray-900 font-mono break-all">{affiliate.referral_link}</p>
-                <CopyButton
-                  text={affiliate.referral_link}
-                  size="sm"
-                />
+              {affiliate.phone && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">{affiliate.phone}</p>
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(affiliate.status)}`}>
+                  {affiliate.status}
+                </span>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Total Referrals</label>
-              <p className="mt-1 text-sm text-gray-900">{affiliate.total_referrals}</p>
+
+            {/* Referral Information */}
+            <div className="border-t pt-6">
+              <h4 className="text-sm font-medium text-gray-900 mb-4">Referral Information</h4>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Referral Code</label>
+                  <div className="flex items-center space-x-2">
+                    <p className="flex-1 text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md font-mono">{affiliate.referral_code}</p>
+                    <CopyButton
+                      text={affiliate.referral_code}
+                      size="sm"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Referral Link</label>
+                  <div className="flex items-start space-x-2">
+                    <p className="flex-1 text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md font-mono break-all">{affiliate.referral_link}</p>
+                    <CopyButton
+                      text={affiliate.referral_link}
+                      size="sm"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Total Earnings</label>
-              <p className="mt-1 text-sm text-gray-900">{formatCurrency(affiliate.total_earnings, currency)}</p>
+
+            {/* Performance Information */}
+            <div className="border-t pt-6">
+              <h4 className="text-sm font-medium text-gray-900 mb-4">Performance</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Referrals</label>
+                  <p className="text-2xl font-bold text-indigo-600">{affiliate.total_referrals || 0}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Earnings</label>
+                  <p className="text-2xl font-bold text-green-600">{formatCurrency(affiliate.total_earnings || 0, currency)}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Joined</label>
+                  <p className="text-sm text-gray-900">{formatDate(affiliate.created_at)}</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Program</label>
-              <p className="mt-1 text-sm text-gray-900">
-                {(() => {
-                  const program = programs.find(p => p.id === affiliate.program_id);
-                  return program ? program.name : 'N/A';
-                })()}
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Commission</label>
-              <p className="mt-1 text-sm text-gray-900">
-                {(() => {
-                  const program = programs.find(p => p.id === affiliate.program_id);
-                  if (!program) return 'N/A';
-                  
-                  if (program.commissionType === 'percentage') {
-                    return `${program.commission}% per ${program.type === 'signup' ? 'signup' : 'purchase'}`;
-                  } else {
-                    return `${formatCurrency(program.commission, currency)} per ${program.type === 'signup' ? 'signup' : 'purchase'}`;
-                  }
-                })()}
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Joined</label>
-              <p className="mt-1 text-sm text-gray-900">{formatDate(affiliate.created_at)}</p>
+
+            {/* Program Information */}
+            <div className="border-t pt-6">
+              <h4 className="text-sm font-medium text-gray-900 mb-4">Program Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Program</label>
+                  <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">
+                    {(() => {
+                      const program = programs.find(p => p.id === affiliate.program_id);
+                      return program ? program.name : 'N/A';
+                    })()}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Commission</label>
+                  <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">
+                    {(() => {
+                      const program = programs.find(p => p.id === affiliate.program_id);
+                      if (!program) return 'N/A';
+                      
+                      if (program.commissionType === 'percentage') {
+                        return `${program.commission}% per ${program.type === 'signup' ? 'signup' : 'purchase'}`;
+                      } else {
+                        return `${formatCurrency(program.commission, currency)} per ${program.type === 'signup' ? 'signup' : 'purchase'}`;
+                      }
+                    })()}
+                  </p>
+                </div>
+              </div>
             </div>
             
             {/* Bank Details Section */}
             {(affiliate.bank_name || affiliate.bank_account_name || affiliate.bank_account_number) && (
-              <div className="border-t pt-4 mt-4">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">Bank Details</h4>
-                <div className="space-y-3">
+              <div className="border-t pt-6">
+                <h4 className="text-sm font-medium text-gray-900 mb-4">Bank Details</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {affiliate.bank_name && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Bank Name</label>
-                      <p className="mt-1 text-sm text-gray-900">{affiliate.bank_name}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                      <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">{affiliate.bank_name}</p>
                     </div>
                   )}
                   {affiliate.bank_account_name && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Account Holder Name</label>
-                      <p className="mt-1 text-sm text-gray-900">{affiliate.bank_account_name}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Account Holder Name</label>
+                      <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">{affiliate.bank_account_name}</p>
                     </div>
                   )}
                   {affiliate.bank_account_number && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Account Number</label>
-                      <p className="mt-1 text-sm text-gray-900">****{affiliate.bank_account_number.slice(-4)}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                      <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">****{affiliate.bank_account_number.slice(-4)}</p>
                     </div>
                   )}
                   {currency === 'GBP' && affiliate.bank_sort_code && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Sort Code</label>
-                      <p className="mt-1 text-sm text-gray-900">{affiliate.bank_sort_code}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Sort Code</label>
+                      <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">{affiliate.bank_sort_code}</p>
                     </div>
                   )}
                   {currency === 'EUR' && affiliate.bank_iban && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">IBAN</label>
-                      <p className="mt-1 text-sm text-gray-900">{affiliate.bank_iban}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">IBAN</label>
+                      <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md font-mono">{affiliate.bank_iban}</p>
                     </div>
                   )}
                   {currency === 'USD' && affiliate.bank_routing_number && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Routing Number</label>
-                      <p className="mt-1 text-sm text-gray-900">{affiliate.bank_routing_number}</p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Routing Number</label>
+                      <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">{affiliate.bank_routing_number}</p>
                     </div>
                   )}
                 </div>
               </div>
             )}
           </div>
-          <div className="mt-6 flex justify-end">
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+          <div className="flex justify-end">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
             >
               Close
             </button>

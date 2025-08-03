@@ -994,8 +994,8 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                   <div className="bg-gray-50 border border-gray-200 rounded-md p-3 font-mono text-sm text-gray-700">
                     your-website/<br/>
                     ├── scripts/<br/>
-                    │   └── affiliate-tracking.js  ← Add the file here<br/>
-                    ├── index.html
+                    │   └── affiliate-tracking.js ← Add the file here<br/>
+                    
                   </div>
                 </div>
 
@@ -1004,7 +1004,14 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                   <p className="text-sm text-gray-700 mb-2">
                     Go to your website's <code>index.html</code> file and add the following script reference in the <code>&lt;head&gt;</code> section:
                   </p>
-                  <div className="space-y-2">
+                  <div className="bg-gray-50 border border-gray-200 rounded-md p-3 font-mono text-sm text-gray-700">
+                    your-website/<br/>
+                    ├── public/<br/>
+                    │   ├── index.html<br/>
+                    │   └── scripts/<br/>
+                    │       └── affiliate-tracking.js
+                  </div>
+                  <div className="mt-3 space-y-2">
                     <p className="text-sm text-gray-700">
                       Add this line to your <code>&lt;head&gt;</code> section:
                     </p>
