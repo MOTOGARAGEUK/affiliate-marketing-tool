@@ -1271,17 +1271,15 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
         return originalFetch.apply(this, args);
       };
       
-      // Method 2: Monitor for ShareTribe form submissions - using exact selectors
+      // Method 2: Monitor for ShareTribe form submissions
       const signupForm = document.querySelector('form.SignupForm_root__LcKFm');
       
       if (signupForm) {
         console.log('ShareTribe signup form found and monitoring...');
         
-        // Listen for submit events
         signupForm.addEventListener('submit', function(e) {
           console.log('ShareTribe form submission detected!');
           
-          // Get email from ShareTribe form fields using exact selectors
           const emailInput = document.querySelector('input#email');
           const fnameInput = document.querySelector('input#fname');
           const lnameInput = document.querySelector('input#lname');
@@ -1301,16 +1299,13 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
         console.log('ShareTribe signup form not found');
       }
       
-      // Method 3: Monitor for ShareTribe button clicks - using exact selector
+      // Method 3: Monitor for ShareTribe button clicks
       document.addEventListener('click', function(e) {
         if (e.target && (e.target.tagName === 'BUTTON' || e.target.closest('button'))) {
           const button = e.target.tagName === 'BUTTON' ? e.target : e.target.closest('button');
           const buttonText = button.textContent || button.innerText || '';
           const buttonClass = button.className || '';
           
-          console.log('Button clicked:', buttonText, 'Class:', buttonClass);
-          
-          // Check if this is the ShareTribe signup button
           if (buttonClass.includes('Button_primaryButtonRoot__xQMAW') ||
               buttonText.toLowerCase().includes('sign up') || 
               buttonText.toLowerCase().includes('create account') ||
@@ -1318,7 +1313,6 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
             
             console.log('ShareTribe signup button detected!');
             
-            // Look for email input in the page using exact selectors
             const emailInput = document.querySelector('input#email');
             const fnameInput = document.querySelector('input#fname');
             const lnameInput = document.querySelector('input#lname');
@@ -1341,7 +1335,6 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
       const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
           if (mutation.type === 'childList') {
-            // Look for ShareTribe verification email messages
             const verificationMessages = document.querySelectorAll('*');
             verificationMessages.forEach(function(element) {
               if (element.textContent && (
@@ -1381,7 +1374,6 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
     if (localStorage.getItem('affiliate_referral_data')) {
       const referralData = JSON.parse(localStorage.getItem('affiliate_referral_data'));
       
-      // If we're on a verification page, track completion
       if (window.location.href.includes('verify') || 
           window.location.href.includes('confirm') || 
           window.location.href.includes('activate') ||
@@ -1550,17 +1542,15 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
         return originalFetch.apply(this, args);
       };
       
-      // Method 2: Monitor for ShareTribe form submissions - using exact selectors
+      // Method 2: Monitor for ShareTribe form submissions
       const signupForm = document.querySelector('form.SignupForm_root__LcKFm');
       
       if (signupForm) {
         console.log('ShareTribe signup form found and monitoring...');
         
-        // Listen for submit events
         signupForm.addEventListener('submit', function(e) {
           console.log('ShareTribe form submission detected!');
           
-          // Get email from ShareTribe form fields using exact selectors
           const emailInput = document.querySelector('input#email');
           const fnameInput = document.querySelector('input#fname');
           const lnameInput = document.querySelector('input#lname');
@@ -1580,16 +1570,13 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
         console.log('ShareTribe signup form not found');
       }
       
-      // Method 3: Monitor for ShareTribe button clicks - using exact selector
+      // Method 3: Monitor for ShareTribe button clicks
       document.addEventListener('click', function(e) {
         if (e.target && (e.target.tagName === 'BUTTON' || e.target.closest('button'))) {
           const button = e.target.tagName === 'BUTTON' ? e.target : e.target.closest('button');
           const buttonText = button.textContent || button.innerText || '';
           const buttonClass = button.className || '';
           
-          console.log('Button clicked:', buttonText, 'Class:', buttonClass);
-          
-          // Check if this is the ShareTribe signup button
           if (buttonClass.includes('Button_primaryButtonRoot__xQMAW') ||
               buttonText.toLowerCase().includes('sign up') || 
               buttonText.toLowerCase().includes('create account') ||
@@ -1597,7 +1584,6 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
             
             console.log('ShareTribe signup button detected!');
             
-            // Look for email input in the page using exact selectors
             const emailInput = document.querySelector('input#email');
             const fnameInput = document.querySelector('input#fname');
             const lnameInput = document.querySelector('input#lname');
@@ -1620,7 +1606,6 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
       const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
           if (mutation.type === 'childList') {
-            // Look for ShareTribe verification email messages
             const verificationMessages = document.querySelectorAll('*');
             verificationMessages.forEach(function(element) {
               if (element.textContent && (
@@ -1660,7 +1645,6 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
     if (localStorage.getItem('affiliate_referral_data')) {
       const referralData = JSON.parse(localStorage.getItem('affiliate_referral_data'));
       
-      // If we're on a verification page, track completion
       if (window.location.href.includes('verify') || 
           window.location.href.includes('confirm') || 
           window.location.href.includes('activate') ||
