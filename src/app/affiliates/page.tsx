@@ -838,10 +838,10 @@ interface ViewAffiliateModalProps {
 function ViewAffiliateModal({ affiliate, programs, onClose, currency = 'GBP' }: ViewAffiliateModalProps) {
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="relative border w-full max-w-2xl max-h-[90vh] shadow-lg rounded-md bg-white/90 backdrop-blur-sm overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+        <div className="p-5 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium text-gray-900">Affiliate Details</h3>
             <button
@@ -856,7 +856,7 @@ function ViewAffiliateModal({ affiliate, programs, onClose, currency = 'GBP' }: 
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-5">
           <div className="space-y-6">
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1007,7 +1007,7 @@ function ViewAffiliateModal({ affiliate, programs, onClose, currency = 'GBP' }: 
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="p-5 border-t border-gray-200">
           <div className="flex justify-end">
             <button
               onClick={onClose}
