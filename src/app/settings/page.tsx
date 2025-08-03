@@ -1004,34 +1004,29 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                   <p className="text-sm text-gray-700 mb-2">
                     Go to your website's <code>index.html</code> file and add the following script reference in the <code>&lt;head&gt;</code> section:
                   </p>
-                  <div className="flex items-start space-x-2">
-                    <div className="flex-1 bg-gray-900 border border-gray-700 rounded-md p-3 font-mono text-sm text-green-400">
-                      &lt;head&gt;<br/>
-                      &nbsp;&nbsp;&nbsp;&nbsp;&lt;!-- Your existing head content --&gt;<br/>
-                      &nbsp;&nbsp;&nbsp;&nbsp;<br/>
-                      &nbsp;&nbsp;&nbsp;&nbsp;&lt;!-- Add this line before the closing &lt;/head&gt; tag --&gt;<br/>
-                      &nbsp;&nbsp;&nbsp;&nbsp;&lt;script src="/scripts/affiliate-tracking.js"&gt;&lt;/script&gt;<br/>
-                      &lt;/head&gt;
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-700">
+                      Add this line to your <code>&lt;head&gt;</code> section:
+                    </p>
+                    <div className="flex items-start space-x-2">
+                      <div className="flex-1 bg-gray-900 border border-gray-700 rounded-md p-3 font-mono text-sm text-green-400">
+                        &lt;script src="/scripts/affiliate-tracking.js"&gt;&lt;/script&gt;
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const scriptTag = `<script src="/scripts/affiliate-tracking.js"></script>`;
+                          navigator.clipboard.writeText(scriptTag).then(() => {
+                            alert('Script tag copied to clipboard!');
+                          }).catch(() => {
+                            alert('Failed to copy code. Please select and copy manually.');
+                          });
+                        }}
+                        className="inline-flex items-center px-3 py-2 text-xs font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        📋 Copy
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const htmlCode = `<head>
-    <!-- Your existing head content -->
-    
-    <!-- Add this line before the closing </head> tag -->
-    <script src="/scripts/affiliate-tracking.js"></script>
-</head>`;
-                        navigator.clipboard.writeText(htmlCode).then(() => {
-                          alert('HTML code copied to clipboard!');
-                        }).catch(() => {
-                          alert('Failed to copy code. Please select and copy manually.');
-                        });
-                      }}
-                      className="inline-flex items-center px-3 py-2 text-xs font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      📋 Copy
-                    </button>
                   </div>
                   <p className="text-xs text-gray-600 mt-1">
                     <strong>Important:</strong> Make sure the path matches where you placed the file in Step 4.
