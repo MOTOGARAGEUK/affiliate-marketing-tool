@@ -13,11 +13,13 @@ export default function Programs() {
   const [editingProgram, setEditingProgram] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [currency, setCurrency] = useState('$'); // Default currency
+  const [rewardProgramsEnabled, setRewardProgramsEnabled] = useState(false);
 
   // Load programs and currency settings on component mount
   useEffect(() => {
     fetchPrograms();
     fetchCurrencySettings();
+    checkRewardProgramsSetting();
   }, []);
 
   const fetchCurrencySettings = async () => {
@@ -38,6 +40,30 @@ export default function Programs() {
       }
     } catch (error) {
       console.error('Failed to fetch currency settings:', error);
+    }
+  };
+
+  const checkRewardProgramsSetting = async () => {
+    try {
+      const { data: { session } } = await supabase().auth.getSession();
+      const token = session?.access_token;
+      
+      if (token) {
+        const response = await fetch('/api/settings', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success && data.settings?.general?.enableRewardPrograms) {
+          setRewardProgramsEnabled(true);
+        } else {
+          setRewardProgramsEnabled(false);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check reward programs setting:', error);
+      setRewardProgramsEnabled(false);
     }
   };
 
@@ -274,6 +300,7 @@ export default function Programs() {
           onSubmit={editingProgram ? handleEditProgram : handleCreateProgram}
           currency={currency}
           isLoading={isCreating || isUpdating}
+          rewardProgramsEnabled={rewardProgramsEnabled}
         />
       )}
 
@@ -313,7 +340,7 @@ export default function Programs() {
   );
 }
 
-function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) {
+function ProgramModal({ program, onClose, onSubmit, currency, isLoading, rewardProgramsEnabled }: any) {
   const [formData, setFormData] = useState({
     name: program?.name || '',
     type: program?.type || 'signup',
@@ -374,7 +401,9 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
               >
                 <option value="signup">Sign Up Referrals</option>
                 <option value="purchase">Purchase Referrals</option>
-                <option value="reward">Sign Up Referrals (Reward)</option>
+                {rewardProgramsEnabled && (
+                  <option value="reward">Sign Up Referrals (Reward)</option>
+                )}
               </select>
             </div>
             {formData.type === 'reward' ? (

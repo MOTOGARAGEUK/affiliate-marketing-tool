@@ -114,6 +114,11 @@ export async function GET(request: NextRequest) {
       verifiedReferrals.forEach(referral => {
         const program = referral.programs;
         if (program) {
+          // Skip reward programs - they don't contribute to earnings
+          if (program.type === 'reward') {
+            return; // Skip this referral
+          }
+          
           if (program.commission_type === 'fixed') {
             totalEarnings += program.commission;
           } else if (program.commission_type === 'percentage') {

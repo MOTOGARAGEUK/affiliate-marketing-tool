@@ -55,14 +55,21 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         const token = session?.access_token;
         
         if (token) {
-          const response = await fetch('/api/settings');
+          const response = await fetch('/api/settings', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
           const data = await response.json();
           if (data.success && data.settings?.general?.enableRewardPrograms) {
             setRewardProgramsEnabled(true);
+          } else {
+            setRewardProgramsEnabled(false);
           }
         }
       } catch (error) {
         console.error('Failed to check reward programs setting:', error);
+        setRewardProgramsEnabled(false);
       }
     };
 

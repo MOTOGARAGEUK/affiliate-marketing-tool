@@ -93,18 +93,31 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     
+    // Prepare program data based on type
+    const programData: any = {
+      name: body.name,
+      type: body.type,
+      status: body.status,
+      description: body.description,
+      user_id: user.id
+    };
+
+    // Handle different program types
+    if (body.type === 'reward') {
+      programData.referral_target = body.referralTarget;
+      // For reward programs, commission and commission_type should be null
+      programData.commission = null;
+      programData.commission_type = null;
+    } else {
+      programData.commission = body.commission;
+      programData.commission_type = body.commissionType;
+      programData.referral_target = null;
+    }
+    
     // Use authenticated client to create program
     const { data: program, error } = await authenticatedSupabase
       .from('programs')
-      .insert({
-        name: body.name,
-        type: body.type,
-        commission: body.commission,
-        commission_type: body.commissionType, // Fix: use correct column name
-        status: body.status,
-        description: body.description,
-        user_id: user.id
-      })
+      .insert(programData)
       .select()
       .single();
     

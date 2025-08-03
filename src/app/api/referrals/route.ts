@@ -72,7 +72,10 @@ export async function GET(request: NextRequest) {
       let calculatedCommission = 0;
       
       if (program) {
-        if (program.commission_type === 'fixed') {
+        if (program.type === 'reward') {
+          // Reward programs have £0 commission
+          calculatedCommission = 0;
+        } else if (program.commission_type === 'fixed') {
           calculatedCommission = program.commission;
         } else if (program.commission_type === 'percentage') {
           // For percentage, we need a base amount - using a default of 100 for now
