@@ -61,9 +61,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             }
           });
           const data = await response.json();
+          console.log('Layout - Settings response:', data);
           if (data.success && data.settings?.general?.enableRewardPrograms) {
+            console.log('Layout - Enabling reward programs');
             setRewardProgramsEnabled(true);
           } else {
+            console.log('Layout - Disabling reward programs');
             setRewardProgramsEnabled(false);
           }
         }
@@ -74,12 +77,41 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     };
 
     checkRewardPrograms();
+
+    // Listen for settings changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'settings-updated') {
+        console.log('Settings updated, re-checking reward programs...');
+        checkRewardPrograms();
+      }
+    };
+
+    const handleSettingsUpdate = () => {
+      console.log('Settings update event received, re-checking reward programs...');
+      checkRewardPrograms();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('settings-updated', handleSettingsUpdate);
+    
+    // Also check periodically in case events don't fire
+    const interval = setInterval(checkRewardPrograms, 5000); // Check every 5 seconds
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('settings-updated', handleSettingsUpdate);
+      clearInterval(interval);
+    };
   }, [user]);
 
   // Build navigation based on settings
   const navigation = rewardProgramsEnabled 
     ? [...baseNavigation.slice(0, 5), rewardsNavigation, ...baseNavigation.slice(5)]
     : baseNavigation;
+
+  // Debug logging
+  console.log('Layout - Reward programs enabled:', rewardProgramsEnabled);
+  console.log('Layout - Navigation items:', navigation.map(n => n.name));
 
   const handleSignOut = async () => {
     await signOut();

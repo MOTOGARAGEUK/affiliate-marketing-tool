@@ -186,6 +186,10 @@ function GeneralSettings({ settings: initialSettings, onSettingsUpdate }: Genera
         if (onSettingsUpdate) {
           onSettingsUpdate(result.settings);
         }
+        
+        // Trigger events to notify other components
+        localStorage.setItem('settings-updated', Date.now().toString());
+        window.dispatchEvent(new Event('settings-updated'));
       }
     } catch (error) {
       setSaveResult({
