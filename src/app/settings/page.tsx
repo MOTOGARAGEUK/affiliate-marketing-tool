@@ -719,7 +719,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                 </div>
 
                 <div>
-                  <h6 className="font-medium text-gray-800 mb-2">Step 3: Download Tracking Script (current version v1.6)</h6>
+                  <h6 className="font-medium text-gray-800 mb-2">Step 3: Download Tracking Script (current version v1.7)</h6>
                   <p className="text-sm text-gray-700 mb-2">
                     Download the <code>affiliate-tracking.js</code> file:
                   </p>
@@ -727,7 +727,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                     <button
                       type="button"
                       onClick={() => {
-                        const scriptText = `// Affiliate Referral Tracking Script - Version 1.6
+                        const scriptText = `// Affiliate Referral Tracking Script - Version 1.7 (Updated: ${new Date().toISOString()})
 (function() {
   // Get referral parameters from URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -749,7 +749,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
     }));
     
     // Send initial page view tracking
-    fetch('https://affiliate-marketing-tool.vercel.app/api/track-referral', {
+    fetch('/api/track-referral', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -777,7 +777,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
     function trackSignupCompletion(email, name) {
       console.log('Tracking signup completion for:', email, 'with referral:', utmCampaign);
       
-      fetch('https://affiliate-marketing-tool.vercel.app/api/track-referral', {
+      fetch('/api/track-referral', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -807,7 +807,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
       localStorage.setItem('affiliate_signup_email', email);
       localStorage.setItem('affiliate_signup_name', name);
       
-      fetch('https://affiliate-marketing-tool.vercel.app/api/track-referral', {
+      fetch('/api/track-referral', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
