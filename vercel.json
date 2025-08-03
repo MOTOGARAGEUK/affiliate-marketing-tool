@@ -6,6 +6,15 @@
       "use": "@vercel/next"
     }
   ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1",
+      "headers": {
+        "x-vercel-subdomain": "affiliates"
+      }
+    }
+  ],
   "crons": [
     {
       "path": "/api/sync-sharetribe-referrals",

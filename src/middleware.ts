@@ -14,6 +14,26 @@ export async function middleware(request: NextRequest) {
     });
   }
 
+  // Handle subdomain routing for affiliate dashboard
+  const hostname = request.headers.get('host');
+  const isAffiliateDomain = hostname?.startsWith('affiliates.') || hostname?.includes('affiliates-');
+  
+  if (isAffiliateDomain) {
+    // Route affiliate domain to affiliate pages
+    const pathname = request.nextUrl.pathname;
+    
+    // Skip API routes and static files
+    if (pathname.startsWith('/api/') || pathname.startsWith('/_next/') || pathname.startsWith('/favicon.ico')) {
+      return NextResponse.next();
+    }
+    
+    // Route to affiliate pages
+    const affiliatePath = `/affiliate${pathname}`;
+    console.log(`Affiliate domain routing: ${pathname} -> ${affiliatePath}`);
+    
+    return NextResponse.rewrite(new URL(affiliatePath, request.url));
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
