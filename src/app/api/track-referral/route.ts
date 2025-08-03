@@ -324,7 +324,7 @@ async function processSignupCompletion(referralCode: string, customerEmail: stri
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Find the affiliate by referral code
+    // Find the affiliate by referral code and check status
     const { data: affiliate, error: affiliateError } = await supabase
       .from('affiliates')
       .select(`
@@ -332,20 +332,37 @@ async function processSignupCompletion(referralCode: string, customerEmail: stri
         user_id,
         name,
         referral_code,
-        program_id
+        program_id,
+        status,
+        programs (
+          id,
+          name,
+          status,
+          type
+        )
       `)
       .eq('referral_code', referralCode)
+      .eq('status', 'active')
       .single();
 
     if (affiliateError || !affiliate) {
-      console.log('❌ Referral code not found in database:', referralCode);
+      console.log('❌ Referral code not found or affiliate inactive:', referralCode);
       return NextResponse.json(
         { success: false, message: 'Invalid referral code' },
         { status: 404 }
       );
     }
 
-    console.log('✅ Found affiliate:', affiliate.name);
+    // Check if the program is active
+    if (!affiliate.programs || affiliate.programs.status !== 'active') {
+      console.log('❌ Program is inactive for affiliate:', affiliate.name);
+      return NextResponse.json(
+        { success: false, message: 'Program is inactive' },
+        { status: 403 }
+      );
+    }
+
+    console.log('✅ Found active affiliate:', affiliate.name, 'with active program:', affiliate.programs.name);
 
     // Check if this customer has already been tracked for this affiliate
     const { data: existingReferral, error: checkError } = await supabase

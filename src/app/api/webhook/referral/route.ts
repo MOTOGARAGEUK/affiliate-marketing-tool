@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    // Find the affiliate by referral code
+    // Find the affiliate by referral code and check status
     const { data: affiliate, error: affiliateError } = await supabase
       .from('affiliates')
       .select(`
@@ -67,22 +67,34 @@ export async function POST(request: NextRequest) {
         user_id,
         name as affiliate_name,
         email as affiliate_email,
+        status,
         programs (
           id,
           name,
           commission,
           commission_type,
-          type
+          type,
+          status
         )
       `)
       .eq('referral_code', referralCode)
+      .eq('status', 'active')
       .single();
 
     if (affiliateError || !affiliate) {
-      console.log('Referral code not found:', referralCode);
+      console.log('Referral code not found or affiliate inactive:', referralCode);
       return NextResponse.json(
         { success: false, message: 'Invalid referral code' },
         { status: 404 }
+      );
+    }
+
+    // Check if the program is active
+    if (!affiliate.programs || affiliate.programs.status !== 'active') {
+      console.log('Program is inactive for affiliate:', affiliate.affiliate_name);
+      return NextResponse.json(
+        { success: false, message: 'Program is inactive' },
+        { status: 403 }
       );
     }
 
