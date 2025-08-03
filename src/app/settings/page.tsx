@@ -309,6 +309,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
   const [referralFlowResult, setReferralFlowResult] = useState<{ success: boolean; message: string; data?: any } | null>(null);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string; data?: any } | null>(null);
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isScriptExpanded, setIsScriptExpanded] = useState(false);
 
   // Update settings when props change
   useEffect(() => {
@@ -675,23 +676,313 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                 <div>
                   <h6 className="font-medium text-gray-800 mb-2">Step 2: Marketplace URL Configuration</h6>
                   <p className="text-sm text-gray-700 mb-2">
-                    Enter your marketplace URL in your tracking system configuration:
+                    Enter your marketplace URL in the configuration above:
                   </p>
-                  <div className="bg-gray-100 p-2 rounded font-mono text-sm">
-                    https://yourmarketplace.com
+                  <div className="flex items-center space-x-2">
+                    <div className="flex-1 bg-gray-50 border border-gray-200 rounded-md p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700">Marketplace URL</span>
+                        {sharetribeConfig.marketplaceUrl ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            ✅ Completed
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            ⚠️ Not Set
+                          </span>
+                        )}
+                      </div>
+                      {sharetribeConfig.marketplaceUrl && (
+                        <p className="text-sm text-gray-600 mt-1 font-mono">{sharetribeConfig.marketplaceUrl}</p>
+                      )}
+                    </div>
                   </div>
                   <p className="text-xs text-gray-600 mt-1">
-                    <strong>Note:</strong> Replace <code>yourmarketplace</code> with your actual marketplace domain.
+                    <strong>Note:</strong> Enter your marketplace URL in the "Marketplace URL" field above.
                   </p>
                 </div>
 
                 <div>
                   <h6 className="font-medium text-gray-800 mb-2">Step 3: Download Tracking Script (current version v1.6)</h6>
                   <p className="text-sm text-gray-700 mb-2">
-                    Download the <code>affiliate-tracking.js</code> file from:
+                    Download the <code>affiliate-tracking.js</code> file:
                   </p>
-                  <div className="bg-gray-100 p-2 rounded font-mono text-sm">
-                    web-template/public/scripts/affiliate-tracking.js
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const scriptText = `// Affiliate Referral Tracking Script - Version 1.6
+(function() {
+  // Get referral parameters from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const utmSource = urlParams.get('utm_source');
+  const utmMedium = urlParams.get('utm_medium');
+  const utmCampaign = urlParams.get('utm_campaign');
+  
+  // Check if this is an affiliate referral
+  if (utmSource === 'affiliate' && utmMedium === 'referral' && utmCampaign) {
+    console.log('Affiliate referral detected:', utmCampaign);
+    
+    // Store referral data in localStorage
+    localStorage.setItem('affiliate_referral', JSON.stringify({
+      source: utmSource,
+      medium: utmMedium,
+      campaign: utmCampaign,
+      timestamp: new Date().toISOString(),
+      page: window.location.href
+    }));
+    
+    // Send initial page view tracking
+    fetch('https://affiliate-marketing-tool.vercel.app/api/track-referral', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'page_view',
+        referralCode: utmCampaign,
+        page: window.location.href
+      })
+    }).catch(error => {
+      console.log('Referral tracking error:', error);
+    });
+    
+    // Store referral data for later use
+    const referralData = {
+      referralCode: utmCampaign,
+      timestamp: new Date().toISOString(),
+      page: window.location.href
+    };
+    
+    // Store in localStorage for cross-page access
+    localStorage.setItem('affiliate_referral_data', JSON.stringify(referralData));
+    
+    // Function to track signup completion
+    function trackSignupCompletion(email, name) {
+      console.log('Tracking signup completion for:', email, 'with referral:', utmCampaign);
+      
+      fetch('https://affiliate-marketing-tool.vercel.app/api/track-referral', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'signup_complete',
+          referralCode: utmCampaign,
+          email: email,
+          userInfo: {
+            email: email,
+            name: name || 'New User'
+          }
+        })
+      }).then(response => {
+        console.log('Signup completion tracked successfully for affiliate:', utmCampaign);
+        return response.json();
+      }).catch(error => {
+        console.log('Signup completion tracking error:', error);
+      });
+    }
+    
+    // Function to track signup initiation
+    function trackSignupInitiation(email, name) {
+      console.log('Tracking signup initiation for:', email, 'with referral:', utmCampaign);
+      
+      // Store email for verification completion
+      localStorage.setItem('affiliate_signup_email', email);
+      localStorage.setItem('affiliate_signup_name', name);
+      
+      fetch('https://affiliate-marketing-tool.vercel.app/api/track-referral', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'signup_initiated',
+          referralCode: utmCampaign,
+          email: email,
+          userInfo: {
+            email: email,
+            name: name
+          }
+        })
+      }).then(response => {
+        console.log('Signup initiation tracked successfully for affiliate:', utmCampaign);
+        return response.json();
+      }).catch(error => {
+        console.log('Signup initiation tracking error:', error);
+      });
+    }
+    
+    // Monitor for ShareTribe signup events
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, setting up ShareTribe-specific tracking...');
+      
+      // Method 1: Monitor for ShareTribe SDK calls (intercept fetch/XHR)
+      const originalFetch = window.fetch;
+      window.fetch = function(...args) {
+        const url = args[0];
+        const options = args[1] || {};
+        
+        // Check if this is a ShareTribe user creation API call
+        if (typeof url === 'string' && url.includes('/api/current-user') && options.method === 'POST') {
+          console.log('ShareTribe user creation API call detected!');
+          
+          try {
+            const body = JSON.parse(options.body);
+            if (body.email) {
+              const name = (body.firstName || '') + ' ' + (body.lastName || '').trim();
+              console.log('ShareTribe signup detected - Email:', body.email, 'Name:', name);
+              trackSignupInitiation(body.email, name || 'New User');
+            }
+          } catch (e) {
+            console.log('Could not parse ShareTribe API body:', e);
+          }
+        }
+        
+        return originalFetch.apply(this, args);
+      };
+      
+      // Method 2: Monitor for ShareTribe form submissions
+      const signupForm = document.querySelector('form.SignupForm_root__LcKFm');
+      
+      if (signupForm) {
+        console.log('ShareTribe signup form found and monitoring...');
+        
+        signupForm.addEventListener('submit', function(e) {
+          console.log('ShareTribe form submission detected!');
+          
+          const emailInput = document.querySelector('input#email');
+          const fnameInput = document.querySelector('input#fname');
+          const lnameInput = document.querySelector('input#lname');
+          
+          const email = emailInput ? emailInput.value : '';
+          const firstName = fnameInput ? fnameInput.value : '';
+          const lastName = lnameInput ? lnameInput.value : '';
+          const name = (firstName + ' ' + lastName).trim() || 'New User';
+          
+          console.log('ShareTribe form data - Email:', email, 'Name:', name);
+          
+          if (email) {
+            trackSignupInitiation(email, name);
+          }
+        });
+      } else {
+        console.log('ShareTribe signup form not found');
+      }
+      
+      // Method 3: Monitor for ShareTribe button clicks
+      document.addEventListener('click', function(e) {
+        if (e.target && (e.target.tagName === 'BUTTON' || e.target.closest('button'))) {
+          const button = e.target.tagName === 'BUTTON' ? e.target : e.target.closest('button');
+          const buttonText = button.textContent || button.innerText || '';
+          const buttonClass = button.className || '';
+          
+          if (buttonClass.includes('Button_primaryButtonRoot__xQMAW') ||
+              buttonText.toLowerCase().includes('sign up') || 
+              buttonText.toLowerCase().includes('create account') ||
+              buttonText.toLowerCase().includes('join')) {
+            
+            console.log('ShareTribe signup button detected!');
+            
+            const emailInput = document.querySelector('input#email');
+            const fnameInput = document.querySelector('input#fname');
+            const lnameInput = document.querySelector('input#lname');
+            
+            const email = emailInput ? emailInput.value : '';
+            const firstName = fnameInput ? fnameInput.value : '';
+            const lastName = lnameInput ? lnameInput.value : '';
+            const name = (firstName + ' ' + lastName).trim() || 'New User';
+            
+            console.log('ShareTribe button data - Email:', email, 'Name:', name);
+            
+            if (email) {
+              trackSignupInitiation(email, name);
+            }
+          }
+        }
+      });
+      
+      // Method 4: Monitor for ShareTribe success messages
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'childList') {
+            const verificationMessages = document.querySelectorAll('*');
+            verificationMessages.forEach(function(element) {
+              if (element.textContent && (
+                element.textContent.includes('verification email') ||
+                element.textContent.includes('check your email') ||
+                element.textContent.includes('email sent') ||
+                element.textContent.includes('verify your email') ||
+                element.textContent.includes('confirmation email') ||
+                element.textContent.includes('EmailVerificationInfo') ||
+                element.textContent.includes('Please check your email')
+              )) {
+                console.log('ShareTribe verification message detected!');
+                const email = localStorage.getItem('affiliate_signup_email');
+                const name = localStorage.getItem('affiliate_signup_name');
+                
+                if (email) {
+                  trackSignupCompletion(email, name);
+                  
+                  // Clean up localStorage
+                  localStorage.removeItem('affiliate_referral_data');
+                  localStorage.removeItem('affiliate_signup_email');
+                  localStorage.removeItem('affiliate_signup_name');
+                }
+              }
+            });
+          }
+        });
+      });
+      
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    });
+    
+    // Also check for referral data on page load (for email verification pages)
+    if (localStorage.getItem('affiliate_referral_data')) {
+      const referralData = JSON.parse(localStorage.getItem('affiliate_referral_data'));
+      
+      if (window.location.href.includes('verify') || 
+          window.location.href.includes('confirm') || 
+          window.location.href.includes('activate') ||
+          window.location.search.includes('token')) {
+        
+        console.log('ShareTribe email verification page detected');
+        const email = localStorage.getItem('affiliate_signup_email');
+        const name = localStorage.getItem('affiliate_signup_name');
+        
+        if (email) {
+          trackSignupCompletion(email, name);
+          
+          // Clean up localStorage
+          localStorage.removeItem('affiliate_referral_data');
+          localStorage.removeItem('affiliate_signup_email');
+          localStorage.removeItem('affiliate_signup_name');
+        }
+      }
+    }
+  }
+})();`;
+                        
+                        // Create a blob and download the file
+                        const blob = new Blob([scriptText], { type: 'application/javascript' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'affiliate-tracking.js';
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                      }}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      📥 Download Script
+                    </button>
+                    <span className="text-sm text-gray-500">Save as: affiliate-tracking.js</span>
                   </div>
                 </div>
 
@@ -700,7 +991,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                   <p className="text-sm text-gray-700 mb-2">
                     In your website code, navigate to your scripts folder and add the tracking script file there:
                   </p>
-                  <div className="bg-gray-100 p-2 rounded font-mono text-sm">
+                  <div className="bg-gray-50 border border-gray-200 rounded-md p-3 font-mono text-sm text-gray-700">
                     your-website/<br/>
                     ├── scripts/<br/>
                     │   └── affiliate-tracking.js  ← Add the file here<br/>
@@ -713,7 +1004,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                   <p className="text-sm text-gray-700 mb-2">
                     Go to your website's <code>index.html</code> file and add the following script reference in the <code>&lt;head&gt;</code> section:
                   </p>
-                  <div className="bg-gray-100 p-2 rounded font-mono text-sm">
+                  <div className="bg-gray-50 border border-gray-200 rounded-md p-3 font-mono text-sm text-gray-700">
                     &lt;head&gt;<br/>
                     &nbsp;&nbsp;&nbsp;&nbsp;&lt;!-- Your existing head content --&gt;<br/>
                     &nbsp;&nbsp;&nbsp;&nbsp;<br/>
@@ -838,10 +1129,17 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
             {/* Tracking Script */}
             <div className="bg-gray-900 rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-gray-300">Tracking Script:</span>
-                <button
-                  onClick={() => {
-                                         const scriptText = `<!-- Affiliate Referral Tracking Script for ShareTribe - Version 1.6 -->
+                <span className="text-sm font-medium text-gray-300">Tracking Script (Collapsed)</span>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setIsScriptExpanded(!isScriptExpanded)}
+                    className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-gray-600 rounded hover:bg-gray-700"
+                  >
+                    {isScriptExpanded ? '📁 Collapse' : '📂 Expand'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const scriptText = `<!-- Affiliate Referral Tracking Script for ShareTribe - Version 1.6 -->
 <script>
 (function() {
   // Get referral parameters from URL
@@ -1106,18 +1404,20 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
   }
 })();
 </script>`;
-                    navigator.clipboard.writeText(scriptText).then(() => {
-                      alert('ShareTribe tracking script copied to clipboard!');
-                    }).catch(() => {
-                      alert('Failed to copy script. Please select and copy manually.');
-                    });
-                  }}
-                  className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
-                >
-                  📋 Copy Script
-                </button>
+                      navigator.clipboard.writeText(scriptText).then(() => {
+                        alert('ShareTribe tracking script copied to clipboard!');
+                      }).catch(() => {
+                        alert('Failed to copy script. Please select and copy manually.');
+                      });
+                    }}
+                    className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
+                  >
+                    📋 Copy Script
+                  </button>
+                </div>
               </div>
-              <pre className="text-xs text-green-400 overflow-x-auto whitespace-pre-wrap">
+              {isScriptExpanded && (
+                <pre className="text-xs text-green-400 overflow-x-auto whitespace-pre-wrap">
 {`<!-- Affiliate Referral Tracking Script for ShareTribe - Version 1.6 -->
 <script>
 (function() {
@@ -1383,8 +1683,8 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
   }
 })();
 </script>`}
-              </pre>
-            </div>
+                </pre>
+              )}
 
             {/* Testing Instructions */}
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
