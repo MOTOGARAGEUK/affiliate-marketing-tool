@@ -791,7 +791,7 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                 <p className="text-sm text-blue-800">
                   <strong>{selectedProgram.type === 'reward' ? 'Referral Target:' : 'Commission:'}</strong> {
                     selectedProgram.type === 'reward' 
-                      ? `${selectedProgram.referral_target} referrals`
+                      ? selectedProgram.referral_target
                       : selectedProgram.commissionType === 'percentage' 
                         ? `${selectedProgram.commission}%` 
                         : `${formatCurrency(selectedProgram.commission, currency)}`
@@ -964,7 +964,7 @@ function ViewAffiliateModal({ affiliate, programs, onClose, currency = 'GBP' }: 
                       if (!program) return 'N/A';
                       
                       if (program.type === 'reward') {
-                        return `${program.referral_target} referrals`;
+                        return program.referral_target;
                       } else if (program.commissionType === 'percentage') {
                         return `${program.commission}% per ${program.type === 'signup' ? 'signup' : 'purchase'}`;
                       } else {

@@ -291,7 +291,7 @@ export default function Programs() {
                 </span>
                 <span className="text-sm font-medium text-gray-900">
                   {program.type === 'reward' 
-                    ? `${program.referral_target} referrals`
+                    ? program.referral_target
                     : program.commissionType === 'percentage' 
                       ? `${program.commission}%` 
                       : `${currency}${program.commission}`
