@@ -15,9 +15,10 @@ CREATE TABLE public.users (
 CREATE TABLE public.programs (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name TEXT NOT NULL,
-    type TEXT CHECK (type IN ('signup', 'purchase')) NOT NULL,
-    commission DECIMAL(10,2) NOT NULL,
-    commission_type TEXT CHECK (commission_type IN ('fixed', 'percentage')) NOT NULL,
+    type TEXT CHECK (type IN ('signup', 'purchase', 'reward')) NOT NULL,
+    commission DECIMAL(10,2),
+    commission_type TEXT CHECK (commission_type IN ('fixed', 'percentage')),
+    referral_target INTEGER,
     status TEXT CHECK (status IN ('active', 'inactive')) DEFAULT 'active',
     description TEXT,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,

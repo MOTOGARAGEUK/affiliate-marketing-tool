@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +14,7 @@ import {
   XMarkIcon,
   ArrowRightOnRectangleIcon,
   ArrowPathIcon,
+  GiftIcon,
 } from '@heroicons/react/24/outline';
 
 // Bee icon component
@@ -26,7 +27,7 @@ const BeeIcon = () => (
   </svg>
 );
 
-const navigation = [
+const baseNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: ChartBarIcon },
   { name: 'Programs', href: '/programs', icon: PuzzlePieceIcon },
   { name: 'Affiliates', href: '/affiliates', icon: UserGroupIcon },
@@ -35,11 +36,43 @@ const navigation = [
   { name: 'Settings', href: '/settings', icon: CogIcon },
 ];
 
+const rewardsNavigation = { name: 'Rewards', href: '/rewards', icon: GiftIcon };
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [rewardProgramsEnabled, setRewardProgramsEnabled] = useState(false);
   const pathname = usePathname();
   const { user, signOut } = useAuth();
   const router = useRouter();
+
+  // Check if reward programs are enabled
+  useEffect(() => {
+    const checkRewardPrograms = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: { session } } = await import('@/lib/supabase').then(m => m.supabase()).auth.getSession();
+        const token = session?.access_token;
+        
+        if (token) {
+          const response = await fetch('/api/settings');
+          const data = await response.json();
+          if (data.success && data.settings?.general?.enableRewardPrograms) {
+            setRewardProgramsEnabled(true);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check reward programs setting:', error);
+      }
+    };
+
+    checkRewardPrograms();
+  }, [user]);
+
+  // Build navigation based on settings
+  const navigation = rewardProgramsEnabled 
+    ? [...baseNavigation.slice(0, 5), rewardsNavigation, ...baseNavigation.slice(5)]
+    : baseNavigation;
 
   const handleSignOut = async () => {
     await signOut();

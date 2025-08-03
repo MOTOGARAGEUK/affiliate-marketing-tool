@@ -319,6 +319,7 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
     type: program?.type || 'signup',
     commission: program?.commission || 0,
     commissionType: program?.commissionType || 'fixed',
+    referralTarget: program?.referral_target || 10,
     status: program?.status || 'active',
     description: program?.description || '',
   });
@@ -334,6 +335,11 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
     const newFormData = { ...formData, type };
     // For signup programs, force commission type to be fixed
     if (type === 'signup') {
+      newFormData.commissionType = 'fixed';
+    }
+    // For reward programs, clear commission fields
+    if (type === 'reward') {
+      newFormData.commission = 0;
       newFormData.commissionType = 'fixed';
     }
     setFormData(newFormData);
@@ -368,41 +374,61 @@ function ProgramModal({ program, onClose, onSubmit, currency, isLoading }: any) 
               >
                 <option value="signup">Sign Up Referrals</option>
                 <option value="purchase">Purchase Referrals</option>
+                <option value="reward">Sign Up Referrals (Reward)</option>
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            {formData.type === 'reward' ? (
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Commission {formData.commissionType === 'percentage' ? '(%)' : `(${currency})`}
+                  Referral Target
                 </label>
                 <input
                   type="number"
-                  value={formData.commission}
-                  onChange={(e) => setFormData({ ...formData, commission: parseFloat(e.target.value) })}
+                  value={formData.referralTarget}
+                  onChange={(e) => setFormData({ ...formData, referralTarget: parseInt(e.target.value) })}
                   className="mt-1 block w-full form-input"
                   required
-                  min="0"
-                  step={formData.commissionType === 'percentage' ? '0.1' : '0.01'}
-                  max={formData.commissionType === 'percentage' ? '100' : undefined}
+                  min="1"
+                  step="1"
                   disabled={isLoading}
                 />
+                <p className="text-xs text-gray-500 mt-1">Number of verified referrals required to qualify for reward</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Type</label>
-                <select
-                  value={formData.commissionType}
-                  onChange={(e) => setFormData({ ...formData, commissionType: e.target.value })}
-                  className="mt-1 block w-full form-select"
-                  disabled={formData.type === 'signup' || isLoading}
-                >
-                  <option value="fixed">Fixed ({currency})</option>
-                  <option value="percentage">Percentage (%)</option>
-                </select>
-                {formData.type === 'signup' && (
-                  <p className="text-xs text-gray-500 mt-1">Sign up programs only support fixed dollar amounts</p>
-                )}
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Commission {formData.commissionType === 'percentage' ? '(%)' : `(${currency})`}
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.commission}
+                    onChange={(e) => setFormData({ ...formData, commission: parseFloat(e.target.value) })}
+                    className="mt-1 block w-full form-input"
+                    required
+                    min="0"
+                    step={formData.commissionType === 'percentage' ? '0.1' : '0.01'}
+                    max={formData.commissionType === 'percentage' ? '100' : undefined}
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Type</label>
+                  <select
+                    value={formData.commissionType}
+                    onChange={(e) => setFormData({ ...formData, commissionType: e.target.value })}
+                    className="mt-1 block w-full form-select"
+                    disabled={formData.type === 'signup' || isLoading}
+                  >
+                    <option value="fixed">Fixed ({currency})</option>
+                    <option value="percentage">Percentage (%)</option>
+                  </select>
+                  {formData.type === 'signup' && (
+                    <p className="text-xs text-gray-500 mt-1">Sign up programs only support fixed dollar amounts</p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700">Status</label>
               <select

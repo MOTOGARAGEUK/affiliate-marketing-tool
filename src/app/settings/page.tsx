@@ -137,6 +137,7 @@ function GeneralSettings({ settings: initialSettings, onSettingsUpdate }: Genera
     timezone: 'UTC',
     autoApproveReferrals: true,
     minimumPayout: 50,
+    enableRewardPrograms: false,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -264,6 +265,17 @@ function GeneralSettings({ settings: initialSettings, onSettingsUpdate }: Genera
             />
             <label className="ml-2 block text-sm text-gray-900">
               Auto-approve referrals
+            </label>
+          </div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={settings.enableRewardPrograms}
+              onChange={(e) => setSettings({ ...settings, enableRewardPrograms: e.target.checked })}
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            />
+            <label className="ml-2 block text-sm text-gray-900">
+              Enable reward programs
             </label>
           </div>
         </div>
