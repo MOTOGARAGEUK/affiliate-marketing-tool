@@ -789,10 +789,20 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
               <div className="bg-blue-50 p-3 rounded-md">
                 <h4 className="text-sm font-medium text-blue-900 mb-1">Program Details</h4>
                 <p className="text-sm text-blue-800">
-                  <strong>Commission:</strong> {selectedProgram.commissionType === 'percentage' ? `${selectedProgram.commission}%` : `${formatCurrency(selectedProgram.commission, currency)}`} per {selectedProgram.type === 'signup' ? 'signup' : 'purchase'}
+                  <strong>{selectedProgram.type === 'reward' ? 'Referral Target:' : 'Commission:'}</strong> {
+                    selectedProgram.type === 'reward' 
+                      ? `${selectedProgram.referral_target} referrals`
+                      : selectedProgram.commissionType === 'percentage' 
+                        ? `${selectedProgram.commission}%` 
+                        : `${formatCurrency(selectedProgram.commission, currency)}`
+                  } per {selectedProgram.type === 'signup' ? 'signup' : selectedProgram.type === 'reward' ? 'reward qualification' : 'purchase'}
                 </p>
                 <p className="text-sm text-blue-800">
-                  <strong>Type:</strong> {selectedProgram.type === 'signup' ? 'Sign Up Referrals' : 'Purchase Referrals'}
+                  <strong>Type:</strong> {
+                    selectedProgram.type === 'signup' ? 'Sign Up Referrals' : 
+                    selectedProgram.type === 'reward' ? 'Sign Up Referrals (Reward)' : 
+                    'Purchase Referrals'
+                  }
                 </p>
               </div>
             )}
@@ -942,13 +952,20 @@ function ViewAffiliateModal({ affiliate, programs, onClose, currency = 'GBP' }: 
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Commission</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {(() => {
+                      const program = programs.find(p => p.id === affiliate.program_id);
+                      return program?.type === 'reward' ? 'Referral Target' : 'Commission';
+                    })()}
+                  </label>
                   <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">
                     {(() => {
                       const program = programs.find(p => p.id === affiliate.program_id);
                       if (!program) return 'N/A';
                       
-                      if (program.commissionType === 'percentage') {
+                      if (program.type === 'reward') {
+                        return `${program.referral_target} referrals`;
+                      } else if (program.commissionType === 'percentage') {
                         return `${program.commission}% per ${program.type === 'signup' ? 'signup' : 'purchase'}`;
                       } else {
                         return `${formatCurrency(program.commission, currency)} per ${program.type === 'signup' ? 'signup' : 'purchase'}`;

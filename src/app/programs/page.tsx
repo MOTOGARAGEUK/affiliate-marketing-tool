@@ -286,9 +286,16 @@ export default function Programs() {
                 <span className="text-sm font-medium text-gray-900 capitalize">{program.type}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Commission:</span>
+                <span className="text-sm text-gray-500">
+                  {program.type === 'reward' ? 'Referral Target:' : 'Commission:'}
+                </span>
                 <span className="text-sm font-medium text-gray-900">
-                  {program.commissionType === 'percentage' ? `${program.commission}%` : `${currency}${program.commission}`}
+                  {program.type === 'reward' 
+                    ? `${program.referral_target} referrals`
+                    : program.commissionType === 'percentage' 
+                      ? `${program.commission}%` 
+                      : `${currency}${program.commission}`
+                  }
                 </span>
               </div>
               <div className="flex justify-between">

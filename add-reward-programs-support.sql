@@ -1,6 +1,15 @@
 -- Add reward programs support to existing database
 -- This migration adds the new 'reward' type and referral_target field to programs table
 
+-- Create update_updated_at_column function if it doesn't exist
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
 -- Add new program type 'reward' to the existing CHECK constraint
 ALTER TABLE public.programs DROP CONSTRAINT IF EXISTS programs_type_check;
 ALTER TABLE public.programs ADD CONSTRAINT programs_type_check CHECK (type IN ('signup', 'purchase', 'reward'));
@@ -39,6 +48,11 @@ CREATE INDEX IF NOT EXISTS idx_rewards_affiliate_id ON public.rewards(affiliate_
 CREATE INDEX IF NOT EXISTS idx_rewards_program_id ON public.rewards(program_id);
 
 -- Add updated_at trigger for rewards table
-CREATE TRIGGER IF NOT EXISTS update_rewards_updated_at 
-    BEFORE UPDATE ON public.rewards 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column(); 
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_rewards_updated_at') THEN
+        CREATE TRIGGER update_rewards_updated_at 
+            BEFORE UPDATE ON public.rewards 
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END $$; 
