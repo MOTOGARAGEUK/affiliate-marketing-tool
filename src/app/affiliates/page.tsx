@@ -741,8 +741,8 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                       const selectedProgram = programs.find(p => p.id === formData.programId);
                       const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
                       
-                      if (selectedProgram?.type === 'signup') {
-                        // For signup programs, use the marketplace URL with signup path and UTM parameters
+                      if (selectedProgram?.type === 'signup' || selectedProgram?.type === 'reward') {
+                        // For signup and reward programs, use the marketplace URL with signup path and UTM parameters
                         const cleanUrl = marketplaceUrl.replace(/\/+$/, '');
                         return `${cleanUrl}/signup?utm_source=affiliate&utm_medium=referral&utm_campaign=${referralCode}`;
                       } else {
@@ -763,8 +763,8 @@ function AffiliateModal({ affiliate, programs, onClose, onSubmit, currency = '$'
                       const selectedProgram = programs.find(p => p.id === formData.programId);
                       const referralCode = `${formData.name.toUpperCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}`;
                       
-                      if (selectedProgram?.type === 'signup') {
-                        // For signup programs, use the marketplace URL with signup path and UTM parameters
+                      if (selectedProgram?.type === 'signup' || selectedProgram?.type === 'reward') {
+                        // For signup and reward programs, use the marketplace URL with signup path and UTM parameters
                         const cleanUrl = marketplaceUrl.replace(/\/+$/, '');
                         return `${cleanUrl}/signup?utm_source=affiliate&utm_medium=referral&utm_campaign=${referralCode}`;
                       } else {
