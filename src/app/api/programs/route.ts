@@ -121,7 +121,27 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Database error creating program:', error);
+      
+      // Check if it's a column not found error
+      if (error.message && (
+        error.message.includes('referral_target') || 
+        error.message.includes('column') ||
+        error.message.includes('does not exist')
+      )) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: 'Database migration required for reward programs. Please run the migration script: add-reward-programs-support.sql',
+            migrationNeeded: true
+          },
+          { status: 500 }
+        );
+      }
+      
+      throw error;
+    }
     
     if (program) {
       return NextResponse.json({ success: true, program });
@@ -131,10 +151,23 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to create program:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to create program';
+    if (error.message) {
+      if (error.message.includes('referral_target')) {
+        errorMessage = 'Database migration required for reward programs. Please run the migration script: add-reward-programs-support.sql';
+      } else if (error.message.includes('constraint')) {
+        errorMessage = 'Invalid program data. Please check your input.';
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
     return NextResponse.json(
-      { success: false, message: 'Failed to create program' },
+      { success: false, message: errorMessage },
       { status: 500 }
     );
   }

@@ -96,6 +96,26 @@ export default function Programs() {
         return;
       }
 
+      // If this is a reward program, check if migration has been run
+      if (programData.type === 'reward') {
+        const { data: { session } } = await supabase().auth.getSession();
+        const token = session?.access_token;
+        
+        if (token) {
+          const migrationCheck = await fetch('/api/check-reward-migration', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          const migrationData = await migrationCheck.json();
+          if (!migrationData.success && migrationData.migrationNeeded) {
+            alert('Database migration required for reward programs. Please contact your administrator to run the migration script: add-reward-programs-support.sql');
+            return;
+          }
+        }
+      }
+
       // Get auth token for API request
       const { data: { session } } = await supabase().auth.getSession();
       const token = session?.access_token;
