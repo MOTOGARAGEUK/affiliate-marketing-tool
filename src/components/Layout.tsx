@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import {
   ChartBarIcon,
   UserGroupIcon,
@@ -51,7 +52,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       if (!user) return;
       
       try {
-        const { data: { session } } = await import('@/lib/supabase').then(m => m.supabase()).auth.getSession();
+        // Get the current session
+        const { data: { session } } = await supabase().auth.getSession();
         const token = session?.access_token;
         
         if (token) {
@@ -69,6 +71,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             console.log('Layout - Disabling reward programs');
             setRewardProgramsEnabled(false);
           }
+        } else {
+          console.log('Layout - No session token, disabling reward programs');
+          setRewardProgramsEnabled(false);
         }
       } catch (error) {
         console.error('Failed to check reward programs setting:', error);
