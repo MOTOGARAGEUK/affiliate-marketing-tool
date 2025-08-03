@@ -226,6 +226,37 @@ export default function Affiliates() {
     }
   };
 
+  const handleUpdateRewardLinks = async () => {
+    if (!confirm('This will update referral links for all affiliates in reward programs to include /signup. Continue?')) {
+      return;
+    }
+    
+    try {
+      // Get auth token for API request
+      const { data: { session } } = await supabase().auth.getSession();
+      const token = session?.access_token;
+
+      const response = await fetch('/api/update-reward-referral-links', {
+        method: 'POST',
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        alert(`Success! ${data.updatedCount} affiliate referral links updated.`);
+        await fetchData(); // Refresh the list
+      } else {
+        console.error('Failed to update reward links:', data.message);
+        alert('Failed to update reward links: ' + data.message);
+      }
+    } catch (error) {
+      console.error('Failed to update reward links:', error);
+      alert('Failed to update reward links. Please try again.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -235,13 +266,22 @@ export default function Affiliates() {
             Manage your affiliate partners and their performance
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-        >
-          <PlusIcon className="h-4 w-4 mr-2" />
-          Add Affiliate
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={handleUpdateRewardLinks}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <ArrowPathIcon className="h-4 w-4 mr-2" />
+            Update Reward Links
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+          >
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Add Affiliate
+          </button>
+        </div>
       </div>
 
       {/* Affiliates Table */}

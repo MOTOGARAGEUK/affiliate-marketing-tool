@@ -254,11 +254,11 @@ export async function POST(request: NextRequest) {
       console.log('Using fallback URL:', baseUrl);
     }
     
-    if (program.type === 'signup') {
-      // For signup programs, use the marketplace URL with signup path and UTM parameters
+    if (program.type === 'signup' || program.type === 'reward') {
+      // For signup and reward programs, use the marketplace URL with signup path and UTM parameters
       const cleanUrl = baseUrl.replace(/\/+$/, '');
       referralLink = `${cleanUrl}/signup?utm_source=affiliate&utm_medium=referral&utm_campaign=${referralCode}`;
-      console.log('✅ Generated signup referral link:', referralLink);
+      console.log('✅ Generated signup/reward referral link:', referralLink);
     } else {
       // For purchase programs, use the marketplace URL with UTM parameters
       const cleanUrl = baseUrl.replace(/\/+$/, '');
