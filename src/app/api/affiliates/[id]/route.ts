@@ -169,12 +169,29 @@ export async function PUT(
     const body = await request.json();
     console.log('Affiliates PUT - Request body:', body);
     
+    // Map frontend field names to database column names (same as POST method)
+    const updateData = {
+      name: body.name,
+      email: body.email,
+      phone: body.phone,
+      status: body.status,
+      program_id: body.programId, // Map programId to program_id
+      bank_account_name: body.bank_account_name,
+      bank_account_number: body.bank_account_number,
+      bank_sort_code: body.bank_sort_code,
+      bank_iban: body.bank_iban,
+      bank_routing_number: body.bank_routing_number,
+      bank_name: body.bank_name
+    };
+    
+    console.log('Affiliates PUT - Mapped update data:', updateData);
+    
     try {
-      console.log('Affiliates PUT - Calling update with:', { id: params.id, body, userId: user.id });
+      console.log('Affiliates PUT - Calling update with:', { id: params.id, updateData, userId: user.id });
       
       const { data: affiliate, error: updateError } = await authenticatedSupabase
         .from('affiliates')
-        .update(body)
+        .update(updateData)
         .eq('id', params.id)
         .eq('user_id', user.id)
         .select(`
