@@ -647,22 +647,192 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
 
           {/* ShareTribe Tracking Script Section */}
           <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 p-4 rounded-md">
-            <h4 className="text-lg font-bold text-indigo-900 mb-3">🚀 ShareTribe Referral Tracking Script</h4>
+            <h4 className="text-lg font-bold text-indigo-900 mb-3">🚀 Simple Installation Guide - External Website Integration</h4>
             <p className="text-indigo-700 mb-4">
-              Copy this tracking script and add it to your ShareTribe signup page to enable affiliate referral tracking.
+              Follow these simple steps to integrate affiliate tracking with your external website.
             </p>
 
-            {/* Instructions */}
+            {/* Quick Setup Steps */}
             <div className="bg-white border border-indigo-200 rounded-lg p-4 mb-4">
-              <h5 className="font-semibold text-gray-900 mb-3">📋 How to Add to ShareTribe:</h5>
-              <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
-                <li>Go to your <strong>ShareTribe admin panel</strong></li>
-                <li>Navigate to <strong>Design → Theme editor</strong></li>
-                <li>Find your <strong>signup page template</strong></li>
-                <li>Locate the <strong>&lt;head&gt; section</strong></li>
-                <li><strong>Paste the script below</strong> just before the closing &lt;/head&gt; tag</li>
-                <li><strong>Save and publish</strong> your changes</li>
-              </ol>
+              <h5 className="font-semibold text-gray-900 mb-3">Quick Setup Steps</h5>
+              
+              <div className="space-y-4">
+                <div>
+                  <h6 className="font-medium text-gray-800 mb-2">Step 1: API Setup Verification</h6>
+                  <p className="text-sm text-gray-700 mb-2">
+                    Ensure your Marketplace API and Integration API are set up and successfully connecting to your Sharetribe marketplace.
+                  </p>
+                  <div className="bg-blue-50 p-3 rounded-md">
+                    <p className="text-sm font-medium text-blue-900 mb-1">Check these in your Sharetribe Console:</p>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Marketplace API is active</li>
+                      <li>• Integration API is configured</li>
+                      <li>• API keys are properly set up</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div>
+                  <h6 className="font-medium text-gray-800 mb-2">Step 2: Marketplace URL Configuration</h6>
+                  <p className="text-sm text-gray-700 mb-2">
+                    Enter your marketplace URL in your tracking system configuration:
+                  </p>
+                  <div className="bg-gray-100 p-2 rounded font-mono text-sm">
+                    https://yourmarketplace.com
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">
+                    <strong>Note:</strong> Replace <code>yourmarketplace</code> with your actual marketplace domain.
+                  </p>
+                </div>
+
+                <div>
+                  <h6 className="font-medium text-gray-800 mb-2">Step 3: Download Tracking Script (current version v1.6)</h6>
+                  <p className="text-sm text-gray-700 mb-2">
+                    Download the <code>affiliate-tracking.js</code> file from:
+                  </p>
+                  <div className="bg-gray-100 p-2 rounded font-mono text-sm">
+                    web-template/public/scripts/affiliate-tracking.js
+                  </div>
+                </div>
+
+                <div>
+                  <h6 className="font-medium text-gray-800 mb-2">Step 4: Add Script to Your Website</h6>
+                  <p className="text-sm text-gray-700 mb-2">
+                    In your website code, navigate to your scripts folder and add the tracking script file there:
+                  </p>
+                  <div className="bg-gray-100 p-2 rounded font-mono text-sm">
+                    your-website/<br/>
+                    ├── scripts/<br/>
+                    │   └── affiliate-tracking.js  ← Add the file here<br/>
+                    ├── index.html
+                  </div>
+                </div>
+
+                <div>
+                  <h6 className="font-medium text-gray-800 mb-2">Step 5: Reference Script in HTML</h6>
+                  <p className="text-sm text-gray-700 mb-2">
+                    Go to your website's <code>index.html</code> file and add the following script reference in the <code>&lt;head&gt;</code> section:
+                  </p>
+                  <div className="bg-gray-100 p-2 rounded font-mono text-sm">
+                    &lt;head&gt;<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&lt;!-- Your existing head content --&gt;<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&lt;!-- Add this line before the closing &lt;/head&gt; tag --&gt;<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&lt;script src="/scripts/affiliate-tracking.js"&gt;&lt;/script&gt;<br/>
+                    &lt;/head&gt;
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">
+                    <strong>Important:</strong> Make sure the path matches where you placed the file in Step 4.
+                  </p>
+                </div>
+
+                <div>
+                  <h6 className="font-medium text-gray-800 mb-2">Step 6: Test Installation</h6>
+                  <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside">
+                    <li>Open your website in a browser</li>
+                    <li>Open Developer Tools (F12)</li>
+                    <li>Check the Console tab for tracking messages</li>
+                    <li>Test with an affiliate link</li>
+                  </ol>
+                  <div className="bg-green-50 p-3 rounded-md mt-2">
+                    <p className="text-sm font-medium text-green-900 mb-1">Expected console messages:</p>
+                    <ul className="text-sm text-green-800 space-y-1">
+                      <li>• "Affiliate referral detected: [campaign]"</li>
+                      <li>• "ShareTribe user creation API call detected!"</li>
+                      <li>• "Signup initiation tracked successfully"</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Verification Checklist */}
+            <div className="bg-white border border-indigo-200 rounded-lg p-4 mb-4">
+              <h5 className="font-semibold text-gray-900 mb-3">✅ Verification Checklist</h5>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="flex items-center space-x-2">
+                  <input type="checkbox" className="rounded" />
+                  <span className="text-sm text-gray-700">API connections are working</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input type="checkbox" className="rounded" />
+                  <span className="text-sm text-gray-700">Tracking script file is in your scripts folder</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input type="checkbox" className="rounded" />
+                  <span className="text-sm text-gray-700">Script reference is added to index.html</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input type="checkbox" className="rounded" />
+                  <span className="text-sm text-gray-700">Console shows tracking messages</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input type="checkbox" className="rounded" />
+                  <span className="text-sm text-gray-700">Affiliate links are working</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input type="checkbox" className="rounded" />
+                  <span className="text-sm text-gray-700">No JavaScript errors in console</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input type="checkbox" className="rounded" />
+                  <span className="text-sm text-gray-700">Script loads without 404 errors</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Troubleshooting */}
+            <div className="bg-white border border-indigo-200 rounded-lg p-4 mb-4">
+              <h5 className="font-semibold text-gray-900 mb-3">🔧 Troubleshooting</h5>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-800 mb-1">Script not loading?</p>
+                  <ul className="text-sm text-gray-700 space-y-1">
+                    <li>• Check the file path in your script tag</li>
+                    <li>• Ensure the file is in the correct folder</li>
+                    <li>• Clear browser cache and reload</li>
+                    <li>• Check for 404 errors in Network tab</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-800 mb-1">No tracking events?</p>
+                  <ul className="text-sm text-gray-700 space-y-1">
+                    <li>• Verify UTM parameters are correct</li>
+                    <li>• Check browser console for errors</li>
+                    <li>• Ensure your marketplace URL is correct</li>
+                    <li>• Test with different browsers</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-800 mb-1">Console errors?</p>
+                  <ul className="text-sm text-gray-700 space-y-1">
+                    <li>• Check for JavaScript syntax errors</li>
+                    <li>• Verify the script file is not corrupted</li>
+                    <li>• Ensure no conflicts with other scripts</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* What Gets Tracked */}
+            <div className="bg-white border border-indigo-200 rounded-lg p-4 mb-4">
+              <h5 className="font-semibold text-gray-900 mb-3">📊 What Gets Tracked</h5>
+              <p className="text-sm text-gray-700 mb-2">
+                The script automatically tracks:
+              </p>
+              <ul className="text-sm text-gray-700 space-y-1">
+                <li>• <strong>Page Views</strong> with affiliate UTM parameters</li>
+                <li>• <strong>Signup Initiation</strong> when users start registration</li>
+                <li>• <strong>Signup Completion</strong> when email verification is done</li>
+                <li>• <strong>User Data</strong> (email, name, referral code)</li>
+              </ul>
+            </div>
+
+            {/* Important Note */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-sm text-yellow-800">
+                <strong>📝 Important Note About Sharetribe Code Access:</strong> If you are not comfortable editing code please speak to a developer to assist you.
+              </p>
             </div>
 
             {/* Tracking Script */}
