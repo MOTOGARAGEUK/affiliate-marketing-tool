@@ -1008,8 +1008,7 @@ function IntegrationSettings({ settings: initialSettings, onSettingsUpdate }: In
                     your-website/<br/>
                     ├── public/<br/>
                     │   ├── index.html<br/>
-                    │   └── scripts/<br/>
-                    │       └── affiliate-tracking.js
+                    
                   </div>
                   <div className="mt-3 space-y-2">
                     <p className="text-sm text-gray-700">
