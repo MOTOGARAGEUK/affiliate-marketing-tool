@@ -237,7 +237,7 @@ export async function GET(request: NextRequest) {
 
     const chartData = await Promise.all(
       months.map(async (month) => {
-        const [referralsResult, earningsResult] = await Promise.all([
+        const [referralsResult, earningsResult, payoutsResult] = await Promise.all([
           authenticatedSupabase
             .from('referrals')
             .select('*', { count: 'exact', head: true })
@@ -251,34 +251,43 @@ export async function GET(request: NextRequest) {
             .eq('user_id', user.id)
             .eq('sharetribe_validation_status', 'green') // Only verified for chart
             .gte('created_at', month.startDate.toISOString())
+            .lt('created_at', month.endDate.toISOString()),
+          authenticatedSupabase
+            .from('payouts')
+            .select('amount')
+            .eq('user_id', user.id)
+            .gte('created_at', month.startDate.toISOString())
             .lt('created_at', month.endDate.toISOString())
         ]);
 
         const referralsCount = referralsResult.count || 0;
-        let monthEarnings = 0;
         let monthRevenue = 0;
+        let monthPayouts = 0;
         
         if (earningsResult.data) {
           earningsResult.data.forEach(referral => {
             const program = referral.programs;
             if (program) {
               if (program.commission_type === 'fixed') {
-                monthEarnings += program.commission;
                 monthRevenue += program.commission * 10; // Assume 10% commission rate
               } else if (program.commission_type === 'percentage') {
                 const baseAmount = 100;
-                monthEarnings += (program.commission / 100) * baseAmount;
                 monthRevenue += baseAmount;
               }
             }
           });
         }
 
+        // Calculate payouts for this month
+        if (payoutsResult.data) {
+          monthPayouts = payoutsResult.data.reduce((sum, payout) => sum + Number(payout.amount || 0), 0);
+        }
+
         return {
           month: month.month,
           referrals: referralsCount,
           revenue: Math.round(monthRevenue * 100) / 100,
-          earnings: Math.round(monthEarnings * 100) / 100
+          payouts: Math.round(monthPayouts * 100) / 100
         };
       })
     );

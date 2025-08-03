@@ -80,14 +80,14 @@ export default function Dashboard() {
           },
           {
             name: 'Total Referrals',
-            value: currentStats.totalReferrals,
+            value: currentStats.verifiedReferrals || 0,
             icon: ChartBarIcon,
-            change: currentStats.totalReferrals > 0 ? '+100%' : '0%',
-            changeType: currentStats.totalReferrals > 0 ? 'positive' : 'neutral',
+            change: currentStats.verifiedReferrals > 0 ? '+100%' : '0%',
+            changeType: currentStats.verifiedReferrals > 0 ? 'positive' : 'neutral',
           },
           {
             name: 'Total Revenue',
-            value: formatCurrency(0, userCurrency as string),
+            value: formatCurrency(currentStats.totalRevenue || 0, userCurrency as string),
             icon: CurrencyDollarIcon,
             change: '0%',
             changeType: 'neutral',
@@ -192,12 +192,12 @@ export default function Dashboard() {
                 <Tooltip 
                   formatter={(value: any, name: string) => [
                     name === 'referrals' ? value : formatCurrency(value, currency as string),
-                    name === 'referrals' ? 'Referrals' : name === 'earnings' ? 'Earnings' : 'Revenue'
+                    name === 'referrals' ? 'Referrals' : name === 'payouts' ? 'Payouts' : 'Revenue'
                   ]}
                 />
                 <Line type="monotone" dataKey="referrals" stroke="#3B82F6" strokeWidth={2} />
-                <Line type="monotone" dataKey="revenue" stroke="#F59E0B" strokeWidth={2} />
-                <Line type="monotone" dataKey="earnings" stroke="#10B981" strokeWidth={2} />
+                <Line type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={2} />
+                <Line type="monotone" dataKey="payouts" stroke="#F59E0B" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </div>
