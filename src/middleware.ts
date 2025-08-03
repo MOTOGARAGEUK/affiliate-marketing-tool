@@ -16,7 +16,9 @@ export async function middleware(request: NextRequest) {
 
   // Handle subdomain routing for affiliate dashboard
   const hostname = request.headers.get('host');
-  const isAffiliateDomain = hostname?.startsWith('affiliates.') || hostname?.includes('affiliates-');
+  const isAffiliateDomain = hostname?.startsWith('affiliates.') || 
+                           hostname?.includes('affiliates-') ||
+                           hostname?.includes('affiliate-dashboard');
   
   if (isAffiliateDomain) {
     // Route affiliate domain to affiliate pages
