@@ -19,6 +19,12 @@ interface Referral {
   commission: number;
   referral_code: string;
   created_at: string;
+  // Program information
+  program_id?: string;
+  program_name?: string;
+  program_commission?: number;
+  program_commission_type?: string;
+  program_type?: string;
   // ShareTribe fields
   sharetribe_user_id?: string;
   sharetribe_created_at?: string;
@@ -34,11 +40,13 @@ interface Referral {
 export default function Referrals() {
   const { user } = useAuth();
   const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [programs, setPrograms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currency, setCurrency] = useState('GBP');
   const [validationTimer, setValidationTimer] = useState<NodeJS.Timeout | null>(null);
   const [showTestButtons, setShowTestButtons] = useState(false);
   const [statusFilter, setStatusFilter] = useState('green'); // Default to verified users only
+  const [programFilter, setProgramFilter] = useState('all'); // Default to all programs
 
   // Auto-validate referrals on page load and every minute
   const autoValidateReferrals = async () => {
@@ -94,6 +102,7 @@ export default function Referrals() {
   // Load referrals and currency settings on component mount
   useEffect(() => {
     fetchReferrals();
+    fetchPrograms();
     fetchCurrencySettings();
   }, []);
 
@@ -138,6 +147,18 @@ export default function Referrals() {
       console.error('Failed to fetch referrals:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPrograms = async () => {
+    try {
+      const response = await fetch('/api/programs');
+      const data = await response.json();
+      if (data.success) {
+        setPrograms(data.programs);
+      }
+    } catch (error) {
+      console.error('Failed to fetch programs:', error);
     }
   };
 
@@ -193,10 +214,15 @@ export default function Referrals() {
     }
   };
 
-  // Filter referrals based on status filter
+  // Filter referrals based on status and program filters
   const filteredReferrals = referrals.filter(referral => {
-    if (statusFilter === 'all') return true;
-    return referral.sharetribe_validation_status === statusFilter;
+    // Status filter
+    const statusMatch = statusFilter === 'all' || referral.sharetribe_validation_status === statusFilter;
+    
+    // Program filter
+    const programMatch = programFilter === 'all' || referral.program_id === programFilter;
+    
+    return statusMatch && programMatch;
   });
 
   return (
@@ -1180,19 +1206,40 @@ export default function Referrals() {
       {/* Controls Section */}
       <div className="bg-white shadow rounded-lg p-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          {/* Status Filter */}
-          <div className="flex items-center space-x-3">
-            <label className="text-sm font-medium text-gray-700">ShareTribe Status:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="form-select text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="green">Verified Only</option>
-              <option value="amber">Unverified Only</option>
-              <option value="red">Invalid Only</option>
-              <option value="all">All Statuses</option>
-            </select>
+          {/* Filters */}
+          <div className="flex items-center space-x-4">
+            {/* Status Filter */}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700">ShareTribe Status:</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="form-select text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="green">Verified Only</option>
+                <option value="amber">Unverified Only</option>
+                <option value="red">Invalid Only</option>
+                <option value="all">All Statuses</option>
+              </select>
+            </div>
+            
+            {/* Program Filter */}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700">Program:</label>
+              <select
+                value={programFilter}
+                onChange={(e) => setProgramFilter(e.target.value)}
+                className="form-select text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="all">All Programs</option>
+                {programs.map(program => (
+                  <option key={program.id} value={program.id}>
+                    {program.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
             <span className="text-sm text-gray-500">
               ({filteredReferrals.length} of {referrals.length} referrals)
             </span>

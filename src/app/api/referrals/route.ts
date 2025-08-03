@@ -96,9 +96,11 @@ export async function GET(request: NextRequest) {
         referral_code: referral.referral_code,
         created_at: referral.created_at,
         // Program information
+        program_id: program?.id || null,
         program_name: program?.name || 'Unknown Program',
         program_commission: program?.commission || 0,
         program_commission_type: program?.commission_type || 'fixed',
+        program_type: program?.type || 'signup',
         // ShareTribe fields
         sharetribe_user_id: referral.sharetribe_user_id,
         sharetribe_created_at: referral.sharetribe_created_at,

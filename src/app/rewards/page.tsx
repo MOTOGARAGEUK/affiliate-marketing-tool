@@ -10,11 +10,15 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 export default function Rewards() {
   const { user } = useAuth();
   const [rewards, setRewards] = useState<any[]>([]);
+  const [programs, setPrograms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currency, setCurrency] = useState('GBP');
+  const [programFilter, setProgramFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     fetchRewards();
+    fetchPrograms();
     fetchCurrencySettings();
   }, []);
 
@@ -65,6 +69,20 @@ export default function Rewards() {
       console.error('Failed to fetch rewards:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPrograms = async () => {
+    try {
+      const response = await fetch('/api/programs');
+      const data = await response.json();
+      if (data.success) {
+        // Only show reward programs
+        const rewardPrograms = data.programs.filter((program: any) => program.type === 'reward');
+        setPrograms(rewardPrograms);
+      }
+    } catch (error) {
+      console.error('Failed to fetch programs:', error);
     }
   };
 
@@ -125,6 +143,17 @@ export default function Rewards() {
     }
   };
 
+  // Filter rewards based on program and status filters
+  const filteredRewards = rewards.filter(reward => {
+    // Program filter
+    const programMatch = programFilter === 'all' || reward.program.id === programFilter;
+    
+    // Status filter
+    const statusMatch = statusFilter === 'all' || reward.status === statusFilter;
+    
+    return programMatch && statusMatch;
+  });
+
   if (loading) {
     return (
       <ProtectedRoute>
@@ -153,9 +182,53 @@ export default function Rewards() {
           </p>
         </div>
 
+        {/* Filters */}
+        <div className="bg-white shadow rounded-lg p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center space-x-4">
+              {/* Program Filter */}
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">Program:</label>
+                <select
+                  value={programFilter}
+                  onChange={(e) => setProgramFilter(e.target.value)}
+                  className="form-select text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="all">All Programs</option>
+                  {programs.map(program => (
+                    <option key={program.id} value={program.id}>
+                      {program.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Status Filter */}
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">Status:</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="form-select text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="pending">Pending Qualification</option>
+                  <option value="qualified">Qualified for Reward</option>
+                  <option value="claimed">Reward Claimed</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+              
+              <span className="text-sm text-gray-500">
+                ({filteredRewards.length} of {rewards.length} rewards)
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Rewards Table */}
         <div className="bg-white shadow rounded-lg overflow-hidden">
-          {rewards.length === 0 ? (
+          {filteredRewards.length === 0 ? (
             <div className="text-center py-12">
               <CheckCircleIcon className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No rewards yet</h3>
@@ -192,7 +265,7 @@ export default function Rewards() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {rewards.map((reward) => (
+                  {filteredRewards.map((reward) => (
                     <tr key={reward.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
