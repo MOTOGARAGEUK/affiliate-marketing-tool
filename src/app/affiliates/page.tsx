@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PlusIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
 import { Affiliate } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
