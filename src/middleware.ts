@@ -14,6 +14,26 @@ export async function middleware(request: NextRequest) {
     });
   }
 
+  // Skip auth check for static assets and public routes
+  const { pathname } = request.nextUrl;
+  if (
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/api/') ||
+    pathname === '/login' ||
+    pathname === '/' ||
+    pathname.includes('.')
+  ) {
+    // For API routes, we'll handle auth in the API handlers
+    if (pathname.startsWith('/api/')) {
+      const response = NextResponse.next();
+      response.headers.set('Access-Control-Allow-Origin', '*');
+      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      return response;
+    }
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -39,39 +59,12 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Get session from cookies
+  // Only check session for protected routes
   const { data: { session } } = await supabase.auth.getSession()
   
-  // If user is authenticated and making API requests, add the token to headers
-  if (session?.access_token && request.nextUrl.pathname.startsWith('/api/')) {
-    console.log('Middleware - Adding auth header for API request:', request.nextUrl.pathname)
-    const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('authorization', `Bearer ${session.access_token}`)
-    
-    const response = NextResponse.next({
-      request: {
-        ...request,
-        headers: requestHeaders,
-      },
-    })
-    
-    // Add CORS headers to API responses
-    if (request.nextUrl.pathname.startsWith('/api/')) {
-      response.headers.set('Access-Control-Allow-Origin', '*')
-      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    }
-    
-    return response
-  }
-
-  // Add CORS headers to API responses
-  if (request.nextUrl.pathname.startsWith('/api/')) {
-    const response = NextResponse.next()
-    response.headers.set('Access-Control-Allow-Origin', '*')
-    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    return response
+  // Redirect unauthenticated users to login
+  if (!session) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   return supabaseResponse
