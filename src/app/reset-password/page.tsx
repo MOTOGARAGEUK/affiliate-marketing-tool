@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function ResetPasswordPage() {
@@ -14,6 +14,17 @@ export default function ResetPasswordPage() {
 
   const { updatePassword, user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    // Debug: Log URL parameters
+    console.log('Reset password URL params:', {
+      type: searchParams.get('type'),
+      access_token: searchParams.get('access_token'),
+      refresh_token: searchParams.get('refresh_token'),
+      reset: searchParams.get('reset')
+    });
+  }, [searchParams]);
 
   useEffect(() => {
     // Check if user is authenticated (Supabase handles the session from the reset link)

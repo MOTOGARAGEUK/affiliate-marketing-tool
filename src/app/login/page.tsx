@@ -23,7 +23,11 @@ export default function LoginPage() {
   // Check if this is a password reset flow
   useEffect(() => {
     const resetParam = searchParams.get('reset');
-    if (resetParam === 'true') {
+    const typeParam = searchParams.get('type');
+    const accessToken = searchParams.get('access_token');
+    
+    // Check for various Supabase password reset patterns
+    if (resetParam === 'true' || typeParam === 'recovery' || accessToken) {
       // Redirect to the reset password page
       router.replace('/reset-password');
     }
