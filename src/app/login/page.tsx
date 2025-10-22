@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
@@ -18,6 +18,16 @@ export default function LoginPage() {
 
   const { signIn, signUp, resetPassword } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Check if this is a password reset flow
+  useEffect(() => {
+    const resetParam = searchParams.get('reset');
+    if (resetParam === 'true') {
+      // Redirect to the reset password page
+      router.replace('/reset-password');
+    }
+  }, [searchParams, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
